@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import * as Haptics from 'expo-haptics';
+import LoadingLogo from '../components/LoadingLogo';
 
 const C = { bg:'#FFFFFF', surface:'#F5F7FA', text:'#171717', muted:'#555F6D', border:'#E2E8EF', teal:'#0B7E8A', tealLight:'#E6F5F5' };
 
