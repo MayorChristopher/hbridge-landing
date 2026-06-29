@@ -42,7 +42,7 @@ function StatusDot({ online }: { online: boolean }) {
   return (
     <View style={{ width: 12, height: 12, alignItems: 'center', justifyContent: 'center' }}>
       {online && <Animated.View style={[s.dotPulse, { transform: [{ scale: pulse }] }]} />}
-      <View style={[s.dot, { backgroundColor: online ? C.TEAL  : '#C6C6C6' }]} />
+      <View style={[s.dot, { backgroundColor: online ? C.teal : '#C6C6C6' }]} />
     </View>
   );
 }
@@ -73,8 +73,8 @@ function ToggleRow({ label, sub, value, onChange, showDivider }: any) {
         <Switch
           value={value}
           onValueChange={onChange}
-          trackColor={{ false: C.border, true: C.TEAL  + '60' }}
-          thumbColor={value ? C.TEAL  : '#ccc'}
+          trackColor={{ false: C.border, true: C.teal + '60' }}
+          thumbColor={value ? C.teal : '#ccc'}
         />
       </View>
       {showDivider && <View style={s.divider} />}
@@ -302,7 +302,7 @@ export default function NotificationSettingsScreen({ navigation }: any) {
           title="Real-Time Location"
           rightEl={
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <View style={[s.liveDot, { backgroundColor: location ? C.TEAL  : C.muted }]} />
+              <View style={[s.liveDot, { backgroundColor: location ? C.teal : C.muted }]} />
               <Text style={s.liveText}>{location ? 'Live' : 'Offline'}</Text>
             </View>
           }

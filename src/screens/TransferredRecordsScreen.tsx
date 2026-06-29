@@ -155,7 +155,7 @@ export default function TransferredRecordsScreen({ navigation }: any) {
                     </Text>
                     <Text style={s.cardRecipient}>
                       {tab==='sent' ? 'Shared with: ' : 'From: '}
-                      <Text style={{ color: C.TEAL  }}>{getRecipientLabel(item)}</Text>
+                      <Text style={{ color: C.teal }}>{getRecipientLabel(item)}</Text>
                     </Text>
                   </View>
                   <View style={[s.statusBadge, expired ? s.statusExpired : s.statusActive]}>
@@ -197,7 +197,7 @@ const s = StyleSheet.create({
   whiteCard: { flex:1, backgroundColor:'#ffffff', borderTopLeftRadius:28, borderTopRightRadius:28, overflow:'hidden' },
   tabRow: { flexDirection:'row', marginHorizontal:16, marginVertical:12, backgroundColor:'#F5F5F5', borderRadius:10, padding:4 },
   tab: { flex:1, paddingVertical:9, borderRadius:8, alignItems:'center' },
-  tabActive: { backgroundColor:C.TEAL  },
+  tabActive: { backgroundColor:C.teal },
   tabText: { fontSize:14, fontWeight:'600', color:C.muted },
   tabTextActive: { color:'#fff' },
   card: { backgroundColor:C.bg, borderRadius:14, borderWidth:1, borderColor:'#E5E5E5', padding:14, marginBottom:12 },
@@ -210,7 +210,7 @@ const s = StyleSheet.create({
   statusActive: { backgroundColor:'#E6F5F5' },
   statusExpired: { backgroundColor:C.surface },
   statusText: { fontSize:11, fontWeight:'600' },
-  statusTextActive: { color:C.TEAL  },
+  statusTextActive: { color:C.teal },
   statusTextExpired: { color:C.muted },
   dateRow: { fontSize:11, color:C.muted, marginTop:8 },
   actions: { marginTop:10 },

@@ -166,8 +166,8 @@ export default function PrivacySettingsScreen({ navigation }: any) {
                 <Switch
                   value={settings[item.key]}
                   onValueChange={() => toggle(item.key)}
-                  trackColor={{ false: C.border, true: C.TEAL  + '60' }}
-                  thumbColor={settings[item.key] ? C.TEAL  : '#ccc'}
+                  trackColor={{ false: C.border, true: C.teal + '60' }}
+                  thumbColor={settings[item.key] ? C.teal : '#ccc'}
                   disabled={saving === item.key}
                 />
               </View>

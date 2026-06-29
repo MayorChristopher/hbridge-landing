@@ -126,7 +126,7 @@ export default function DoctorIncomingRecordsScreen({ navigation }: any) {
               <View style={s.card}>
                 <View style={s.cardTop}>
                   <View style={[s.iconBox, { backgroundColor: isActive ? '#E6F5F5' : C.surface }]}>
-                    <Ionicons name="document-text" size={22} color={isActive ? C.TEAL  : C.muted} />
+                    <Ionicons name="document-text" size={22} color={isActive ? C.teal : C.muted} />
                   </View>
                   <View style={{ flex:1 }}>
                     <Text style={s.cardTitle}>{rec?.title ?? 'Record'}</Text>
@@ -147,7 +147,7 @@ export default function DoctorIncomingRecordsScreen({ navigation }: any) {
                   {rec?.file_url && isActive && (
                     <TouchableOpacity style={s.actionBtn} onPress={() => Linking.openURL(rec.file_url)}>
                       <Ionicons name="eye-outline" size={14} color={C.teal} />
-                      <Text style={[s.actionBtnText, { color:C.TEAL  }]}>View File</Text>
+                      <Text style={[s.actionBtnText, { color:C.teal }]}>View File</Text>
                     </TouchableOpacity>
                   )}
                   {isActive && (
@@ -178,7 +178,7 @@ const s = StyleSheet.create({
   whiteCard: { flex:1, backgroundColor:'#ffffff', borderTopLeftRadius:28, borderTopRightRadius:28, overflow:'hidden' },
   filterRow: { flexDirection:'row', gap:8, paddingHorizontal:16, paddingVertical:10, borderBottomWidth:1, borderBottomColor:C.border },
   chip: { paddingHorizontal:14, paddingVertical:6, borderRadius:20, borderWidth:1, borderColor:C.border },
-  chipActive: { backgroundColor:C.teal, borderColor:C.TEAL  },
+  chipActive: { backgroundColor:C.teal, borderColor:C.teal },
   chipText: { fontSize:13, fontWeight:'500', color:C.muted },
   chipTextActive: { color:'#fff', fontWeight:'600' },
   card: { backgroundColor:C.bg, borderRadius:14, borderWidth:1, borderColor:C.border, padding:14, marginBottom:12 },
@@ -191,7 +191,7 @@ const s = StyleSheet.create({
   badgeActive: { backgroundColor:'#E6F5F5' },
   badgeExpired: { backgroundColor:C.surface },
   badgeText: { fontSize:11, fontWeight:'600' },
-  badgeTextActive: { color:C.TEAL  },
+  badgeTextActive: { color:C.teal },
   badgeTextExpired: { color:C.muted },
   grantedAt: { fontSize:11, color:C.muted, marginTop:8 },
   actions: { flexDirection:'row', gap:8, marginTop:10 },
