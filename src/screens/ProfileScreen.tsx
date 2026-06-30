@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../lib/supabase';
+import { Toast } from '../utils/toast';
 
 const C = { bg:'#FFFFFF', surface:'#F5F7FA', text:'#171717', muted:'#555F6D', border:'#E2E8EF', teal:'#0B7E8A', tealDark:'#005F63' };
 
@@ -111,10 +112,10 @@ export default function ProfileScreen({ navigation }: any) {
         }
 
         await loadProfile();
-        Alert.alert('Success', 'Profile picture updated successfully!');
+        Toast.showSuccess('Profile picture updated!');
       }
     } catch (error: any) {
-      Alert.alert('Upload Error', error.message || 'Failed to upload image');
+      Toast.showError(error.message || 'Failed to upload image');
     } finally {
       setUploadingImage(false);
     }
@@ -145,7 +146,7 @@ export default function ProfileScreen({ navigation }: any) {
   };
 
   const saveEdit = async () => {
-    if (!editForm.full_name.trim()) { Alert.alert('Error', 'Full name is required'); return; }
+    if (!editForm.full_name.trim()) { Toast.showError('Full name is required'); return; }
     setSaving(true);
     try {
       const { data:{ user } } = await supabase.auth.getUser();
@@ -212,8 +213,8 @@ export default function ProfileScreen({ navigation }: any) {
       
       setEditVisible(false);
       await loadProfile();
-      Alert.alert('Success', 'Profile updated successfully');
-    } catch (e: any) { Alert.alert('Error', e.message); }
+      Toast.showSuccess('Profile updated!');
+    } catch (e: any) { Toast.showError(e.message); }
     finally { setSaving(false); }
   };
 
@@ -223,6 +224,7 @@ export default function ProfileScreen({ navigation }: any) {
     { icon:'document-text-outline', label:'Medical Records', onPress:() => navigation.navigate('MedicalRecords') },
     { icon:'notifications-outline', label:'Notifications', onPress:() => navigation.navigate('Notifications') },
     { icon:'shield-checkmark-outline', label:'Privacy Settings', onPress:() => navigation.navigate('PrivacySettings') },
+    { icon:'shield-outline', label:'Emergency SOS', onPress:() => navigation.navigate('Emergency') },
   ];
 
   const doctorMenuItems = [
@@ -451,32 +453,60 @@ export default function ProfileScreen({ navigation }: any) {
             </View>
           </View>
 
-          {/* Vitals TEAL  sub-card */}
-          <View style={s.vitalsCard}>
-            <Text style={s.vitalsHeading}>CURRENT VITALS</Text>
-            <View style={s.vitalsRow}>
-              <View style={s.vitalItem}>
-                <Ionicons name="heart" size={16} color="rgba(255,255,255,0.8)" />
-                <Text style={s.vitalVal}>{vitals?.heart_rate ?? '--'}</Text>
-                <Text style={s.vitalLbl}>BPM</Text>
-              </View>
-              <View style={s.vitalItem}>
-                <Ionicons name="speedometer-outline" size={16} color="rgba(255,255,255,0.8)" />
-                <Text style={s.vitalVal}>{vitals?.blood_pressure ?? '--'}</Text>
-                <Text style={s.vitalLbl}>BP</Text>
-              </View>
-              <View style={s.vitalItem}>
-                <Ionicons name="thermometer-outline" size={16} color="rgba(255,255,255,0.8)" />
-                <Text style={s.vitalVal}>{vitals?.temperature ?? '--'}</Text>
-                <Text style={s.vitalLbl}>Temp °C</Text>
-              </View>
-              <View style={s.vitalItem}>
-                <Ionicons name="water-outline" size={16} color="rgba(255,255,255,0.8)" />
-                <Text style={s.vitalVal}>{vitals?.oxygen_saturation ?? '--'}</Text>
-                <Text style={s.vitalLbl}>SpO2 %</Text>
+          {/* Vitals TEAL  sub-card - patients only */}
+          {profile?.user_type !== 'doctor' && (
+            <View style={s.vitalsCard}>
+              <Text style={s.vitalsHeading}>CURRENT VITALS</Text>
+              <View style={s.vitalsRow}>
+                <View style={s.vitalItem}>
+                  <Ionicons name="heart" size={16} color="rgba(255,255,255,0.8)" />
+                  <Text style={s.vitalVal}>{vitals?.heart_rate ?? '--'}</Text>
+                  <Text style={s.vitalLbl}>BPM</Text>
+                </View>
+                <View style={s.vitalItem}>
+                  <Ionicons name="speedometer-outline" size={16} color="rgba(255,255,255,0.8)" />
+                  <Text style={s.vitalVal}>{vitals?.blood_pressure ?? '--'}</Text>
+                  <Text style={s.vitalLbl}>BP</Text>
+                </View>
+                <View style={s.vitalItem}>
+                  <Ionicons name="thermometer-outline" size={16} color="rgba(255,255,255,0.8)" />
+                  <Text style={s.vitalVal}>{vitals?.temperature ?? '--'}</Text>
+                  <Text style={s.vitalLbl}>Temp °C</Text>
+                </View>
+                <View style={s.vitalItem}>
+                  <Ionicons name="water-outline" size={16} color="rgba(255,255,255,0.8)" />
+                  <Text style={s.vitalVal}>{vitals?.oxygen_saturation ?? '--'}</Text>
+                  <Text style={s.vitalLbl}>SpO2 %</Text>
+                </View>
               </View>
             </View>
-          </View>
+          )}
+
+          {/* Doctor professional info card */}
+          {profile?.user_type === 'doctor' && (
+            <View style={s.doctorInfoCard}>
+              <View style={s.doctorInfoRow}>
+                <MaterialCommunityIcons name="stethoscope" size={16} color="#0B7E8A" />
+                <Text style={s.doctorInfoLabel}>Specialization</Text>
+                <Text style={s.doctorInfoValue}>{profile?.specialization || 'Not set'}</Text>
+              </View>
+              <View style={s.doctorInfoRow}>
+                <Ionicons name="card-outline" size={16} color="#0B7E8A" />
+                <Text style={s.doctorInfoLabel}>License</Text>
+                <Text style={s.doctorInfoValue}>{profile?.medical_license || 'Not set'}</Text>
+              </View>
+              <View style={s.doctorInfoRow}>
+                <Ionicons name="cash-outline" size={16} color="#0B7E8A" />
+                <Text style={s.doctorInfoLabel}>Consultation Fee</Text>
+                <Text style={s.doctorInfoValue}>{profile?.consultation_fee ? `₦${Number(profile.consultation_fee).toLocaleString()}` : 'Contact for fee'}</Text>
+              </View>
+              <View style={[s.doctorInfoRow, { borderBottomWidth: 0 }]}>
+                <Ionicons name="time-outline" size={16} color="#0B7E8A" />
+                <Text style={s.doctorInfoLabel}>Experience</Text>
+                <Text style={s.doctorInfoValue}>{profile?.years_experience ? `${profile.years_experience} years` : 'Not set'}</Text>
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Menu */}
@@ -659,4 +689,10 @@ const s = StyleSheet.create({
   confirmActionText: { fontSize:16, fontWeight:'700', color:'#fff' },
   vitalsSectionDivider: { flexDirection:'row', alignItems:'center', gap:8, marginTop:24, paddingTop:20, borderTopWidth:1, borderTopColor:C.border, marginBottom:4 },
   vitalsModalTitle: { fontSize:14, fontWeight:'700', color:C.text },
+
+  // Doctor info card
+  doctorInfoCard: { width: '100%', marginTop: 16, backgroundColor: '#F5F7FA', borderRadius: 14, borderWidth: 1, borderColor: '#E2E8EF', overflow: 'hidden' },
+  doctorInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#E2E8EF' },
+  doctorInfoLabel: { fontSize: 12, color: '#555F6D', flex: 1 },
+  doctorInfoValue: { fontSize: 13, fontWeight: '600', color: '#171717', flex: 2, textAlign: 'right' },
 });
