@@ -250,7 +250,9 @@ export default function SearchScreen({ route, navigation }: any) {
                 <View style={s.cardInfo}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Text style={s.cardName} numberOfLines={1}>
-                      {item._type==='doctor'?`Dr. ${item.full_name}`:item.name}
+                      {item._type==='doctor'
+                        ? /^dr\.?\s/i.test(item.full_name||'') ? item.full_name : `Dr. ${item.full_name}`
+                        : item.name}
                     </Text>
                     {item._type==='doctor' && currentUserDoctorId === item.id && (
                       <View style={s.youBadge}>

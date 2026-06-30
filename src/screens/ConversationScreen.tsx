@@ -24,6 +24,9 @@ type Msg = {
   attachment_name?: string; attachment_size?: string;
   read_at?: string | null; created_at: string;
   edited_at?: string | null;
+  reply_to_id?: string | null;
+  reply_to_content?: string | null;
+  reply_to_sender?: string | null;
   _pending?: boolean; _failed?: boolean;
 };
 
@@ -94,6 +97,7 @@ export default function ConversationScreen({ route, navigation }: any) {
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const [editingMsg, setEditingMsg] = useState<Msg | null>(null);
   const [actionMsg, setActionMsg] = useState<Msg | null>(null);
+  const [replyTo, setReplyTo] = useState<Msg | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordDuration, setRecordDuration] = useState(0);
   const [soundPlayingId, setSoundPlayingId] = useState<string | null>(null);
@@ -116,7 +120,9 @@ export default function ConversationScreen({ route, navigation }: any) {
   const hasTxt = input.trim().length > 0;
 
   const displayName = other?.isDoctor
-    ? `${other?.title || 'Dr.'} ${other?.full_name || ''}`.trim()
+    ? /^dr\.?\s/i.test(other?.full_name || '')
+      ? (other?.full_name || '')
+      : `${other?.title || 'Dr.'} ${other?.full_name || ''}`
     : (other?.full_name || 'Chat');
 
   // FAB show/hide spring
@@ -221,10 +227,14 @@ export default function ConversationScreen({ route, navigation }: any) {
     animateSend();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const tempId = `temp-${Date.now()}`;
+    const reply = replyTo;
+    setReplyTo(null);
     const optimistic: Msg = {
       id: tempId, sender_id: currentUserId, content: content.trim(),
       attachment_url: attachmentUrl, attachment_type: attachmentType as any,
       attachment_name: attachmentName, attachment_size: attachmentSize,
+      reply_to_id: reply?.id, reply_to_content: reply?.content,
+      reply_to_sender: reply?.sender_id,
       created_at: new Date().toISOString(), _pending: true,
     };
     setMessages(prev => [...prev, optimistic]);
@@ -237,6 +247,8 @@ export default function ConversationScreen({ route, navigation }: any) {
         content: content.trim(), attachment_url: attachmentUrl || null,
         attachment_type: attachmentType || null, attachment_name: attachmentName || null,
         attachment_size: attachmentSize || null,
+        reply_to_id: reply?.id || null, reply_to_content: reply?.content || null,
+        reply_to_sender: reply?.sender_id || null,
       }).select().single();
       if (error) throw error;
       knownMsgIds.current.add(data.id);
@@ -461,7 +473,7 @@ export default function ConversationScreen({ route, navigation }: any) {
             activeOpacity={0.85}
             onLongPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              if (isMe) setActionMsg(item);
+              setActionMsg(item);
             }}
             delayLongPress={280}
           >
@@ -484,6 +496,20 @@ export default function ConversationScreen({ route, navigation }: any) {
                   </View>
                   <Ionicons name="arrow-down-circle-outline" size={20} color={isMe ? 'rgba(255,255,255,0.75)' : C.muted} />
                 </TouchableOpacity>
+              )}
+              {/* Reply quote */}
+              {item.reply_to_id && (
+                <View style={[s.replyQuote, isMe && s.replyQuoteMe]}>
+                  <View style={[s.replyQuoteBar, isMe && { backgroundColor: 'rgba(255,255,255,0.7)' }]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[s.replyQuoteFrom, isMe && { color: 'rgba(255,255,255,0.85)' }]}>
+                      {item.reply_to_sender === currentUserId ? 'You' : (other?.full_name?.split(' ')[0] || 'Message')}
+                    </Text>
+                    <Text style={[s.replyQuoteText, isMe && { color: 'rgba(255,255,255,0.7)' }]} numberOfLines={2}>
+                      {item.reply_to_content || '📎 Attachment'}
+                    </Text>
+                  </View>
+                </View>
               )}
               {/* Voice message */}
               {item.attachment_type === 'voice' && item.attachment_url && (
@@ -544,6 +570,11 @@ export default function ConversationScreen({ route, navigation }: any) {
     <SafeAreaView style={s.container} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor="#0B7E8A" />
 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
       {/* Teal header */}
       <View style={s.header}>
         <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
@@ -575,11 +606,7 @@ export default function ConversationScreen({ route, navigation }: any) {
 
       {/* White chat card */}
       <View style={s.contentCard}>
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior="padding"
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-        >
+        <View style={{ flex: 1 }}>
           {loading ? (
             <View style={s.center}><ActivityIndicator color={C.teal} size="large" /></View>
           ) : messages.length === 0 ? (
@@ -639,6 +666,24 @@ export default function ConversationScreen({ route, navigation }: any) {
             </View>
           )}
 
+          {/* Reply banner */}
+          {replyTo && (
+            <View style={s.replyBanner}>
+              <View style={s.replyBannerBar} />
+              <View style={{ flex: 1 }}>
+                <Text style={s.replyBannerLabel}>
+                  Replying to {replyTo.sender_id === currentUserId ? 'yourself' : (other?.full_name?.split(' ')[0] || 'message')}
+                </Text>
+                <Text style={s.replyBannerPreview} numberOfLines={1}>
+                  {replyTo.content || '📎 Attachment'}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setReplyTo(null)}>
+                <Ionicons name="close" size={20} color={C.muted} />
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Input bar */}
           <View style={s.inputBar}>
             {!editingMsg && !isRecording && (
@@ -690,8 +735,8 @@ export default function ConversationScreen({ route, navigation }: any) {
                 </TouchableOpacity>
               )}
             </Animated.View>
-          </View>
-        </KeyboardAvoidingView>
+          </View>{/* end inputBar */}
+        </View>{/* end inner flex:1 */}
 
         {/* Scroll-to-bottom FAB */}
         <Animated.View
@@ -708,81 +753,103 @@ export default function ConversationScreen({ route, navigation }: any) {
             <Ionicons name="chevron-down" size={22} color="#fff" />
           </TouchableOpacity>
         </Animated.View>
+      </View>{/* end contentCard */}
+      </KeyboardAvoidingView>
 
-        {/* Message action sheet (edit / delete) */}
-        <Modal visible={!!actionMsg} transparent animationType="slide">
-          <Pressable style={s.sheetOverlay} onPress={() => setActionMsg(null)}>
-            <Pressable style={s.sheet}>
-              <View style={s.sheetHandle} />
-              <Text style={s.sheetTitle}>Message</Text>
+      {/* Message action sheet — outside KAV so it overlays full screen */}
+      <Modal visible={!!actionMsg} transparent animationType="slide">
+        <Pressable style={s.sheetOverlay} onPress={() => setActionMsg(null)}>
+          <Pressable style={s.sheet}>
+            <View style={s.sheetHandle} />
+            <Text style={s.sheetTitle}>Message</Text>
+            {!!actionMsg?.content && (
               <View style={s.actionPreviewBox}>
-                <Text style={s.actionPreview} numberOfLines={3}>{actionMsg?.content}</Text>
+                <Text style={s.actionPreview} numberOfLines={3}>{actionMsg.content}</Text>
               </View>
-              <TouchableOpacity style={s.sheetRow} onPress={() => {
-                setInput(actionMsg?.content || '');
-                setEditingMsg(actionMsg);
-                setActionMsg(null);
-              }}>
-                <View style={[s.sheetIcon, { backgroundColor: C.greenLight }]}>
-                  <Ionicons name="create-outline" size={22} color={C.teal} />
-                </View>
-                <View>
-                  <Text style={s.sheetLabel}>Edit</Text>
-                  <Text style={s.sheetSub}>Change the message text</Text>
-                </View>
-              </TouchableOpacity>
-              <View style={s.sheetDivider} />
-              <TouchableOpacity style={s.sheetRow} onPress={() => actionMsg && deleteMsg(actionMsg.id)}>
-                <View style={[s.sheetIcon, { backgroundColor: '#fee2e2' }]}>
-                  <Ionicons name="trash-outline" size={22} color="#EF4444" />
-                </View>
-                <View>
-                  <Text style={[s.sheetLabel, { color: '#EF4444' }]}>Delete</Text>
-                  <Text style={s.sheetSub}>Remove this message</Text>
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity style={[s.sheetRow, { justifyContent: 'center', marginTop: 4 }]} onPress={() => setActionMsg(null)}>
-                <Text style={{ color: C.muted, fontSize: 15, fontWeight: '500' }}>Cancel</Text>
-              </TouchableOpacity>
-            </Pressable>
+            )}
+            {/* Reply — available for all messages */}
+            <TouchableOpacity style={s.sheetRow} onPress={() => {
+              setReplyTo(actionMsg);
+              setActionMsg(null);
+            }}>
+              <View style={[s.sheetIcon, { backgroundColor: '#EEF2FF' }]}>
+                <Ionicons name="return-down-back-outline" size={22} color="#6366F1" />
+              </View>
+              <View>
+                <Text style={s.sheetLabel}>Reply</Text>
+                <Text style={s.sheetSub}>Reply to this message</Text>
+              </View>
+            </TouchableOpacity>
+            {/* Edit + Delete — only for own messages */}
+            {actionMsg?.sender_id === currentUserId && (
+              <>
+                <View style={s.sheetDivider} />
+                <TouchableOpacity style={s.sheetRow} onPress={() => {
+                  setInput(actionMsg?.content || '');
+                  setEditingMsg(actionMsg);
+                  setActionMsg(null);
+                }}>
+                  <View style={[s.sheetIcon, { backgroundColor: C.greenLight }]}>
+                    <Ionicons name="create-outline" size={22} color={C.teal} />
+                  </View>
+                  <View>
+                    <Text style={s.sheetLabel}>Edit</Text>
+                    <Text style={s.sheetSub}>Change the message text</Text>
+                  </View>
+                </TouchableOpacity>
+                <View style={s.sheetDivider} />
+                <TouchableOpacity style={s.sheetRow} onPress={() => actionMsg && deleteMsg(actionMsg.id)}>
+                  <View style={[s.sheetIcon, { backgroundColor: '#fee2e2' }]}>
+                    <Ionicons name="trash-outline" size={22} color="#EF4444" />
+                  </View>
+                  <View>
+                    <Text style={[s.sheetLabel, { color: '#EF4444' }]}>Delete</Text>
+                    <Text style={s.sheetSub}>Remove this message</Text>
+                  </View>
+                </TouchableOpacity>
+              </>
+            )}
+            <TouchableOpacity style={[s.sheetRow, { justifyContent: 'center', marginTop: 4 }]} onPress={() => setActionMsg(null)}>
+              <Text style={{ color: C.muted, fontSize: 15, fontWeight: '500' }}>Cancel</Text>
+            </TouchableOpacity>
           </Pressable>
-        </Modal>
+        </Pressable>
+      </Modal>
 
-        {/* Attachment bottom sheet */}
-        <Modal visible={attachVisible} transparent animationType="slide">
-          <Pressable style={s.sheetOverlay} onPress={() => setAttachVisible(false)}>
-            <Pressable style={s.sheet}>
-              <View style={s.sheetHandle} />
-              <Text style={s.sheetTitle}>Send Attachment</Text>
-              <TouchableOpacity style={s.sheetRow} onPress={pickImage}>
-                <View style={[s.sheetIcon, { backgroundColor: C.greenLight }]}>
-                  <Ionicons name="image" size={22} color={C.teal} />
-                </View>
-                <View>
-                  <Text style={s.sheetLabel}>Photo</Text>
-                  <Text style={s.sheetSub}>Send image from your library</Text>
-                </View>
-              </TouchableOpacity>
-              <View style={s.sheetDivider} />
-              <TouchableOpacity style={s.sheetRow} onPress={pickDocument}>
-                <View style={[s.sheetIcon, { backgroundColor: '#EEF2FF' }]}>
-                  <Ionicons name="document-text" size={22} color="#6366F1" />
-                </View>
-                <View>
-                  <Text style={s.sheetLabel}>Document</Text>
-                  <Text style={s.sheetSub}>Send PDF, DOC or any file</Text>
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[s.sheetRow, { justifyContent: 'center', marginTop: 4 }]}
-                onPress={() => setAttachVisible(false)}
-              >
-                <Text style={{ color: C.muted, fontSize: 15, fontWeight: '500' }}>Cancel</Text>
-              </TouchableOpacity>
-            </Pressable>
+      {/* Attachment bottom sheet */}
+      <Modal visible={attachVisible} transparent animationType="slide">
+        <Pressable style={s.sheetOverlay} onPress={() => setAttachVisible(false)}>
+          <Pressable style={s.sheet}>
+            <View style={s.sheetHandle} />
+            <Text style={s.sheetTitle}>Send Attachment</Text>
+            <TouchableOpacity style={s.sheetRow} onPress={pickImage}>
+              <View style={[s.sheetIcon, { backgroundColor: C.greenLight }]}>
+                <Ionicons name="image" size={22} color={C.teal} />
+              </View>
+              <View>
+                <Text style={s.sheetLabel}>Photo</Text>
+                <Text style={s.sheetSub}>Send image from your library</Text>
+              </View>
+            </TouchableOpacity>
+            <View style={s.sheetDivider} />
+            <TouchableOpacity style={s.sheetRow} onPress={pickDocument}>
+              <View style={[s.sheetIcon, { backgroundColor: '#EEF2FF' }]}>
+                <Ionicons name="document-text" size={22} color="#6366F1" />
+              </View>
+              <View>
+                <Text style={s.sheetLabel}>Document</Text>
+                <Text style={s.sheetSub}>Send PDF, DOC or any file</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[s.sheetRow, { justifyContent: 'center', marginTop: 4 }]}
+              onPress={() => setAttachVisible(false)}
+            >
+              <Text style={{ color: C.muted, fontSize: 15, fontWeight: '500' }}>Cancel</Text>
+            </TouchableOpacity>
           </Pressable>
-        </Modal>
-      </View>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -894,4 +961,17 @@ const s = StyleSheet.create({
   sheetLabel: { fontSize: 15, fontWeight: '600', color: C.text },
   sheetSub: { fontSize: 12, color: C.muted, marginTop: 1 },
   sheetDivider: { height: StyleSheet.hairlineWidth, backgroundColor: C.border, marginHorizontal: 20 },
+
+  // Reply quote inside bubble
+  replyQuote: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.06)', borderRadius: 8, overflow: 'hidden', marginBottom: 6, maxWidth: '100%' },
+  replyQuoteMe: { backgroundColor: 'rgba(255,255,255,0.18)' },
+  replyQuoteBar: { width: 3, backgroundColor: C.teal },
+  replyQuoteFrom: { fontSize: 11, fontWeight: '700', color: C.teal, paddingHorizontal: 8, paddingTop: 6 },
+  replyQuoteText: { fontSize: 12, color: C.muted, paddingHorizontal: 8, paddingBottom: 6, paddingTop: 1 },
+
+  // Reply banner above input
+  replyBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: '#F0F9FA', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.border },
+  replyBannerBar: { width: 3, height: 34, borderRadius: 2, backgroundColor: '#6366F1' },
+  replyBannerLabel: { fontSize: 11, fontWeight: '700', color: '#6366F1', letterSpacing: 0.3 },
+  replyBannerPreview: { fontSize: 13, color: C.muted, marginTop: 1 },
 });

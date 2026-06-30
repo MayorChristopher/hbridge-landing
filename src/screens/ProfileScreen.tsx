@@ -221,7 +221,6 @@ export default function ProfileScreen({ navigation }: any) {
   const patientMenuItems = [
     { icon:'person-outline', label:'Edit Profile', onPress: openEdit },
     { icon:'calendar-outline', label:'My Appointments', onPress:() => navigation.navigate('Appointments') },
-    { icon:'document-text-outline', label:'Medical Records', onPress:() => navigation.navigate('MedicalRecords') },
     { icon:'notifications-outline', label:'Notifications', onPress:() => navigation.navigate('Notifications') },
     { icon:'shield-checkmark-outline', label:'Privacy Settings', onPress:() => navigation.navigate('PrivacySettings') },
     { icon:'shield-outline', label:'Emergency SOS', onPress:() => navigation.navigate('Emergency') },

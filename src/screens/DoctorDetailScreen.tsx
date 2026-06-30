@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, Modal, Pressable, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
@@ -7,9 +7,59 @@ import { supabase } from '../lib/supabase';
 const TEAL = '#0B7E8A';
 const GOLD  = '#D4A843';
 
+const drName = (title: string | null, name: string) => {
+  if (!name) return 'Doctor';
+  if (/^dr\.?\s/i.test(name.trim())) return name.trim();
+  const t = (title || 'Dr.').trim();
+  return `${t.endsWith('.') ? t : t + '.'} ${name.trim()}`;
+};
+
 export default function DoctorDetailScreen({ route, navigation }: any) {
   const { doctor } = route.params;
   const [messaging, setMessaging] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserType, setCurrentUserType] = useState<string | null>(null);
+  const [ratingModal, setRatingModal] = useState(false);
+  const [myRating, setMyRating] = useState(0);
+  const [myReview, setMyReview] = useState('');
+  const [existingRating, setExistingRating] = useState<any>(null);
+  const [submittingRating, setSubmittingRating] = useState(false);
+  const [liveDoctor, setLiveDoctor] = useState(doctor);
+
+  useEffect(() => { loadUser(); }, []);
+
+  const loadUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    setCurrentUserId(user.id);
+    const { data: prof } = await supabase.from('profiles').select('user_type').eq('id', user.id).single();
+    setCurrentUserType(prof?.user_type || 'patient');
+    const { data: existing } = await supabase.from('ratings')
+      .select('*').eq('patient_id', user.id).eq('doctor_id', doctor.id).maybeSingle();
+    if (existing) { setExistingRating(existing); setMyRating(existing.rating); setMyReview(existing.review || ''); }
+    const { data: doc } = await supabase.from('doctors').select('average_rating,total_reviews').eq('id', doctor.id).single();
+    if (doc) setLiveDoctor((d: any) => ({ ...d, ...doc }));
+  };
+
+  const submitRating = async () => {
+    if (!currentUserId || myRating === 0) return;
+    setSubmittingRating(true);
+    try {
+      await supabase.from('ratings').upsert({
+        patient_id: currentUserId, doctor_id: doctor.id,
+        rating: myRating, review: myReview.trim() || null,
+      }, { onConflict: 'patient_id,doctor_id' });
+      const { data: allR } = await supabase.from('ratings').select('rating').eq('doctor_id', doctor.id);
+      if (allR && allR.length > 0) {
+        const avg = parseFloat((allR.reduce((s: number, r: any) => s + r.rating, 0) / allR.length).toFixed(1));
+        await supabase.from('doctors').update({ average_rating: avg, total_reviews: allR.length }).eq('id', doctor.id);
+        setLiveDoctor((d: any) => ({ ...d, average_rating: avg, total_reviews: allR.length }));
+      }
+      setExistingRating({ rating: myRating, review: myReview });
+      setRatingModal(false);
+    } catch (e: any) { Alert.alert('Error', e.message); }
+    finally { setSubmittingRating(false); }
+  };
 
   const openChat = async () => {
     setMessaging(true);
@@ -46,7 +96,7 @@ export default function DoctorDetailScreen({ route, navigation }: any) {
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
         <View style={s.headerCenter}>
-          <Text style={s.headerTitle}>{doctor.title || 'Dr.'} {doctor.full_name}</Text>
+          <Text style={s.headerTitle}>{drName(doctor.title, doctor.full_name)}</Text>
           <Text style={s.headerSub}>{doctor.specialization}</Text>
         </View>
         <View style={{ width: 40 }} />
@@ -62,17 +112,24 @@ export default function DoctorDetailScreen({ route, navigation }: any) {
                 ? <Image source={{ uri: doctor.profile_image }} style={s.avatarImg} />
                 : <MaterialCommunityIcons name="stethoscope" size={36} color={TEAL} />}
             </View>
-            <Text style={s.heroName}>{doctor.title || 'Dr.'} {doctor.full_name}</Text>
+            <Text style={s.heroName}>{drName(doctor.title, doctor.full_name)}</Text>
             <Text style={s.heroSpec}>{doctor.specialization}</Text>
 
             {/* Rating */}
-            <View style={s.ratingRow}>
+            <TouchableOpacity
+              style={s.ratingRow}
+              onPress={() => currentUserType === 'patient' && setRatingModal(true)}
+              activeOpacity={currentUserType === 'patient' ? 0.7 : 1}
+            >
               {[1,2,3,4,5].map(i => (
-                <Ionicons key={i} name={i <= Math.round(doctor.average_rating || 0) ? 'star' : 'star-outline'} size={16} color={GOLD} />
+                <Ionicons key={i} name={i <= Math.round(liveDoctor.average_rating || 0) ? 'star' : 'star-outline'} size={16} color={GOLD} />
               ))}
-              <Text style={s.ratingText}>{(doctor.average_rating || 0).toFixed(1)}</Text>
-              {doctor.total_reviews > 0 && <Text style={s.ratingCount}>({doctor.total_reviews} reviews)</Text>}
-            </View>
+              <Text style={s.ratingText}>{(liveDoctor.average_rating || 0).toFixed(1)}</Text>
+              {liveDoctor.total_reviews > 0 && <Text style={s.ratingCount}>({liveDoctor.total_reviews} reviews)</Text>}
+              {currentUserType === 'patient' && (
+                <Text style={s.tapToRate}>{existingRating ? '· update rating' : '· tap to rate'}</Text>
+              )}
+            </TouchableOpacity>
 
             {/* Available badge */}
             <View style={[s.availBadge, { backgroundColor: doctor.is_available ? '#E6F5F5' : '#f5f5f5' }]}>
@@ -91,12 +148,12 @@ export default function DoctorDetailScreen({ route, navigation }: any) {
             </View>
             <View style={s.statDivider} />
             <View style={s.statItem}>
-              <Text style={s.statVal}>{(doctor.average_rating || 0).toFixed(1)}</Text>
+              <Text style={s.statVal}>{(liveDoctor.average_rating || 0).toFixed(1)}</Text>
               <Text style={s.statLabel}>Rating</Text>
             </View>
             <View style={s.statDivider} />
             <View style={s.statItem}>
-              <Text style={s.statVal}>{doctor.total_reviews ?? 0}</Text>
+              <Text style={s.statVal}>{liveDoctor.total_reviews ?? 0}</Text>
               <Text style={s.statLabel}>Reviews</Text>
             </View>
           </View>
@@ -153,6 +210,44 @@ export default function DoctorDetailScreen({ route, navigation }: any) {
 
         </View>
       </ScrollView>
+
+      {/* Rating Modal */}
+      <Modal visible={ratingModal} transparent animationType="slide">
+        <Pressable style={s.ratingOverlay} onPress={() => setRatingModal(false)}>
+          <Pressable style={s.ratingSheet}>
+            <View style={s.sheetHandle} />
+            <Text style={s.ratingTitle}>{existingRating ? 'Update Your Rating' : 'Rate this Doctor'}</Text>
+            <Text style={s.ratingSubtitle}>{drName(doctor.title, doctor.full_name)}</Text>
+            <View style={s.starRow}>
+              {[1,2,3,4,5].map(star => (
+                <TouchableOpacity key={star} onPress={() => setMyRating(star)} activeOpacity={0.75}>
+                  <Ionicons name={star <= myRating ? 'star' : 'star-outline'} size={40} color={GOLD} />
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={s.starLabel}>{['','Poor','Fair','Good','Very Good','Excellent'][myRating]}</Text>
+            <TextInput
+              style={s.reviewInput}
+              value={myReview}
+              onChangeText={setMyReview}
+              placeholder="Share your experience (optional)..."
+              placeholderTextColor="#9CA3AF"
+              multiline
+              numberOfLines={3}
+              maxLength={500}
+            />
+            <TouchableOpacity
+              style={[s.submitBtn, myRating === 0 && { opacity: 0.45 }]}
+              onPress={submitRating}
+              disabled={myRating === 0 || submittingRating}
+            >
+              {submittingRating
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Text style={s.submitBtnText}>{existingRating ? 'Update Rating' : 'Submit Rating'}</Text>}
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -197,4 +292,17 @@ const s = StyleSheet.create({
   msgBtnText: { fontSize: 14, fontWeight: '600', color: TEAL },
   bookBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: TEAL, borderRadius: 14, height: 52 },
   bookBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  tapToRate: { fontSize: 12, color: GOLD, fontWeight: '500', marginLeft: 4 },
+
+  // Rating modal
+  ratingOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  ratingSheet: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 40, paddingTop: 12, paddingHorizontal: 24 },
+  sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#E5E7EB', alignSelf: 'center', marginBottom: 20 },
+  ratingTitle: { fontSize: 18, fontWeight: '700', color: '#171717', textAlign: 'center' },
+  ratingSubtitle: { fontSize: 13, color: '#737373', textAlign: 'center', marginTop: 4, marginBottom: 24 },
+  starRow: { flexDirection: 'row', justifyContent: 'center', gap: 12, marginBottom: 8 },
+  starLabel: { fontSize: 14, fontWeight: '600', color: GOLD, textAlign: 'center', height: 20, marginBottom: 20 },
+  reviewInput: { backgroundColor: '#F9FAFB', borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB', padding: 14, fontSize: 14, color: '#171717', minHeight: 88, textAlignVertical: 'top', marginBottom: 16 },
+  submitBtn: { backgroundColor: TEAL, borderRadius: 14, height: 52, alignItems: 'center', justifyContent: 'center' },
+  submitBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 });

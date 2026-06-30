@@ -22,9 +22,11 @@ function PinScreen({ setup, pinStep, currentVal, pinError, onNumpad, onBack, onF
   return (
     <SafeAreaView style={s.container} edges={['top']}>
       <View style={s.header}>
-        <TouchableOpacity onPress={onBack}><Ionicons name="arrow-back" size={20} color={C.text} /></TouchableOpacity>
+        <TouchableOpacity style={s.backBtn} onPress={onBack}>
+          <Ionicons name="arrow-back" size={22} color="#fff" />
+        </TouchableOpacity>
         <Text style={s.headerTitle}>Medical Records</Text>
-        <Ionicons name="lock-closed" size={14} color={C.muted} />
+        <Ionicons name="lock-closed" size={14} color="rgba(255,255,255,0.7)" />
       </View>
       <View style={s.pinScreen}>
         <View style={s.pinCard}>
