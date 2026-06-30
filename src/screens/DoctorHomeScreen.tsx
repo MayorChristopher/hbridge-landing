@@ -113,6 +113,7 @@ export default function DoctorHomeScreen({ navigation }: any) {
     <SafeAreaView style={s.container} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor="#0B7E8A" />
       <ScrollView showsVerticalScrollIndicator={false}
+        style={{ backgroundColor: '#ffffff' }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.teal} colors={[C.teal]} />}
         contentContainerStyle={{ paddingBottom: 110 }}>
 
@@ -227,7 +228,7 @@ export default function DoctorHomeScreen({ navigation }: any) {
 
 const s = StyleSheet.create({
   container:{ flex:1, backgroundColor:'#0B7E8A' },
-  header:{ flexDirection:'row', alignItems:'center', paddingHorizontal:24, paddingTop:16, paddingBottom:24, backgroundColor:'transparent' },
+  header:{ flexDirection:'row', alignItems:'center', paddingHorizontal:24, paddingTop:16, paddingBottom:24, backgroundColor:'#0B7E8A' },
   greeting:{ fontSize:13, color:'rgba(255,255,255,0.75)' },
   name:{ fontSize:22, fontWeight:'700', color:'#ffffff' },
   availToggle:{ flexDirection:'row', alignItems:'center', gap:6, paddingHorizontal:12, paddingVertical:7, borderRadius:20 },
