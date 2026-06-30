@@ -90,6 +90,8 @@ export default function ConversationScreen({ route, navigation }: any) {
   const [attachVisible, setAttachVisible] = useState(false);
   const [otherTyping, setOtherTyping] = useState(false);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const [editingMsg, setEditingMsg] = useState<Msg | null>(null);
+  const [actionMsg, setActionMsg] = useState<Msg | null>(null);
 
   const flatRef = useRef<FlatList>(null);
   const channelRef = useRef<any>(null);
@@ -234,6 +236,26 @@ export default function ConversationScreen({ route, navigation }: any) {
     } finally { setSending(false); }
   };
 
+  const saveEdit = async () => {
+    if (!editingMsg || !input.trim()) return;
+    const updatedText = input.trim();
+    setInput('');
+    setEditingMsg(null);
+    setMessages(prev => prev.map(m => m.id === editingMsg.id ? { ...m, content: updatedText } : m));
+    try {
+      await supabase.from('messages').update({ content: updatedText }).eq('id', editingMsg.id);
+    } catch {
+      // Revert on failure
+      setMessages(prev => prev.map(m => m.id === editingMsg.id ? { ...m, content: editingMsg.content } : m));
+    }
+  };
+
+  const deleteMsg = async (msgId: string) => {
+    setActionMsg(null);
+    setMessages(prev => prev.filter(m => m.id !== msgId));
+    await supabase.from('messages').delete().eq('id', msgId);
+  };
+
   const uploadFile = async (uri: string, name: string, mimeType: string) => {
     const path = `chat/${conversationId}/${Date.now()}-${name}`;
     const { data: session } = await supabase.auth.getSession();
@@ -348,7 +370,10 @@ export default function ConversationScreen({ route, navigation }: any) {
 
           <TouchableOpacity
             activeOpacity={0.85}
-            onLongPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
+            onLongPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              if (isMe) setActionMsg(item);
+            }}
             delayLongPress={280}
           >
             <View style={[s.bubble, isMe ? s.bubbleMe : s.bubbleThem, bubbleExtras]}>
@@ -437,8 +462,8 @@ export default function ConversationScreen({ route, navigation }: any) {
       <View style={s.contentCard}>
         <KeyboardAvoidingView
           style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
         >
           {loading ? (
             <View style={s.center}><ActivityIndicator color={C.teal} size="large" /></View>
@@ -485,31 +510,50 @@ export default function ConversationScreen({ route, navigation }: any) {
             </View>
           )}
 
+          {/* Edit mode banner */}
+          {editingMsg && (
+            <View style={s.editBanner}>
+              <View style={s.editBannerBar} />
+              <View style={{ flex: 1 }}>
+                <Text style={s.editBannerLabel}>Editing message</Text>
+                <Text style={s.editBannerPreview} numberOfLines={1}>{editingMsg.content}</Text>
+              </View>
+              <TouchableOpacity onPress={() => { setEditingMsg(null); setInput(''); }}>
+                <Ionicons name="close" size={20} color={C.muted} />
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Input bar */}
           <View style={s.inputBar}>
-            <TouchableOpacity style={s.attachBtn} onPress={() => setAttachVisible(true)}>
-              <Ionicons name="add" size={22} color={C.teal} />
-            </TouchableOpacity>
+            {!editingMsg && (
+              <TouchableOpacity style={s.attachBtn} onPress={() => setAttachVisible(true)}>
+                <Ionicons name="add" size={22} color={C.teal} />
+              </TouchableOpacity>
+            )}
             <View style={s.inputWrap}>
               <TextInput
                 style={s.input}
                 value={input}
-                onChangeText={(t) => { setInput(t); broadcastTyping(); }}
-                placeholder="Message..."
+                onChangeText={(t) => { setInput(t); if (!editingMsg) broadcastTyping(); }}
+                placeholder={editingMsg ? 'Edit message...' : 'Message...'}
                 placeholderTextColor={C.muted}
                 multiline
                 maxLength={2000}
+                autoFocus={!!editingMsg}
               />
             </View>
             <Animated.View style={{ transform: [{ scale: sendBtnScale }] }}>
               <TouchableOpacity
-                style={[s.sendBtn, !hasTxt && s.sendBtnOff]}
-                onPress={hasTxt ? () => sendMessage(input) : undefined}
-                disabled={(!hasTxt || sending) && !uploading}
+                style={[s.sendBtn, !hasTxt && !editingMsg && s.sendBtnOff]}
+                onPress={editingMsg ? saveEdit : hasTxt ? () => sendMessage(input) : undefined}
+                disabled={!hasTxt || sending || uploading}
                 activeOpacity={0.8}
               >
                 {sending
                   ? <ActivityIndicator size="small" color="#fff" />
+                  : editingMsg
+                  ? <Ionicons name="checkmark" size={20} color="#fff" />
                   : hasTxt
                   ? <Ionicons name="send" size={17} color="#fff" style={{ marginLeft: 2 }} />
                   : <Ionicons name="mic-outline" size={20} color="#fff" />}
@@ -533,6 +577,45 @@ export default function ConversationScreen({ route, navigation }: any) {
             <Ionicons name="chevron-down" size={22} color="#fff" />
           </TouchableOpacity>
         </Animated.View>
+
+        {/* Message action sheet (edit / delete) */}
+        <Modal visible={!!actionMsg} transparent animationType="slide">
+          <Pressable style={s.sheetOverlay} onPress={() => setActionMsg(null)}>
+            <Pressable style={s.sheet}>
+              <View style={s.sheetHandle} />
+              <Text style={s.sheetTitle}>Message</Text>
+              <View style={s.actionPreviewBox}>
+                <Text style={s.actionPreview} numberOfLines={3}>{actionMsg?.content}</Text>
+              </View>
+              <TouchableOpacity style={s.sheetRow} onPress={() => {
+                setInput(actionMsg?.content || '');
+                setEditingMsg(actionMsg);
+                setActionMsg(null);
+              }}>
+                <View style={[s.sheetIcon, { backgroundColor: C.greenLight }]}>
+                  <Ionicons name="create-outline" size={22} color={C.teal} />
+                </View>
+                <View>
+                  <Text style={s.sheetLabel}>Edit</Text>
+                  <Text style={s.sheetSub}>Change the message text</Text>
+                </View>
+              </TouchableOpacity>
+              <View style={s.sheetDivider} />
+              <TouchableOpacity style={s.sheetRow} onPress={() => actionMsg && deleteMsg(actionMsg.id)}>
+                <View style={[s.sheetIcon, { backgroundColor: '#fee2e2' }]}>
+                  <Ionicons name="trash-outline" size={22} color="#EF4444" />
+                </View>
+                <View>
+                  <Text style={[s.sheetLabel, { color: '#EF4444' }]}>Delete</Text>
+                  <Text style={s.sheetSub}>Remove this message</Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity style={[s.sheetRow, { justifyContent: 'center', marginTop: 4 }]} onPress={() => setActionMsg(null)}>
+                <Text style={{ color: C.muted, fontSize: 15, fontWeight: '500' }}>Cancel</Text>
+              </TouchableOpacity>
+            </Pressable>
+          </Pressable>
+        </Modal>
 
         {/* Attachment bottom sheet */}
         <Modal visible={attachVisible} transparent animationType="slide">
@@ -634,6 +717,16 @@ const s = StyleSheet.create({
   input: { fontSize: 15, color: C.text, maxHeight: 120, paddingVertical: 0 },
   sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: C.teal, alignItems: 'center', justifyContent: 'center' },
   sendBtnOff: { backgroundColor: '#B0BEC5' },
+
+  // Edit mode banner
+  editBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: C.greenLight, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.border },
+  editBannerBar: { width: 3, height: 34, borderRadius: 2, backgroundColor: C.teal },
+  editBannerLabel: { fontSize: 11, fontWeight: '700', color: C.teal, letterSpacing: 0.3 },
+  editBannerPreview: { fontSize: 13, color: C.muted, marginTop: 1 },
+
+  // Action sheet preview
+  actionPreviewBox: { marginHorizontal: 20, marginBottom: 8, backgroundColor: C.surface, borderRadius: 10, padding: 12, borderLeftWidth: 3, borderLeftColor: C.teal },
+  actionPreview: { fontSize: 14, color: C.text, lineHeight: 20 },
 
   // Scroll-to-bottom FAB
   scrollFab: { position: 'absolute', right: 16, bottom: 74, zIndex: 99 },

@@ -66,16 +66,27 @@ export default function DoctorHomeScreen({ navigation }: any) {
 
       const { data: appts } = await supabase
         .from('consultations')
-        .select('id, scheduled_at, status, consultation_type, symptoms, profiles!patient_id(id, full_name, profile_image)')
+        .select('id, scheduled_at, status, consultation_type, symptoms, patient_id')
         .eq('doctor_id', doc.id)
         .order('scheduled_at', { ascending: true });
 
-      const all = appts || [];
+      // Load patient profiles separately to avoid FK name issues
+      const patientIds = [...new Set((appts || []).map((a: any) => a.patient_id).filter(Boolean))];
+      const { data: patientProfiles } = patientIds.length > 0
+        ? await supabase.from('profiles').select('id, full_name, profile_image').in('id', patientIds)
+        : { data: [] };
+      const patientMap = new Map((patientProfiles || []).map((p: any) => [p.id, p]));
+      const apptsWithProfiles = (appts || []).map((a: any) => ({
+        ...a,
+        profiles: patientMap.get(a.patient_id) || null,
+      }));
+
+      const all = apptsWithProfiles;
       const today = new Date().toDateString();
       const todayAppts = all.filter(a => new Date(a.scheduled_at).toDateString() === today && a.status === 'scheduled');
-      const upcoming = all.filter(a => a.status === 'scheduled');
+      const upcoming = all.filter(a => a.status === 'scheduled' && new Date(a.scheduled_at) >= new Date());
       const completed = all.filter(a => a.status === 'completed');
-      const uniquePatients = new Set(all.map((a:any) => a.profiles?.id).filter(Boolean));
+      const uniquePatients = new Set(all.map((a:any) => a.patient_id).filter(Boolean));
       setStats({ today: todayAppts.length, upcoming: upcoming.length, completed: completed.length, patients: uniquePatients.size });
       setAppointments(upcoming.slice(0, 5));
     } catch(e) { console.error(e); }
@@ -148,6 +159,32 @@ export default function DoctorHomeScreen({ navigation }: any) {
             </View>
           </TouchableOpacity>
         </View>
+
+        {/* Doctor credentials strip */}
+        {doctor && (
+          <View style={s.credStrip}>
+            <View style={s.credItem}>
+              <MaterialCommunityIcons name="certificate-outline" size={14} color="rgba(255,255,255,0.9)" />
+              <Text style={s.credText} numberOfLines={1}>
+                {doctor.medical_license && doctor.medical_license !== 'PENDING' ? doctor.medical_license : 'License pending'}
+              </Text>
+            </View>
+            <View style={s.credDot} />
+            <View style={s.credItem}>
+              <MaterialCommunityIcons name="stethoscope" size={14} color="rgba(255,255,255,0.9)" />
+              <Text style={s.credText} numberOfLines={1}>{doctor.specialization || 'General Practice'}</Text>
+            </View>
+            {doctor.consultation_fee > 0 && (
+              <>
+                <View style={s.credDot} />
+                <View style={s.credItem}>
+                  <Ionicons name="cash-outline" size={14} color="rgba(255,255,255,0.9)" />
+                  <Text style={s.credText}>₦{Number(doctor.consultation_fee).toLocaleString()}</Text>
+                </View>
+              </>
+            )}
+          </View>
+        )}
 
         {/* White card */}
         <View style={s.contentCard}>
@@ -240,6 +277,10 @@ const s = StyleSheet.create({
   avatarRing:{ width:54, height:54, borderRadius:27, borderWidth:2.5, borderColor:C.teal, alignItems:'center', justifyContent:'center', backgroundColor:C.bg },
   avatar:{ width:48, height:48, borderRadius:24 },
   avatarFallback:{ width:48, height:48, borderRadius:24, backgroundColor:C.teal, alignItems:'center', justifyContent:'center' },
+  credStrip:{ flexDirection:'row', alignItems:'center', flexWrap:'wrap', gap:4, paddingHorizontal:24, paddingBottom:14, paddingTop:0 },
+  credItem:{ flexDirection:'row', alignItems:'center', gap:5 },
+  credText:{ fontSize:12, color:'rgba(255,255,255,0.85)', fontWeight:'500', maxWidth:140 },
+  credDot:{ width:3, height:3, borderRadius:1.5, backgroundColor:'rgba(255,255,255,0.4)' },
   contentCard:{ backgroundColor:'#ffffff', borderTopLeftRadius:28, borderTopRightRadius:28, paddingTop:24, minHeight:600 },
   statsRow:{ flexDirection:'row', marginHorizontal:24, gap:8, marginBottom:24 },
   statCard:{ flex:1, backgroundColor:C.teal, borderRadius:14, padding:12, alignItems:'center', gap:3 },

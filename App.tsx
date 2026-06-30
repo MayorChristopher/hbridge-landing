@@ -243,6 +243,22 @@ export default function App() {
     const [showTutorial, setShowTutorial] = useState(false);
     const [profileImage, setProfileImage] = useState<string | null>(null);
 
+    // Keep profile image in tab bar in sync with profile updates
+    useEffect(() => {
+      let channel: any;
+      const sub = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        channel = supabase
+          .channel(`tab-profile-img-${user.id}`)
+          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+            (payload: any) => { if (payload.new?.profile_image !== undefined) setProfileImage(payload.new.profile_image); })
+          .subscribe();
+      };
+      sub();
+      return () => { if (channel) supabase.removeChannel(channel); };
+    }, []);
+
     useEffect(() => {
       const getUserType = async () => {
         try {
@@ -288,7 +304,7 @@ export default function App() {
       { name: 'Home',    activeIcon: 'home',               inactiveIcon: 'home-outline' },
       { name: 'Explore', activeIcon: 'location',           inactiveIcon: 'location-outline' },
       { name: 'Chat',   activeIcon: 'chatbubble-ellipses', inactiveIcon: 'chatbubble-ellipses-outline' },
-      { name: 'SOS',    activeIcon: 'shield',              inactiveIcon: 'shield-outline' },
+      { name: 'Records', activeIcon: 'documents',          inactiveIcon: 'documents-outline' },
       { name: 'Profile', activeIcon: 'person',             inactiveIcon: 'person-outline' },
     ];
 
@@ -322,7 +338,7 @@ export default function App() {
             <Tab.Screen name="Home">{() => <FadeScreen><HomeScreen navigation={navigation} /></FadeScreen>}</Tab.Screen>
             <Tab.Screen name="Explore">{() => <FadeScreen><SearchScreen navigation={navigation} /></FadeScreen>}</Tab.Screen>
             <Tab.Screen name="Chat">{() => <FadeScreen><ChatScreen navigation={navigation} /></FadeScreen>}</Tab.Screen>
-            <Tab.Screen name="SOS">{() => <FadeScreen><EmergencyScreen /></FadeScreen>}</Tab.Screen>
+            <Tab.Screen name="Records">{() => <FadeScreen><MedicalRecordsScreen navigation={navigation} /></FadeScreen>}</Tab.Screen>
             <Tab.Screen name="Profile">{() => <FadeScreen><ProfileScreen navigation={navigation} /></FadeScreen>}</Tab.Screen>
           </Tab.Navigator>
           {showTutorial && (
@@ -450,6 +466,7 @@ export default function App() {
             <Stack.Screen name="Messages" component={MessagesScreen} />
             <Stack.Screen name="Conversation" component={ConversationScreen} />
             <Stack.Screen name="AIChat" component={AIChatScreen} />
+            <Stack.Screen name="Emergency" component={EmergencyScreen} />
             
             {/* Development-only screens */}
             {isDevelopment && Object.entries(DEV_SCREENS).map(([name, component]) => (
