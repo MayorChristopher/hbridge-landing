@@ -16,7 +16,7 @@
     "androidStatusBar": {
       "backgroundColor": "#0B7E8A"
     },
-    "softwareKeyboardLayoutMode": "pan",
+    "softwareKeyboardLayoutMode": "resize",
     "assetBundlePatterns": [
       "**/*"
     ],

@@ -20,7 +20,7 @@ const SOS_SIZE  = 180;
 const RING1_PAD = 12;
 const RING2_PAD = 12;
 
-export default function EmergencyScreen() {
+export default function EmergencyScreen({ navigation }: any) {
   const [location, setLocation]           = useState<string>('Detecting location...');
   const [nearestHospital, setNearestHospital] = useState<any>(null);
   const [loading, setLoading]             = useState(true);
@@ -122,6 +122,11 @@ export default function EmergencyScreen() {
 
       {/* Teal Header */}
       <View style={s.header}>
+        {navigation?.canGoBack() && (
+          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={22} color="#ffffff" />
+          </TouchableOpacity>
+        )}
         <View style={s.headerIconWrap}>
           <Ionicons name="shield" size={28} color="#ffffff" />
         </View>
@@ -220,7 +225,8 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0B7E8A' },
 
   // Header
-  header:        { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 32 },
+  header:        { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 },
+  backBtn:       { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   headerIconWrap:{ width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255,255,255,0.2)', borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)', alignItems: 'center', justifyContent: 'center' },
   headerTitles:  { flex: 1 },
   headerTitle:   { fontSize: 26, fontWeight: '700', color: '#ffffff', letterSpacing: -0.3 },

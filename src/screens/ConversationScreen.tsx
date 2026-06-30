@@ -4,6 +4,7 @@ import {
   Image, KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
   Linking, Keyboard, Modal, Pressable, Animated, StatusBar,
 } from 'react-native';
+import { Audio } from 'expo-av';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -19,9 +20,10 @@ const C = {
 
 type Msg = {
   id: string; sender_id: string; content: string;
-  attachment_url?: string; attachment_type?: 'image' | 'file';
+  attachment_url?: string; attachment_type?: 'image' | 'file' | 'voice';
   attachment_name?: string; attachment_size?: string;
   read_at?: string | null; created_at: string;
+  edited_at?: string | null;
   _pending?: boolean; _failed?: boolean;
 };
 
@@ -92,12 +94,18 @@ export default function ConversationScreen({ route, navigation }: any) {
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const [editingMsg, setEditingMsg] = useState<Msg | null>(null);
   const [actionMsg, setActionMsg] = useState<Msg | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordDuration, setRecordDuration] = useState(0);
+  const [soundPlayingId, setSoundPlayingId] = useState<string | null>(null);
 
   const flatRef = useRef<FlatList>(null);
   const channelRef = useRef<any>(null);
   const typingTimeout = useRef<any>(null);
   const typingThrottle = useRef<any>(null);
   const showScrollRef = useRef(false);
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const recordTimerRef = useRef<any>(null);
+  const soundRef = useRef<Audio.Sound | null>(null);
   // Track IDs of messages present at initial load — only NEW ones animate
   const knownMsgIds = useRef<Set<string>>(new Set());
 
@@ -147,7 +155,9 @@ export default function ConversationScreen({ route, navigation }: any) {
         filter: `conversation_id=eq.${conversationId}`,
       }, payload => {
         const updated = payload.new as Msg;
-        setMessages(prev => prev.map(m => m.id === updated.id ? { ...m, read_at: updated.read_at } : m));
+        setMessages(prev => prev.map(m => m.id === updated.id
+          ? { ...m, read_at: updated.read_at, content: updated.content, edited_at: updated.edited_at }
+          : m));
       })
       .on('broadcast', { event: 'typing' }, ({ payload }: any) => {
         if (payload?.userId !== currentUserId) {
@@ -165,7 +175,9 @@ export default function ConversationScreen({ route, navigation }: any) {
       keyboardSub.remove();
       if (typingTimeout.current) clearTimeout(typingTimeout.current);
       if (typingThrottle.current) clearTimeout(typingThrottle.current);
+      if (recordTimerRef.current) clearInterval(recordTimerRef.current);
       if (channelRef.current) supabase.removeChannel(channelRef.current);
+      soundRef.current?.unloadAsync().catch(() => {});
     };
   }, []);
 
@@ -239,15 +251,92 @@ export default function ConversationScreen({ route, navigation }: any) {
   const saveEdit = async () => {
     if (!editingMsg || !input.trim()) return;
     const updatedText = input.trim();
+    const editedAt = new Date().toISOString();
     setInput('');
     setEditingMsg(null);
-    setMessages(prev => prev.map(m => m.id === editingMsg.id ? { ...m, content: updatedText } : m));
+    setMessages(prev => prev.map(m =>
+      m.id === editingMsg.id ? { ...m, content: updatedText, edited_at: editedAt } : m));
     try {
-      await supabase.from('messages').update({ content: updatedText }).eq('id', editingMsg.id);
+      await supabase.from('messages')
+        .update({ content: updatedText, edited_at: editedAt })
+        .eq('id', editingMsg.id);
     } catch {
-      // Revert on failure
-      setMessages(prev => prev.map(m => m.id === editingMsg.id ? { ...m, content: editingMsg.content } : m));
+      setMessages(prev => prev.map(m =>
+        m.id === editingMsg.id ? { ...m, content: editingMsg.content, edited_at: editingMsg.edited_at } : m));
     }
+  };
+
+  const formatRecDuration = (s: number) =>
+    `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
+  const startRecording = async () => {
+    try {
+      const { status } = await Audio.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Allow microphone access to send voice messages');
+        return;
+      }
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      recordingRef.current = recording;
+      setIsRecording(true);
+      setRecordDuration(0);
+      recordTimerRef.current = setInterval(() => setRecordDuration(d => d + 1), 1000);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch (e) { console.error('startRecording failed', e); }
+  };
+
+  const stopAndSendRecording = async () => {
+    if (!recordingRef.current) return;
+    clearInterval(recordTimerRef.current);
+    recordTimerRef.current = null;
+    const dur = recordDuration;
+    setIsRecording(false);
+    setRecordDuration(0);
+    try {
+      await recordingRef.current.stopAndUnloadAsync();
+      const uri = recordingRef.current.getURI();
+      recordingRef.current = null;
+      if (!uri || dur < 1) return;
+      setUploading(true);
+      const filename = `voice_${Date.now()}.m4a`;
+      const url = await uploadFile(uri, filename, 'audio/m4a');
+      await sendMessage('', url, 'voice', filename, formatRecDuration(dur));
+    } catch (e: any) {
+      Alert.alert('Recording failed', e.message);
+      recordingRef.current = null;
+    } finally {
+      setUploading(false);
+      Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => {});
+    }
+  };
+
+  const playVoice = async (url: string, msgId: string) => {
+    if (soundPlayingId === msgId) {
+      await soundRef.current?.stopAsync().catch(() => {});
+      await soundRef.current?.unloadAsync().catch(() => {});
+      soundRef.current = null;
+      setSoundPlayingId(null);
+      return;
+    }
+    if (soundRef.current) {
+      await soundRef.current.stopAsync().catch(() => {});
+      await soundRef.current.unloadAsync().catch(() => {});
+      soundRef.current = null;
+    }
+    setSoundPlayingId(msgId);
+    try {
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+      const { sound } = await Audio.Sound.createAsync({ uri: url });
+      soundRef.current = sound;
+      await sound.playAsync();
+      sound.setOnPlaybackStatusUpdate(st => {
+        if (st.isLoaded && st.didJustFinish) {
+          setSoundPlayingId(null);
+          soundRef.current = null;
+        }
+      });
+    } catch { setSoundPlayingId(null); }
   };
 
   const deleteMsg = async (msgId: string) => {
@@ -396,13 +485,39 @@ export default function ConversationScreen({ route, navigation }: any) {
                   <Ionicons name="arrow-down-circle-outline" size={20} color={isMe ? 'rgba(255,255,255,0.75)' : C.muted} />
                 </TouchableOpacity>
               )}
+              {/* Voice message */}
+              {item.attachment_type === 'voice' && item.attachment_url && (
+                <TouchableOpacity style={s.voiceCard} onPress={() => playVoice(item.attachment_url!, item.id)}>
+                  <Ionicons
+                    name={soundPlayingId === item.id ? 'pause-circle' : 'play-circle'}
+                    size={28}
+                    color={isMe ? '#fff' : C.teal}
+                  />
+                  <View style={s.voiceWave}>
+                    {[4,7,11,6,9,14,8,5,10,7,12,8,6].map((h, i) => (
+                      <View key={i} style={[s.voiceBar, {
+                        height: h,
+                        backgroundColor: isMe
+                          ? (soundPlayingId === item.id ? '#fff' : 'rgba(255,255,255,0.55)')
+                          : (soundPlayingId === item.id ? C.teal : C.muted),
+                      }]} />
+                    ))}
+                  </View>
+                  <Text style={[s.voiceDur, isMe && { color: 'rgba(255,255,255,0.8)' }]}>
+                    {item.attachment_size || '0:00'}
+                  </Text>
+                </TouchableOpacity>
+              )}
               {/* Text */}
               {!!item.content && (
                 <Text style={[s.msgText, isMe && s.msgTextMe]}>{item.content}</Text>
               )}
-              {/* Time + read receipt */}
+              {/* Time + read receipt + edited label */}
               <View style={s.msgMeta}>
                 <Text style={[s.msgTime, isMe && s.msgTimeMe]}>{formatTime(item.created_at)}</Text>
+                {!!item.edited_at && (
+                  <Text style={[s.msgTime, isMe && s.msgTimeMe, s.editedLabel]}>· edited</Text>
+                )}
                 {isMe && (
                   item._failed
                     ? <Ionicons name="alert-circle" size={12} color="#EF4444" style={{ marginLeft: 4 }} />
@@ -462,8 +577,8 @@ export default function ConversationScreen({ route, navigation }: any) {
       <View style={s.contentCard}>
         <KeyboardAvoidingView
           style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={0}
+          behavior="padding"
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         >
           {loading ? (
             <View style={s.center}><ActivityIndicator color={C.teal} size="large" /></View>
@@ -526,38 +641,54 @@ export default function ConversationScreen({ route, navigation }: any) {
 
           {/* Input bar */}
           <View style={s.inputBar}>
-            {!editingMsg && (
+            {!editingMsg && !isRecording && (
               <TouchableOpacity style={s.attachBtn} onPress={() => setAttachVisible(true)}>
                 <Ionicons name="add" size={22} color={C.teal} />
               </TouchableOpacity>
             )}
             <View style={s.inputWrap}>
-              <TextInput
-                style={s.input}
-                value={input}
-                onChangeText={(t) => { setInput(t); if (!editingMsg) broadcastTyping(); }}
-                placeholder={editingMsg ? 'Edit message...' : 'Message...'}
-                placeholderTextColor={C.muted}
-                multiline
-                maxLength={2000}
-                autoFocus={!!editingMsg}
-              />
+              {isRecording ? (
+                <View style={s.recordingRow}>
+                  <View style={s.recDot} />
+                  <Text style={s.recTimer}>{formatRecDuration(recordDuration)}</Text>
+                  <Text style={s.recHint}> · Release to send</Text>
+                </View>
+              ) : (
+                <TextInput
+                  style={s.input}
+                  value={input}
+                  onChangeText={(t) => { setInput(t); if (!editingMsg) broadcastTyping(); }}
+                  placeholder={editingMsg ? 'Edit message...' : 'Message...'}
+                  placeholderTextColor={C.muted}
+                  multiline
+                  maxLength={2000}
+                  autoFocus={!!editingMsg}
+                />
+              )}
             </View>
             <Animated.View style={{ transform: [{ scale: sendBtnScale }] }}>
-              <TouchableOpacity
-                style={[s.sendBtn, !hasTxt && !editingMsg && s.sendBtnOff]}
-                onPress={editingMsg ? saveEdit : hasTxt ? () => sendMessage(input) : undefined}
-                disabled={!hasTxt || sending || uploading}
-                activeOpacity={0.8}
-              >
-                {sending
-                  ? <ActivityIndicator size="small" color="#fff" />
-                  : editingMsg
-                  ? <Ionicons name="checkmark" size={20} color="#fff" />
-                  : hasTxt
-                  ? <Ionicons name="send" size={17} color="#fff" style={{ marginLeft: 2 }} />
-                  : <Ionicons name="mic-outline" size={20} color="#fff" />}
-              </TouchableOpacity>
+              {(!hasTxt && !editingMsg) ? (
+                <Pressable
+                  style={[s.sendBtn, isRecording && s.sendBtnRec]}
+                  onPressIn={startRecording}
+                  onPressOut={stopAndSendRecording}
+                >
+                  <Ionicons name={isRecording ? 'stop' : 'mic'} size={20} color="#fff" />
+                </Pressable>
+              ) : (
+                <TouchableOpacity
+                  style={s.sendBtn}
+                  onPress={editingMsg ? saveEdit : () => sendMessage(input)}
+                  disabled={(!hasTxt && !editingMsg) || sending || uploading}
+                  activeOpacity={0.8}
+                >
+                  {sending
+                    ? <ActivityIndicator size="small" color="#fff" />
+                    : editingMsg
+                    ? <Ionicons name="checkmark" size={20} color="#fff" />
+                    : <Ionicons name="send" size={17} color="#fff" style={{ marginLeft: 2 }} />}
+                </TouchableOpacity>
+              )}
             </Animated.View>
           </View>
         </KeyboardAvoidingView>
@@ -658,7 +789,7 @@ export default function ConversationScreen({ route, navigation }: any) {
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0B7E8A' },
-  contentCard: { flex: 1, backgroundColor: C.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
+  contentCard: { flex: 1, backgroundColor: C.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: C.greenLight, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   emptyTitle: { fontSize: 17, fontWeight: '700', color: C.text },
@@ -717,6 +848,22 @@ const s = StyleSheet.create({
   input: { fontSize: 15, color: C.text, maxHeight: 120, paddingVertical: 0 },
   sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: C.teal, alignItems: 'center', justifyContent: 'center' },
   sendBtnOff: { backgroundColor: '#B0BEC5' },
+  sendBtnRec: { backgroundColor: '#EF4444' },
+
+  // Voice message bubble
+  voiceCard: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4, minWidth: 170 },
+  voiceWave: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 2, height: 20 },
+  voiceBar: { width: 2.5, borderRadius: 2 },
+  voiceDur: { fontSize: 11, color: C.muted, minWidth: 32, textAlign: 'right' },
+
+  // Edited label
+  editedLabel: { fontStyle: 'italic', marginLeft: 2 },
+
+  // Recording indicator
+  recordingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  recDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#EF4444' },
+  recTimer: { fontSize: 14, fontWeight: '600', color: C.text },
+  recHint: { fontSize: 13, color: C.muted },
 
   // Edit mode banner
   editBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: C.greenLight, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.border },
