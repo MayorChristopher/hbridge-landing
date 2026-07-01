@@ -45,26 +45,26 @@ export function telegramTransition({ current, next }: any) {
   };
 }
 
-// Open: springy with slight overshoot — feels alive
+// Open: fast settle, no overshoot
 export const springOpen = {
   animation: 'spring' as const,
   config: {
-    stiffness: 260,
-    damping: 24,
-    mass: 0.9,
-    overshootClamping: false,
+    stiffness: 380,
+    damping: 38,
+    mass: 0.7,
+    overshootClamping: true,
     restDisplacementThreshold: 0.01,
     restSpeedThreshold: 0.01,
   },
 };
 
-// Close: slightly stiffer so it snaps back cleanly
+// Close: instant snap back
 export const springClose = {
   animation: 'spring' as const,
   config: {
-    stiffness: 340,
-    damping: 30,
-    mass: 0.75,
+    stiffness: 440,
+    damping: 42,
+    mass: 0.65,
     overshootClamping: true,
     restDisplacementThreshold: 0.01,
     restSpeedThreshold: 0.01,

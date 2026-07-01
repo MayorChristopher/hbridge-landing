@@ -10,6 +10,7 @@ import { supabase } from './src/lib/supabase';
 import { ToastProvider, useToast } from './src/components/ToastProvider';
 import { ChatBadgeProvider, useChatBadge } from './src/context/ChatBadgeContext';
 import { NotificationBadgeProvider } from './src/context/NotificationBadgeContext';
+import { RecordsBadgeProvider, useRecordsBadge } from './src/context/RecordsBadgeContext';
 import TutorialOverlay from './src/components/TutorialOverlay';
 import { setGlobalToastInstance } from './src/utils/toast';
 import SplashScreen from './src/components/SplashScreen';
@@ -238,6 +239,7 @@ export default function App() {
 
   function TabNavigator() {
     const { unreadCount } = useChatBadge();
+    const { newRecordsCount } = useRecordsBadge();
     const navigation = useNavigation();
     const [userType, setUserType] = useState<UserType | null>(null);
     const [showTutorial, setShowTutorial] = useState(false);
@@ -331,6 +333,9 @@ export default function App() {
                 {...props}
                 profileImage={profileImage}
                 tabs={PATIENT_TABS}
+                badges={{
+                  Chat: unreadCount > 0 ? unreadCount : undefined,
+                }}
               />
             )}
             screenOptions={sharedTabOptions}
@@ -358,6 +363,10 @@ export default function App() {
                 {...props}
                 profileImage={profileImage}
                 tabs={DOCTOR_TABS}
+                badges={{
+                  DoctorMessages: unreadCount > 0 ? unreadCount : undefined,
+                  Patients: newRecordsCount > 0 ? 'gold' : undefined,
+                }}
               />
             )}
             screenOptions={sharedTabOptions}
@@ -412,6 +421,7 @@ export default function App() {
         <StatusBar style="dark" backgroundColor="#FFFFFF" />
         <ToastProvider>
           <ChatBadgeProvider>
+            <RecordsBadgeProvider>
             <NotificationBadgeProvider>
               <ToastInitializer />
               <NavigationContainer>
@@ -478,6 +488,7 @@ export default function App() {
         {/* Floating AI Chat - Available throughout the app */}
         <FloatingAIChat />
         </NotificationBadgeProvider>
+        </RecordsBadgeProvider>
         </ChatBadgeProvider>
       </ToastProvider>
     </SafeAreaProvider>

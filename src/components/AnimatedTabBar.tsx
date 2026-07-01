@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { View, TouchableOpacity, Animated, StyleSheet, Image } from 'react-native';
+import { View, TouchableOpacity, Animated, StyleSheet, Image, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -19,6 +19,7 @@ interface Props {
   navigation: any;
   profileImage: string | null;
   tabs: TabItem[];
+  badges?: Record<string, number | 'gold'>;
 }
 
 function TabIcon({
@@ -27,12 +28,14 @@ function TabIcon({
   inactiveIcon,
   profileImage,
   isProfile,
+  badge,
 }: {
   focused: boolean;
   activeIcon: string;
   inactiveIcon: string;
   profileImage: string | null;
   isProfile: boolean;
+  badge?: number | 'gold';
 }) {
   const iconScale = useRef(new Animated.Value(focused ? 1 : 0.86)).current;
   const pillW = useRef(new Animated.Value(focused ? 46 : 0)).current;
@@ -66,19 +69,11 @@ function TabIcon({
   return (
     <View style={s.iconWrap}>
       {/* Animated pill background */}
-      <Animated.View
-        style={[
-          s.pill,
-          { width: pillW, opacity: pillOpacity },
-        ]}
-      />
+      <Animated.View style={[s.pill, { width: pillW, opacity: pillOpacity }]} />
       {/* Icon scales on top */}
       <Animated.View style={[s.iconInner, { transform: [{ scale: iconScale }] }]}>
         {isProfile && profileImage ? (
-          <View style={[
-            s.profileRing,
-            focused ? s.profileRingActive : s.profileRingInactive,
-          ]}>
+          <View style={[s.profileRing, focused ? s.profileRingActive : s.profileRingInactive]}>
             <Image source={{ uri: profileImage }} style={s.profileImg} />
           </View>
         ) : (
@@ -89,11 +84,22 @@ function TabIcon({
           />
         )}
       </Animated.View>
+      {/* Badge dot */}
+      {!!badge && (
+        <View style={[
+          s.badgeDot,
+          badge === 'gold' ? s.badgeGold : s.badgeRed,
+        ]}>
+          {typeof badge === 'number' && badge > 0 && (
+            <Text style={s.badgeText}>{badge > 99 ? '99+' : badge}</Text>
+          )}
+        </View>
+      )}
     </View>
   );
 }
 
-export default function AnimatedTabBar({ state, descriptors, navigation, profileImage, tabs }: Props) {
+export default function AnimatedTabBar({ state, descriptors, navigation, profileImage, tabs, badges = {} }: Props) {
   const insets = useSafeAreaInsets();
   const bottom = Math.max(insets.bottom, 18);
 
@@ -103,6 +109,7 @@ export default function AnimatedTabBar({ state, descriptors, navigation, profile
         const isFocused = state.index === index;
         const tab = tabs[index] ?? { activeIcon: 'ellipse', inactiveIcon: 'ellipse-outline' };
         const isProfile = route.name === 'Profile';
+        const badge = badges[route.name];
 
         const onPress = () => {
           const event = navigation.emit({
@@ -133,6 +140,7 @@ export default function AnimatedTabBar({ state, descriptors, navigation, profile
               inactiveIcon={tab.inactiveIcon}
               profileImage={profileImage}
               isProfile={isProfile}
+              badge={isFocused ? undefined : badge}
             />
           </TouchableOpacity>
         );
@@ -205,4 +213,20 @@ const s = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#FFFFFF',
   },
+  badgeDot: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: '#fff',
+  },
+  badgeGold: { backgroundColor: '#F59E0B' },
+  badgeRed:  { backgroundColor: '#EF4444' },
+  badgeText: { fontSize: 9, fontWeight: '800', color: '#fff', lineHeight: 11 },
 });

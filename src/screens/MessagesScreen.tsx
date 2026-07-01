@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, Image, ActivityIndicator, RefreshControl, StatusBar } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, Image, ActivityIndicator, RefreshControl, StatusBar, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
@@ -12,6 +12,8 @@ export default function MessagesScreen({ navigation }: any) {
   const [loading, setLoading]               = useState(true);
   const [refreshing, setRefreshing]         = useState(false);
   const [currentUserId, setCurrentUserId]   = useState<string | null>(null);
+  const [searchQuery, setSearchQuery]       = useState('');
+  const [searchFocused, setSearchFocused]   = useState(false);
   const { refreshUnreadCount }              = useChatBadge();
   const userIdRef                           = useRef<string | null>(null);
 
@@ -65,9 +67,10 @@ export default function MessagesScreen({ navigation }: any) {
       const doctorProfileByUserId = new Map((doctorProfiles || []).map((p: any) => [p.id, p]));
       const doctorMap = new Map((doctorRows || []).map((d: any) => {
         const profile = doctorProfileByUserId.get(d.user_id);
-        const title   = d.title || 'Dr.';
-        const name    = profile?.full_name || d.full_name || '';
-        return [d.id, { id: d.id, full_name: `${title} ${name}`.trim(), profile_image: profile?.profile_image || d.profile_image, title }];
+        const title = d.title || 'Dr.';
+        const name  = profile?.full_name || d.full_name || '';
+        const displayName = /^dr\.?\s/i.test(name.trim()) ? name.trim() : `${title.endsWith('.') ? title : title + '.'} ${name}`.trim();
+        return [d.id, { id: d.id, full_name: displayName, profile_image: profile?.profile_image || d.profile_image, title }];
       }));
       const patientMap = new Map((patientProfiles || []).map((p: any) => [p.id, p]));
 
@@ -115,54 +118,76 @@ export default function MessagesScreen({ navigation }: any) {
     return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
   };
 
-  const renderItem = ({ item }: any) => (
-    <TouchableOpacity style={s.item} onPress={() => navigation.navigate('Conversation', {
-      conversationId: item.id,
-      other: {
-        id:        item.isCurrentUserDoctor ? item.patient_id : item.doctor_id,
-        full_name: item.otherUser?.full_name,
-        avatar_url: item.otherUser?.profile_image,
-        isDoctor:  !item.isCurrentUserDoctor,
-        title:     item.otherUser?.title,
-      },
-      currentUserId,
-    })}>
-      <View style={s.avatarWrap}>
-        {item.otherUser?.profile_image
-          ? <Image source={{ uri: item.otherUser.profile_image }} style={s.avatarImg} />
-          : <View style={[s.avatarImg, s.avatarFallback]}>
-              {item.isCurrentUserDoctor
-                ? <Ionicons name="person" size={22} color={C.teal} />
-                : <MaterialCommunityIcons name="stethoscope" size={22} color={C.teal} />}
-            </View>}
-        {item.unreadCount > 0 && (
-          <View style={s.onlineDot} />
-        )}
-      </View>
-      <View style={s.info}>
-        <View style={s.infoTop}>
-          <Text style={s.name} numberOfLines={1}>{item.otherUser?.full_name || 'Unknown'}</Text>
-          {item.lastMessage && <Text style={s.time}>{formatTime(item.lastMessage.created_at)}</Text>}
-        </View>
-        <View style={s.infoBottom}>
-          <Text style={[s.lastMsg, item.unreadCount > 0 && s.lastMsgUnread]} numberOfLines={1}>
-            {item.lastMessage?.attachment_type === 'voice'
-              ? '🎤 Voice message'
-              : item.lastMessage?.attachment_type === 'image'
-              ? '📷 Photo'
-              : item.lastMessage?.attachment_type === 'file'
-              ? '📎 Document'
-              : item.lastMessage?.content || 'No messages yet'}
-          </Text>
-          {item.unreadCount > 0 && (
-            <View style={s.unreadBadge}>
-              <Text style={s.unreadText}>{item.unreadCount}</Text>
-            </View>
-          )}
-        </View>
-      </View>
-    </TouchableOpacity>
+  const filtered = conversations.filter(c =>
+    !searchQuery.trim() ||
+    (c.otherUser?.full_name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const previewIcon = (msg: any) => {
+    if (msg?.attachment_type === 'voice') return 'mic';
+    if (msg?.attachment_type === 'image') return 'image-outline';
+    if (msg?.attachment_type === 'file')  return 'document-outline';
+    return null;
+  };
+
+  const previewText = (msg: any) => {
+    if (msg?.attachment_type === 'voice') return 'Voice message';
+    if (msg?.attachment_type === 'image') return 'Photo';
+    if (msg?.attachment_type === 'file')  return 'Document';
+    return msg?.content || 'No messages yet';
+  };
+
+  const renderItem = ({ item }: any) => {
+    const icon    = previewIcon(item.lastMessage);
+    const preview = previewText(item.lastMessage);
+    const hasUnread = item.unreadCount > 0;
+
+    return (
+      <TouchableOpacity style={s.item} activeOpacity={0.75} onPress={() => navigation.navigate('Conversation', {
+        conversationId: item.id,
+        other: {
+          id:         item.isCurrentUserDoctor ? item.patient_id : item.doctor_id,
+          full_name:  item.otherUser?.full_name,
+          avatar_url: item.otherUser?.profile_image,
+          isDoctor:   !item.isCurrentUserDoctor,
+          title:      item.otherUser?.title,
+        },
+        currentUserId,
+      })}>
+        <View style={s.avatarWrap}>
+          {item.otherUser?.profile_image
+            ? <Image source={{ uri: item.otherUser.profile_image }} style={s.avatarImg} />
+            : <View style={[s.avatarImg, s.avatarFallback]}>
+                {item.isCurrentUserDoctor
+                  ? <Ionicons name="person" size={22} color={C.teal} />
+                  : <MaterialCommunityIcons name="stethoscope" size={22} color={C.teal} />}
+              </View>}
+          {hasUnread && <View style={s.onlineDot} />}
+        </View>
+        <View style={s.info}>
+          <View style={s.infoTop}>
+            <Text style={s.name} numberOfLines={1}>{item.otherUser?.full_name || 'Unknown'}</Text>
+            {item.lastMessage && <Text style={s.time}>{formatTime(item.lastMessage.created_at)}</Text>}
+          </View>
+          <View style={s.infoBottom}>
+            <View style={s.previewRow}>
+              {icon && (
+                <Ionicons name={icon as any} size={13} color={hasUnread ? C.text : C.muted} style={{ marginRight: 3 }} />
+              )}
+              <Text style={[s.lastMsg, hasUnread && s.lastMsgUnread]} numberOfLines={1}>
+                {preview}
+              </Text>
+            </View>
+            {hasUnread && (
+              <View style={s.unreadBadge}>
+                <Text style={s.unreadText}>{item.unreadCount}</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
@@ -181,21 +206,46 @@ export default function MessagesScreen({ navigation }: any) {
 
       {/* White Card */}
       <View style={s.card}>
+        {/* Search bar */}
+        <View style={[s.searchWrap, searchFocused && s.searchWrapFocused]}>
+          <Ionicons name="search-outline" size={17} color={C.muted} />
+          <TextInput
+            style={s.searchInput}
+            placeholder="Search conversations..."
+            placeholderTextColor={C.muted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+          />
+          {!!searchQuery && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={16} color={C.muted} />
+            </TouchableOpacity>
+          )}
+        </View>
+
         {loading ? (
           <ActivityIndicator color={C.teal} style={{ flex: 1 }} />
         ) : (
           <FlatList
-            data={conversations}
+            data={filtered}
             keyExtractor={i => i.id}
             renderItem={renderItem}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.teal} colors={[C.teal]} />}
             ListEmptyComponent={
               <View style={s.empty}>
                 <View style={s.emptyIconWrap}>
-                  <Ionicons name="chatbubbles-outline" size={40} color={C.teal} />
+                  {searchQuery
+                    ? <Ionicons name="search-outline" size={40} color={C.teal} />
+                    : <Ionicons name="chatbubbles-outline" size={40} color={C.teal} />}
                 </View>
-                <Text style={s.emptyText}>No conversations yet</Text>
-                <Text style={s.emptySub}>Messages with doctors and patients appear here</Text>
+                <Text style={s.emptyText}>{searchQuery ? 'No results' : 'No conversations yet'}</Text>
+                <Text style={s.emptySub}>
+                  {searchQuery ? `Nothing matching "${searchQuery}"` : 'Messages with doctors and patients appear here'}
+                </Text>
               </View>
             }
             ItemSeparatorComponent={() => <View style={s.separator} />}
@@ -219,6 +269,12 @@ const s = StyleSheet.create({
 
   // White card
   card: { flex: 1, backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
+
+  // Search
+  searchWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, marginTop: 14, marginBottom: 6, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1.5, borderColor: 'transparent' },
+  searchWrapFocused: { borderColor: C.teal, backgroundColor: '#fff' },
+  searchInput: { flex: 1, fontSize: 14, color: C.text, paddingVertical: 0 },
+  previewRow: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 },
 
   // List item
   item:        { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, gap: 14 },

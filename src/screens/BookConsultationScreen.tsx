@@ -12,6 +12,13 @@ import { useNotificationBadge } from '../context/NotificationBadgeContext';
 
 const C = { bg:'#FFFFFF', surface:'#F5F7FA', text:'#171717', muted:'#555F6D', border:'#E2E8EF', teal:'#0B7E8A', tealLight:'#E6F5F5' };
 
+const drName = (doctor: any) => {
+  if (!doctor?.full_name) return 'Doctor';
+  if (/^dr\.?\s/i.test(doctor.full_name.trim())) return doctor.full_name.trim();
+  const t = (doctor.title || 'Dr.').trim();
+  return `${t.endsWith('.') ? t : t + '.'} ${doctor.full_name.trim()}`;
+};
+
 const TYPES = [
   { key:'audio',     label:'Audio Call',  icon:'call-outline',     fee:200 },
   { key:'video',     label:'Video Call',  icon:'videocam-outline', fee:500 },
@@ -79,14 +86,14 @@ export default function BookConsultationScreen({ route, navigation }: any) {
       await supabase.from('notifications').insert({
         user_id: user.id,
         title: reschedule ? 'Consultation Rescheduled' : 'Consultation Booked!',
-        message: `${selectedType.label} with ${doctor.title || 'Dr.'} ${doctor.full_name} on ${scheduledAt.toLocaleDateString()} at ${scheduledAt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}.`,
+        message: `${selectedType.label} with ${drName(doctor)} on ${scheduledAt.toLocaleDateString()} at ${scheduledAt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}.`,
         type: 'booking',
       });
 
       refreshUnreadCount();
       Alert.alert(
         reschedule ? 'Rescheduled!' : 'Booked!',
-        reschedule ? 'Your consultation has been updated.' : `Your ${selectedType.label} with ${doctor.title || 'Dr.'} ${doctor.full_name} is confirmed.`,
+        reschedule ? 'Your consultation has been updated.' : `Your ${selectedType.label} with ${drName(doctor)} is confirmed.`,
         [{ text: 'View Appointments', onPress: () => navigation.navigate('Appointments') }]
       );
     } catch(e:any) {
@@ -124,7 +131,7 @@ export default function BookConsultationScreen({ route, navigation }: any) {
                 : <MaterialCommunityIcons name="stethoscope" size={28} color={C.teal} />}
             </View>
             <View style={{flex:1}}>
-              <Text style={s.doctorName}>{doctor.title || 'Dr.'} {doctor.full_name}</Text>
+              <Text style={s.doctorName}>{drName(doctor)}</Text>
               <Text style={s.doctorSpec}>{doctor.specialization}</Text>
               <View style={s.doctorMeta}>
                 <Ionicons name="star" size={12} color="#F59E0B" />

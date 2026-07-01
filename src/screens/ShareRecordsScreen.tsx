@@ -83,7 +83,7 @@ export default function ShareRecordsScreen({ navigation }: any) {
 
       const accessGrants = selectedRecords.map(recordId => ({
         record_id: recordId,
-        user_id: user.id,
+        patient_id: user.id,
         doctor_id: providerType === 'doctor' ? selectedProvider.id : null,
         hospital_id: providerType === 'hospital' ? selectedProvider.id : null,
         access_type: 'view',
@@ -203,7 +203,9 @@ export default function ShareRecordsScreen({ navigation }: any) {
               </View>
               <View style={styles.providerInfo}>
                 <Text style={styles.providerName}>
-                  {providerType === 'doctor' ? `Dr. ${provider.full_name}` : provider.name}
+                  {providerType === 'doctor'
+                    ? (/^dr\.?\s/i.test(provider.full_name || '') ? provider.full_name : `Dr. ${provider.full_name}`)
+                    : provider.name}
                 </Text>
                 <Text style={styles.providerDetail}>
                   {providerType === 'doctor' ? provider.specialization : provider.type}

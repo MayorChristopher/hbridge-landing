@@ -101,8 +101,11 @@ export default function ConversationScreen({ route, navigation }: any) {
   const [isRecording, setIsRecording] = useState(false);
   const [recordDuration, setRecordDuration] = useState(0);
   const [soundPlayingId, setSoundPlayingId] = useState<string | null>(null);
+  const [msgSearch, setMsgSearch] = useState('');
+  const [showMsgSearch, setShowMsgSearch] = useState(false);
 
   const flatRef = useRef<FlatList>(null);
+  const hasInitialScrolled = useRef(false);
   const channelRef = useRef<any>(null);
   const typingTimeout = useRef<any>(null);
   const typingThrottle = useRef<any>(null);
@@ -195,9 +198,9 @@ export default function ConversationScreen({ route, navigation }: any) {
     if (data) {
       data.forEach(m => knownMsgIds.current.add(m.id));
       setMessages(data);
+      hasInitialScrolled.current = false; // reset so onContentSizeChange fires
     }
     setLoading(false);
-    setTimeout(() => flatRef.current?.scrollToEnd({ animated: false }), 100);
     await supabase.from('messages')
       .update({ read_at: new Date().toISOString() })
       .eq('conversation_id', conversationId)
@@ -598,15 +601,42 @@ export default function ConversationScreen({ route, navigation }: any) {
         </View>
         <TouchableOpacity
           style={s.headerAction}
-          onPress={() => navigation.navigate('BookConsultation', { doctor: other })}
+          onPress={() => { setShowMsgSearch(v => !v); setMsgSearch(''); }}
         >
-          <Ionicons name="calendar-outline" size={20} color="rgba(255,255,255,0.85)" />
+          <Ionicons name={showMsgSearch ? 'close' : 'search-outline'} size={20} color="rgba(255,255,255,0.85)" />
         </TouchableOpacity>
+        {!showMsgSearch && (
+          <TouchableOpacity
+            style={s.headerAction}
+            onPress={() => navigation.navigate('BookConsultation', { doctor: other })}
+          >
+            <Ionicons name="calendar-outline" size={20} color="rgba(255,255,255,0.85)" />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* White chat card */}
       <View style={s.contentCard}>
         <View style={{ flex: 1 }}>
+          {/* Message search bar */}
+          {showMsgSearch && (
+            <View style={s.msgSearchBar}>
+              <Ionicons name="search-outline" size={16} color={C.muted} />
+              <TextInput
+                style={s.msgSearchInput}
+                placeholder="Search messages..."
+                placeholderTextColor={C.muted}
+                value={msgSearch}
+                onChangeText={setMsgSearch}
+                autoFocus
+              />
+              {!!msgSearch && (
+                <TouchableOpacity onPress={() => setMsgSearch('')}>
+                  <Ionicons name="close-circle" size={16} color={C.muted} />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
           {loading ? (
             <View style={s.center}><ActivityIndicator color={C.teal} size="large" /></View>
           ) : messages.length === 0 ? (
@@ -620,10 +650,16 @@ export default function ConversationScreen({ route, navigation }: any) {
           ) : (
             <FlatList
               ref={flatRef}
-              data={messages}
+              data={msgSearch ? messages.filter(m => m.content?.toLowerCase().includes(msgSearch.toLowerCase())) : messages}
               keyExtractor={i => i.id}
               renderItem={renderMsg}
               contentContainerStyle={s.list}
+              onContentSizeChange={() => {
+                if (!hasInitialScrolled.current && !msgSearch) {
+                  flatRef.current?.scrollToEnd({ animated: false });
+                  hasInitialScrolled.current = true;
+                }
+              }}
               showsVerticalScrollIndicator={false}
               scrollEventThrottle={32}
               onScroll={handleScroll}
@@ -903,6 +939,10 @@ const s = StyleSheet.create({
   msgMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 2, paddingBottom: 2, gap: 3 },
   msgTime: { fontSize: 10.5, color: C.muted },
   msgTimeMe: { color: 'rgba(255,255,255,0.6)' },
+
+  // Message search bar
+  msgSearchBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: C.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
+  msgSearchInput: { flex: 1, fontSize: 14, color: C.text, paddingVertical: 0 },
 
   // Upload bar
   uploadingBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 8, backgroundColor: C.greenLight },
