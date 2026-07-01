@@ -166,7 +166,7 @@ const s = StyleSheet.create({
   headerSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
 
   // White card
-  card:       { flex: 1, backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
+  card:       { flex: 1, backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: 'hidden' },
   searchWrap: { padding: 16, paddingBottom: 8 },
   searchBar:  { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.surface, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1, borderColor: C.border },
   searchInput:{ flex: 1, fontSize: 14, color: C.text, paddingVertical: 0 },

@@ -195,7 +195,7 @@ const s = StyleSheet.create({
   headerCenter: { flex: 1 },
   headerTitle: { fontSize: 18, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
   headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
-  card: { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, minHeight: '100%' },
+  card: { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, padding: 24, minHeight: '100%' },
   heroRow: { flexDirection: 'row', gap: 16, alignItems: 'flex-start', marginBottom: 20 },
   iconBox: { width: 64, height: 64, borderRadius: 16, backgroundColor: '#E6F5F5', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: TEAL + '40' },
   heroInfo: { flex: 1, gap: 6 },

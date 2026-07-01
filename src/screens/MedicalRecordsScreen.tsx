@@ -10,9 +10,9 @@ import { supabase } from '../lib/supabase';
 const C = { bg:'#FFFFFF', surface:'#F5F5F5', text:'#171717', muted:'#737373', border:'#E5E5E5', teal:'#0B7E8A' };
 
 // ── PIN screen ─────────────────────────────────────────────────────────────
-function PinScreen({ setup, pinStep, currentVal, pinError, onNumpad, onBack, onForgot }: {
+function PinScreen({ setup, pinStep, currentVal, pinError, onNumpad, onBack, onForgot, showBack = false }: {
   setup:boolean; pinStep:'enter'|'confirm'; currentVal:string;
-  pinError:string; onNumpad:(k:string)=>void; onBack:()=>void; onForgot?:()=>void;
+  pinError:string; onNumpad:(k:string)=>void; onBack:()=>void; onForgot?:()=>void; showBack?:boolean;
 }) {
   const title = setup ? (pinStep==='confirm' ? 'Confirm your PIN' : 'Create a PIN') : 'Enter your PIN';
   const sub = setup
@@ -22,9 +22,13 @@ function PinScreen({ setup, pinStep, currentVal, pinError, onNumpad, onBack, onF
   return (
     <SafeAreaView style={s.container} edges={['top']}>
       <View style={s.header}>
-        <TouchableOpacity style={s.backBtn} onPress={onBack}>
-          <Ionicons name="arrow-back" size={22} color="#fff" />
-        </TouchableOpacity>
+        {showBack ? (
+          <TouchableOpacity style={s.backBtn} onPress={onBack}>
+            <Ionicons name="arrow-back" size={22} color="#fff" />
+          </TouchableOpacity>
+        ) : (
+          <View style={s.backBtn} />
+        )}
         <Text style={s.headerTitle}>Medical Records</Text>
         <Ionicons name="lock-closed" size={14} color="rgba(255,255,255,0.7)" />
       </View>
@@ -40,7 +44,10 @@ function PinScreen({ setup, pinStep, currentVal, pinError, onNumpad, onBack, onF
               <View key={i} style={[s.dot, i < currentVal.length ? s.dotFilled : s.dotEmpty]} />
             ))}
           </View>
-          {!!pinError && <Text style={s.pinError}>{pinError}</Text>}
+          {/* Fixed-height container prevents layout shift when error appears/disappears */}
+          <View style={{ minHeight: 22, justifyContent: 'center', alignItems: 'center' }}>
+            <Text style={[s.pinError, { opacity: pinError ? 1 : 0 }]}>{pinError || ' '}</Text>
+          </View>
         </View>
         <View style={s.numpad}>
           {rows.map((row,ri)=>(
@@ -129,8 +136,10 @@ export default function MedicalRecordsScreen({ navigation }: any) {
 
   const handleUnlock = () => {
     if (pin.length !== 4) return;
-    if (pin === userPin) { setIsLocked(false); setPin(''); setPinError(''); if (userId) loadFolders(userId); }
-    else { setPinError('Incorrect PIN. Try again.'); setPin(''); }
+    // String coercion guards against numeric type returned from DB
+    if (pin.trim() === String(userPin ?? '').trim()) {
+      setIsLocked(false); setPin(''); setPinError(''); if (userId) loadFolders(userId);
+    } else { setPinError('Incorrect PIN. Try again.'); setPin(''); }
   };
 
   const activePin    = isSettingPin ? (pinStep==='confirm' ? confirmPin : pin) : pin;
@@ -225,12 +234,14 @@ export default function MedicalRecordsScreen({ navigation }: any) {
   if (isSettingPin) return (
     <PinScreen setup pinStep={pinStep} currentVal={pinStep==='confirm'?confirmPin:pin}
       pinError={pinError} onNumpad={handleNumpad}
+      showBack={pinStep==='confirm'}
       onBack={()=>{ if (pinStep==='confirm'){setPinStep('enter');setConfirmPin('');setPinError('');}else navigation.goBack();}} />
   );
   if (isLocked) return (
     <PinScreen setup={false} pinStep="enter" currentVal={pin}
       pinError={pinError} onNumpad={handleNumpad}
-      onBack={()=>navigation.goBack()} onForgot={resetPin} />
+      showBack={false} onForgot={resetPin}
+      onBack={()=>navigation.goBack()} />
   );
 
   const folderIcon = (type:string) => {

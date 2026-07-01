@@ -259,7 +259,7 @@ const s = StyleSheet.create({
   headerCenter: { flex: 1 },
   headerTitle: { fontSize: 18, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
   headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
-  card: { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, minHeight: '100%' },
+  card: { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, padding: 24, minHeight: '100%' },
   heroSection: { alignItems: 'center', marginBottom: 24, gap: 8 },
   avatarBox: { width: 96, height: 96, borderRadius: 48, backgroundColor: '#E6F5F5', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: TEAL, overflow: 'hidden', marginBottom: 4 },
   avatarImg: { width: 96, height: 96, borderRadius: 48 },

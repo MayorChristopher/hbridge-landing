@@ -43,24 +43,20 @@ function TabIcon({
 
   useEffect(() => {
     Animated.parallel([
-      // Icon springs to full size when focused, shrinks slightly when not
       Animated.spring(iconScale, {
         toValue: focused ? 1 : 0.86,
-        tension: 200,
-        friction: 13,
+        tension: 500,
+        friction: 22,
         useNativeDriver: true,
       }),
-      // Pill width springs open/closed (scaleX trick for width animation on native driver)
-      Animated.spring(pillW, {
+      Animated.timing(pillW, {
         toValue: focused ? 46 : 0,
-        tension: 220,
-        friction: 14,
-        useNativeDriver: false, // width can't use native driver
+        duration: 140,
+        useNativeDriver: false,
       }),
-      // Pill fades in/out quickly
       Animated.timing(pillOpacity, {
         toValue: focused ? 1 : 0,
-        duration: 100,
+        duration: 80,
         useNativeDriver: false,
       }),
     ]).start();
@@ -131,7 +127,7 @@ export default function AnimatedTabBar({ state, descriptors, navigation, profile
             key={route.key}
             onPress={onPress}
             onLongPress={onLongPress}
-            activeOpacity={0.85}
+            activeOpacity={1}
             style={s.tabBtn}
           >
             <TabIcon

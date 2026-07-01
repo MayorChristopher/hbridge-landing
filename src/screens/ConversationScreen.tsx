@@ -892,7 +892,7 @@ export default function ConversationScreen({ route, navigation }: any) {
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0B7E8A' },
-  contentCard: { flex: 1, backgroundColor: C.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+  contentCard: { flex: 1, backgroundColor: C.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: C.greenLight, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   emptyTitle: { fontSize: 17, fontWeight: '700', color: C.text },

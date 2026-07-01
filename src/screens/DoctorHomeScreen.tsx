@@ -281,7 +281,7 @@ const s = StyleSheet.create({
   credItem:{ flexDirection:'row', alignItems:'center', gap:5 },
   credText:{ fontSize:12, color:'rgba(255,255,255,0.85)', fontWeight:'500', maxWidth:140 },
   credDot:{ width:3, height:3, borderRadius:1.5, backgroundColor:'rgba(255,255,255,0.4)' },
-  contentCard:{ backgroundColor:'#ffffff', borderTopLeftRadius:28, borderTopRightRadius:28, paddingTop:24, minHeight:600 },
+  contentCard:{ backgroundColor:'#ffffff', borderTopLeftRadius:28, borderTopRightRadius:28, borderBottomLeftRadius:28, borderBottomRightRadius:28, paddingTop:24, flex:1 },
   statsRow:{ flexDirection:'row', marginHorizontal:24, gap:8, marginBottom:24 },
   statCard:{ flex:1, backgroundColor:C.teal, borderRadius:14, padding:12, alignItems:'center', gap:3 },
   statVal:{ fontSize:20, fontWeight:'800', color:'#fff' },

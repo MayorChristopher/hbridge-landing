@@ -147,7 +147,7 @@ const s = StyleSheet.create({
   headerSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
 
   // White card
-  card: { flex: 1, backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
+  card: { flex: 1, backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: 'hidden' },
 
   // Section header
   sectionHeader: { fontSize: 12, fontWeight: '700', color: C.muted, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 8, textTransform: 'uppercase', letterSpacing: 0.8 },

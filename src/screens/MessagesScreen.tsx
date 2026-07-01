@@ -37,6 +37,14 @@ export default function MessagesScreen({ navigation }: any) {
     return () => { if (channel) supabase.removeChannel(channel); };
   }, []);
 
+  // Re-fetch on focus so read_at updates are picked up and badge clears
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (userIdRef.current) loadConversations(userIdRef.current);
+    });
+    return unsubscribe;
+  }, [navigation]);
+
   const loadConversations = async (userId: string) => {
     try {
       const { data: doctorData } = await supabase.from('doctors').select('id').eq('user_id', userId).maybeSingle();
@@ -268,7 +276,7 @@ const s = StyleSheet.create({
   headerSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
 
   // White card
-  card: { flex: 1, backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
+  card: { flex: 1, backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: 'hidden' },
 
   // Search
   searchWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, marginTop: 14, marginBottom: 6, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1.5, borderColor: 'transparent' },

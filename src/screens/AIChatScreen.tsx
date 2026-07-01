@@ -41,7 +41,7 @@ const s = StyleSheet.create({
   headerCenter: { flex: 1 },
   headerTitle: { fontSize: 26, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
   headerSub: { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
-  whiteCard: { flex: 1, backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
+  whiteCard: { flex: 1, backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: 'hidden' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   comingSoon: { fontSize: 16, color: '#737373' },
 });

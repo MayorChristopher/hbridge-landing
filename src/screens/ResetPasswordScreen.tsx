@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
   // Card
   card: {
     flex: 1, backgroundColor: '#ffffff',
-    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    borderTopLeftRadius: 28, borderTopRightRadius: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28,
     paddingHorizontal: 24, paddingTop: 32, paddingBottom: 16, gap: 20,
   },
 

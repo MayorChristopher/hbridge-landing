@@ -153,7 +153,7 @@ export default function NewPasswordScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0B7E8A' },
-  scrollContent: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 32, paddingTop: 48, backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+  scrollContent: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 32, paddingTop: 48, backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
   iconWrap: { alignItems: 'center', marginBottom: 24, paddingTop: 32, backgroundColor: '#0B7E8A' },
   headerLogo: { width: 72, height: 72, borderRadius: 36, borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)' },
   titleSection: { marginBottom: 40, alignItems: 'center' },

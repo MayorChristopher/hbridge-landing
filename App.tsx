@@ -340,11 +340,11 @@ export default function App() {
             )}
             screenOptions={sharedTabOptions}
           >
-            <Tab.Screen name="Home">{() => <FadeScreen><HomeScreen navigation={navigation} /></FadeScreen>}</Tab.Screen>
-            <Tab.Screen name="Explore">{() => <FadeScreen><SearchScreen navigation={navigation} /></FadeScreen>}</Tab.Screen>
-            <Tab.Screen name="Chat">{() => <FadeScreen><ChatScreen navigation={navigation} /></FadeScreen>}</Tab.Screen>
-            <Tab.Screen name="Records">{() => <FadeScreen><MedicalRecordsScreen navigation={navigation} /></FadeScreen>}</Tab.Screen>
-            <Tab.Screen name="Profile">{() => <FadeScreen><ProfileScreen navigation={navigation} /></FadeScreen>}</Tab.Screen>
+            <Tab.Screen name="Home">{() => <HomeScreen navigation={navigation} />}</Tab.Screen>
+            <Tab.Screen name="Explore">{() => <SearchScreen navigation={navigation} />}</Tab.Screen>
+            <Tab.Screen name="Chat">{() => <ChatScreen navigation={navigation} />}</Tab.Screen>
+            <Tab.Screen name="Records">{() => <MedicalRecordsScreen navigation={navigation} />}</Tab.Screen>
+            <Tab.Screen name="Profile">{() => <ProfileScreen navigation={navigation} />}</Tab.Screen>
           </Tab.Navigator>
           {showTutorial && (
             <TutorialOverlay userType="patient" onComplete={() => setShowTutorial(false)} />
@@ -371,11 +371,11 @@ export default function App() {
             )}
             screenOptions={sharedTabOptions}
           >
-            <Tab.Screen name="DoctorHome">{() => <FadeScreen><DoctorHomeScreen navigation={navigation} /></FadeScreen>}</Tab.Screen>
-            <Tab.Screen name="Search">{() => <FadeScreen><SearchScreen navigation={navigation} /></FadeScreen>}</Tab.Screen>
-            <Tab.Screen name="DoctorMessages">{() => <FadeScreen><MessagesScreen navigation={navigation} /></FadeScreen>}</Tab.Screen>
-            <Tab.Screen name="Patients">{() => <FadeScreen><DoctorPatientsScreen navigation={navigation} /></FadeScreen>}</Tab.Screen>
-            <Tab.Screen name="Profile">{() => <FadeScreen><ProfileScreen navigation={navigation} /></FadeScreen>}</Tab.Screen>
+            <Tab.Screen name="DoctorHome">{() => <DoctorHomeScreen navigation={navigation} />}</Tab.Screen>
+            <Tab.Screen name="Search">{() => <SearchScreen navigation={navigation} />}</Tab.Screen>
+            <Tab.Screen name="DoctorMessages">{() => <MessagesScreen navigation={navigation} />}</Tab.Screen>
+            <Tab.Screen name="Patients">{() => <DoctorPatientsScreen navigation={navigation} />}</Tab.Screen>
+            <Tab.Screen name="Profile">{() => <ProfileScreen navigation={navigation} />}</Tab.Screen>
           </Tab.Navigator>
           {showTutorial && (
             <TutorialOverlay userType="doctor" onComplete={() => setShowTutorial(false)} />

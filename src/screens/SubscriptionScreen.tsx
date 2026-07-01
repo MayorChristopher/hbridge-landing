@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   headerTitles: { flex: 1 },
   headerTitle: { fontSize: 26, fontWeight: '700', color: '#ffffff', letterSpacing: -0.3 },
   headerSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
-  card: { flex: 1, backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
+  card: { flex: 1, backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: 'hidden' },
   content: {
     flex: 1,
     paddingHorizontal: spacing.lg,
