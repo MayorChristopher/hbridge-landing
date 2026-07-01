@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hbridge — Healthcare at Your Fingertips</title>
-  <meta name="description" content="Hbridge connects patients to verified doctors, hospitals, and healthcare services in Nigeria. Book consultations, manage medical records, and access emergency care — all from your phone." />
-  <meta property="og:title" content="Hbridge — Healthcare at Your Fingertips" />
-  <meta property="og:description" content="Your doctor is one tap away. Hbridge is Nigeria's smart healthcare access platform for patients and providers." />
-  <meta property="og:type" content="website" />
+  <title>Hbridge — Electronic Medical Records Platform</title>
+  <meta name="description" content="Hbridge is Nigeria's Electronic Medical Records platform. Securely store, manage, and share your medical history with doctors and hospitals — from your phone." />
+  <meta property="og:title"       content="Hbridge — Electronic Medical Records Platform" />
+  <meta property="og:description" content="Your health history, secured and accessible everywhere. Hbridge brings Nigeria's health data into the digital age." />
+  <meta property="og:type"        content="website" />
   <link rel="icon" href="logo.png" type="image/png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -30,247 +30,282 @@
     html { scroll-behavior: smooth; }
     body { font-family: 'Inter', sans-serif; background: #ffffff; color: #171717; }
 
-    .fade-up { opacity: 0; transform: translateY(32px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    /* ── Scroll animations ── */
+    .fade-up { opacity: 0; transform: translateY(28px); transition: opacity 0.65s ease, transform 0.65s ease; }
     .fade-up.visible { opacity: 1; transform: translateY(0); }
-    .delay-100 { transition-delay: 0.1s; }
-    .delay-200 { transition-delay: 0.2s; }
-    .delay-300 { transition-delay: 0.3s; }
-    .delay-400 { transition-delay: 0.4s; }
-    .delay-500 { transition-delay: 0.5s; }
+    .delay-100 { transition-delay: 0.10s; }
+    .delay-200 { transition-delay: 0.20s; }
+    .delay-300 { transition-delay: 0.30s; }
+    .delay-400 { transition-delay: 0.40s; }
 
-    /* Phone mockup */
+    /* ── Hero gradient ── */
+    .hero-gradient { background: linear-gradient(140deg, #042f35 0%, #0B7E8A 55%, #0ca8b9 100%); }
+
+    /* ── Phone mockup ── */
     .phone-outer {
-      width: 260px; height: 530px;
-      background: #1a1a2e;
+      width: 248px; height: 510px;
+      background: #0d1117;
       border-radius: 44px;
-      padding: 12px;
-      box-shadow: 0 40px 100px rgba(0,0,0,0.45), 0 0 0 2px rgba(255,255,255,0.08);
-      position: relative; flex-shrink: 0;
+      padding: 10px;
+      box-shadow: 0 48px 120px rgba(0,0,0,0.50), 0 0 0 2px rgba(255,255,255,0.07);
+      flex-shrink: 0; position: relative;
     }
     .phone-inner {
       width: 100%; height: 100%;
       background: #0B7E8A;
-      border-radius: 32px;
+      border-radius: 36px;
       overflow: hidden;
       display: flex; flex-direction: column;
     }
     .phone-notch {
-      width: 80px; height: 22px;
-      background: #1a1a2e;
-      border-radius: 0 0 14px 14px;
+      width: 72px; height: 20px;
+      background: #0d1117;
+      border-radius: 0 0 12px 12px;
       margin: 0 auto; flex-shrink: 0;
     }
-    .phone-screen-content {
-      flex: 1; background: #f5f7fa;
-      border-radius: 0 0 32px 32px;
-      overflow: hidden; display: flex; flex-direction: column;
+    .phone-home-card {
+      flex: 1;
+      background: #f5f7fa;
+      border-radius: 26px 26px 0 0;
+      overflow: hidden;
+      display: flex; flex-direction: column;
     }
-    .chat-bubble-me {
-      align-self: flex-end; background: #0B7E8A; color: white;
-      padding: 7px 11px; border-radius: 16px 16px 3px 16px;
-      font-size: 10px; max-width: 68%; margin: 2px 10px;
+    .phone-tab-bar {
+      background: white;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 8px 12px 6px;
+      flex-shrink: 0;
     }
-    .chat-bubble-them {
-      align-self: flex-start; background: white; color: #171717;
-      padding: 7px 11px; border-radius: 16px 16px 16px 3px;
-      font-size: 10px; max-width: 68%; margin: 2px 10px;
-    }
-    .hero-gradient { background: linear-gradient(135deg, #064E55 0%, #0B7E8A 55%, #0a9aa9 100%); }
-    .feature-card { transition: transform 0.25s ease, box-shadow 0.25s ease; }
-    .feature-card:hover { transform: translateY(-4px); box-shadow: 0 20px 48px rgba(11,126,138,0.12); }
-    .waitlist-input:focus { outline: none; border-color: #0B7E8A; box-shadow: 0 0 0 3px rgba(11,126,138,0.15); }
-    .navbar-scrolled { background: rgba(255,255,255,0.96) !important; backdrop-filter: blur(12px); box-shadow: 0 1px 20px rgba(0,0,0,0.08); }
-    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
-    .float-badge { animation: float 3s ease-in-out infinite; }
-    .float-badge-2 { animation: float 3s ease-in-out infinite 1.5s; }
-    .dot-grid { background-image: radial-gradient(circle, rgba(11,126,138,0.15) 1px, transparent 1px); background-size: 24px 24px; }
-    @keyframes typing { 0%,100%{opacity:.2} 50%{opacity:1} }
-    .typing-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:#0B7E8A; animation:typing 1.2s ease-in-out infinite; }
-    .typing-dot:nth-child(2){animation-delay:.2s}
-    .typing-dot:nth-child(3){animation-delay:.4s}
+    .phone-tab { width: 26px; height: 26px; border-radius: 13px; display: flex; align-items: center; justify-content: center; font-size: 11px; }
 
-    /* Screenshot grid */
-    .screenshot-frame {
+    /* ── Navbar ── */
+    .navbar-scrolled { background: rgba(255,255,255,0.97) !important; backdrop-filter: blur(14px); box-shadow: 0 1px 24px rgba(0,0,0,0.08); }
+    .nav-link { position: relative; transition: opacity .2s; }
+    .nav-link.active-section { opacity: 1 !important; }
+    .nav-link.active-section::after {
+      content: '';
+      position: absolute; left: 0; right: 0; bottom: -5px;
+      height: 2px; border-radius: 2px; background: currentColor; opacity: .8;
+    }
+
+    /* ── Feature cards ── */
+    .feature-card { transition: transform .25s ease, box-shadow .25s ease; }
+    .feature-card:hover { transform: translateY(-4px); box-shadow: 0 24px 56px rgba(11,126,138,.11); }
+    .feature-hero { background: linear-gradient(135deg, #0B7E8A 0%, #064E55 100%); }
+
+    /* ── Dot grid ── */
+    .dot-grid { background-image: radial-gradient(circle, rgba(11,126,138,.15) 1px, transparent 1px); background-size: 24px 24px; }
+
+    /* ── Waitlist input ── */
+    .wl-input:focus { outline: none; border-color: #0B7E8A; box-shadow: 0 0 0 3px rgba(11,126,138,.14); }
+
+    /* ── Floating badges ── */
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+    .float-a { animation: float 3.2s ease-in-out infinite; }
+    .float-b { animation: float 3.2s ease-in-out infinite 1.6s; }
+
+    /* ── Coming soon overlay ── */
+    .coming-soon-overlay {
+      position: absolute; inset: 0;
+      background: rgba(4,47,53,.72);
+      backdrop-filter: blur(3px);
+      border-radius: 24px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 10px;
+    }
+
+    /* ── Screenshot frame ── */
+    .ss-frame {
       border-radius: 24px; overflow: hidden;
-      box-shadow: 0 24px 60px rgba(0,0,0,0.15);
-      background: #f0f0f0;
+      box-shadow: 0 24px 60px rgba(0,0,0,.14);
+      background: #eef0f3;
       position: relative;
     }
-    .screenshot-placeholder {
+    .ss-placeholder {
       width: 100%; aspect-ratio: 9/19;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 10px; color: #9AA3AE; font-size: 13px;
-      background: linear-gradient(160deg, #f5f7fa, #e8edf0);
+      gap: 10px; color: #9AA3AE; font-size: 12px;
+      background: linear-gradient(155deg, #f5f7fa, #e8edf0);
     }
-    .video-placeholder {
-      width: 100%; aspect-ratio: 16/9;
-      background: linear-gradient(135deg, #0B7E8A20, #064E5530);
-      border: 2px dashed #0B7E8A60;
-      border-radius: 20px;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 14px; cursor: pointer; transition: background .2s;
-    }
-    .video-placeholder:hover { background: linear-gradient(135deg, #0B7E8A30, #064E5540); }
-    .stat-counter { font-variant-numeric: tabular-nums; }
-
-    /* Active nav link */
-    .nav-link { position: relative; }
-    .nav-link.active::after {
-      content: '';
-      position: absolute;
-      left: 0; right: 0; bottom: -4px;
-      height: 2px;
-      border-radius: 2px;
-      background: currentColor;
-      opacity: 0.8;
-    }
-    .nav-link.active { opacity: 1 !important; }
   </style>
 </head>
 <body class="antialiased">
 
-  <!-- ══════════════════════════════════════
+  <!-- ════════════════════════════════════════
        NAVBAR
-  ══════════════════════════════════════ -->
+  ════════════════════════════════════════ -->
   <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-transparent">
     <div class="max-w-7xl mx-auto px-6 lg:px-8 h-16 flex items-center justify-between">
+
       <!-- Logo -->
-      <a href="#" class="flex items-center gap-2.5">
-        <img src="logo.png" alt="Hbridge" class="h-10 w-auto object-contain" style="filter: brightness(0) invert(1);" id="nav-logo-img" />
-        <span class="text-xl font-bold text-white" id="nav-logo-text">Hbridge</span>
+      <a href="#" class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0" style="background:#0B7E8A;">
+          <img src="logo.png" alt="Hbridge" class="w-8 h-8 object-contain" id="nav-logo-img" />
+        </div>
+        <span class="text-xl font-black tracking-tight text-white" id="nav-logo-text">Hbridge</span>
       </a>
-      <!-- Desktop Nav -->
+
+      <!-- Desktop nav — no "Early Access" link here (button handles it) -->
       <div class="hidden md:flex items-center gap-8">
-        <a href="#about"       class="nav-link text-sm font-medium text-white/80 hover:text-white transition-colors" data-section="about">About</a>
-        <a href="#features"    class="nav-link text-sm font-medium text-white/80 hover:text-white transition-colors" data-section="features">Features</a>
-        <a href="#screenshots" class="nav-link text-sm font-medium text-white/80 hover:text-white transition-colors" data-section="screenshots">App</a>
-        <a href="#download"    class="nav-link text-sm font-medium text-white/80 hover:text-white transition-colors" data-section="download">Download</a>
-        <a href="#early-access" class="nav-link text-sm font-medium text-white/80 hover:text-white transition-colors" data-section="early-access">Early Access</a>
+        <a href="#about"        class="nav-link text-sm font-medium text-white/80 hover:text-white" data-section="about">About</a>
+        <a href="#features"     class="nav-link text-sm font-medium text-white/80 hover:text-white" data-section="features">Features</a>
+        <a href="#how-it-works" class="nav-link text-sm font-medium text-white/80 hover:text-white" data-section="how-it-works">How It Works</a>
+        <a href="#app-preview"  class="nav-link text-sm font-medium text-white/80 hover:text-white" data-section="app-preview">App</a>
       </div>
+
+      <!-- CTA -->
       <div class="flex items-center gap-3">
-        <a href="#early-access" class="hidden md:inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-teal text-sm font-semibold hover:bg-teal-light transition-colors">
+        <a href="#early-access" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-teal text-sm font-bold hover:bg-teal-light transition-colors shadow-lg">
           Get Early Access
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </a>
-        <!-- Hamburger -->
         <button id="menu-btn" class="md:hidden p-2 rounded-lg text-white">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M3 12h18M3 6h18M3 18h18"/>
-          </svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
         </button>
       </div>
     </div>
+
     <!-- Mobile menu -->
     <div id="mobile-menu" class="hidden md:hidden bg-teal-dark border-t border-white/10 px-6 py-4 flex flex-col gap-4">
-      <a href="#about"        class="text-sm font-medium text-white/80 hover:text-white" onclick="closeMobileMenu()">About</a>
-      <a href="#features"     class="text-sm font-medium text-white/80 hover:text-white" onclick="closeMobileMenu()">Features</a>
-      <a href="#screenshots"  class="text-sm font-medium text-white/80 hover:text-white" onclick="closeMobileMenu()">App</a>
-      <a href="#download"     class="text-sm font-medium text-white/80 hover:text-white" onclick="closeMobileMenu()">Download</a>
-      <a href="#early-access" class="text-sm font-medium text-white/80 hover:text-white" onclick="closeMobileMenu()">Early Access</a>
+      <a href="#about"        class="text-sm font-medium text-white/80 hover:text-white" onclick="document.getElementById('mobile-menu').classList.add('hidden')">About</a>
+      <a href="#features"     class="text-sm font-medium text-white/80 hover:text-white" onclick="document.getElementById('mobile-menu').classList.add('hidden')">Features</a>
+      <a href="#how-it-works" class="text-sm font-medium text-white/80 hover:text-white" onclick="document.getElementById('mobile-menu').classList.add('hidden')">How It Works</a>
+      <a href="#app-preview"  class="text-sm font-medium text-white/80 hover:text-white" onclick="document.getElementById('mobile-menu').classList.add('hidden')">App</a>
+      <a href="#early-access" class="inline-flex justify-center py-3 px-6 rounded-full bg-white text-teal text-sm font-bold" onclick="document.getElementById('mobile-menu').classList.add('hidden')">Get Early Access</a>
     </div>
   </nav>
 
-  <!-- ══════════════════════════════════════
+  <!-- ════════════════════════════════════════
        HERO
-  ══════════════════════════════════════ -->
+  ════════════════════════════════════════ -->
   <section class="hero-gradient min-h-screen pt-16 relative overflow-hidden">
-    <!-- Dot pattern -->
-    <div class="dot-grid absolute inset-0 opacity-40"></div>
-    <!-- Blobs -->
-    <div class="absolute top-24 right-0 w-96 h-96 rounded-full opacity-10" style="background:radial-gradient(circle,#fff,transparent);"></div>
-    <div class="absolute bottom-0 left-0 w-72 h-72 rounded-full opacity-10" style="background:radial-gradient(circle,#fff,transparent);"></div>
+    <div class="dot-grid absolute inset-0 opacity-30"></div>
+    <div class="absolute -top-32 -right-32 w-[600px] h-[600px] rounded-full opacity-10" style="background:radial-gradient(circle,#7FE8F0,transparent)"></div>
 
     <div class="relative max-w-7xl mx-auto px-6 lg:px-8 py-20 flex flex-col lg:flex-row items-center gap-16">
-      <!-- Text -->
+
+      <!-- LEFT: copy -->
       <div class="flex-1 text-white">
-        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 text-sm font-medium mb-8 fade-up">
-          <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-          Now available in Nigeria
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 text-xs font-semibold mb-8 uppercase tracking-widest fade-up">
+          Electronic Medical Records · Nigeria
         </div>
-        <h1 class="text-5xl lg:text-6xl font-black leading-tight mb-6 fade-up delay-100">
-          Healthcare<br/>
-          <span style="color:#7FE8F0">within reach</span><br/>
-          everywhere.
+        <h1 class="text-5xl lg:text-6xl font-black leading-[1.08] mb-6 fade-up delay-100">
+          Your health history,<br/>
+          <span style="color:#7FE8F0">secured &amp;</span><br/>
+          always with you.
         </h1>
-        <p class="text-lg text-white/75 leading-relaxed max-w-lg mb-10 fade-up delay-200">
-          Hbridge is the smart healthcare access platform that connects patients directly to verified doctors, specialists, and hospitals across Nigeria — instantly.
+        <p class="text-lg text-white/70 leading-relaxed max-w-lg mb-4 fade-up delay-200">
+          Hbridge is Nigeria's Electronic Medical Records (EMR) platform — a secure digital vault that puts your complete health history in your pocket and makes it instantly shareable with any doctor or hospital.
         </p>
+        <p class="text-base text-white/55 leading-relaxed max-w-lg mb-10 fade-up delay-300">
+          No more lost lab results. No more repeating your history at every clinic. Book consultations, share records with a tap, and get the care you deserve — everywhere.
+        </p>
+
         <div class="flex flex-wrap gap-4 fade-up delay-300">
-          <a href="#download" class="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full bg-white text-teal font-bold text-base shadow-xl hover:shadow-2xl transition-all hover:-translate-y-0.5">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.39-1.32 2.76-2.53 3.99M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-            Download for iOS
+          <a href="#early-access" class="inline-flex items-center gap-2.5 px-8 py-4 rounded-full bg-white text-teal font-bold text-base shadow-2xl hover:shadow-3xl transition-all hover:-translate-y-0.5">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.06 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 9.91A16 16 0 0 0 13 15.09l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 16h1v.92z"/></svg>
+            Join the Waitlist
           </a>
-          <a href="#download" id="apk-btn" class="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full border-2 border-white/40 text-white font-bold text-base hover:bg-white/10 transition-all hover:-translate-y-0.5">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.34l-2.12-2.12a.75.75 0 0 0-1.06 1.06l2.12 2.12c.3.3.3.77 0 1.06a.75.75 0 0 1-1.06 0l-2.12-2.12a.75.75 0 0 0-1.06 1.06l2.12 2.12c.88.88 2.3.88 3.18 0a2.25 2.25 0 0 0 0-3.18zM7.5 5.25l.97 1.7H6.53L7.5 5.25zm-3 9l.75-4.5h9.5l.75 4.5H4.5zM16.5 3l-3.33 5.25H10.83L7.5 3H16.5z"/></svg>
-            Download APK (Android)
+          <a href="#features" class="inline-flex items-center gap-2.5 px-8 py-4 rounded-full border-2 border-white/30 text-white font-semibold text-base hover:bg-white/10 transition-all">
+            See How It Works
           </a>
         </div>
-        <p class="text-white/50 text-sm mt-5 fade-up delay-400">Free to download &middot; Available on Android &amp; iOS</p>
+        <p class="text-white/40 text-sm mt-5 fade-up delay-400">App launching soon &middot; Be the first to know</p>
       </div>
 
-      <!-- Phone mockup -->
+      <!-- RIGHT: phone mockup (patient home screen design) -->
       <div class="relative flex-shrink-0 fade-up delay-200">
-        <!-- Floating badges -->
-        <div class="float-badge absolute -left-16 top-16 bg-white rounded-2xl shadow-2xl px-4 py-3 flex items-center gap-3 z-10">
-          <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:#E6F5F5">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B7E8A" stroke-width="2.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+
+        <!-- Floating cards -->
+        <div class="float-a absolute -left-20 top-12 bg-white rounded-2xl shadow-2xl px-4 py-3 flex items-center gap-3 z-10 max-w-[160px]">
+          <div class="w-9 h-9 rounded-xl bg-teal-light flex items-center justify-center flex-shrink-0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0B7E8A" stroke-width="2.5"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
           </div>
-          <div><p class="text-xs font-semibold text-gray-800">Appointment Booked</p><p class="text-xs text-gray-500">Dr. Adewale · 3pm</p></div>
+          <div><p class="text-[10px] font-bold text-gray-800">Record Shared</p><p class="text-[9px] text-gray-400">Dr. Adewale can view</p></div>
         </div>
-        <div class="float-badge-2 absolute -right-14 bottom-24 bg-white rounded-2xl shadow-2xl px-4 py-3 flex items-center gap-3 z-10">
-          <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:#fef3c7">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.5"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <div class="float-b absolute -right-16 bottom-24 bg-white rounded-2xl shadow-2xl px-4 py-3 flex items-center gap-3 z-10 max-w-[150px]">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background:#fef3c7">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           </div>
-          <div><p class="text-xs font-semibold text-gray-800">Emergency Alert</p><p class="text-xs text-gray-500">Help is on the way</p></div>
+          <div><p class="text-[10px] font-bold text-gray-800">Lab Result Added</p><p class="text-[9px] text-gray-400">Blood panel · Today</p></div>
         </div>
 
+        <!-- Phone -->
         <div class="phone-outer">
           <div class="phone-inner">
             <div class="phone-notch"></div>
             <!-- Status bar -->
-            <div class="flex justify-between items-center px-5 py-1.5" style="background:#0B7E8A">
-              <span style="font-size:9px;color:rgba(255,255,255,0.8)">9:41</span>
+            <div class="flex justify-between items-center px-5 pt-1 pb-2" style="background:#0B7E8A">
+              <span style="font-size:8px;color:rgba(255,255,255,.7)">9:41</span>
               <div class="flex gap-1.5">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M1.5 8.5A13.5 13.5 0 0 1 12 4.5a13.5 13.5 0 0 1 10.5 4"/><path d="M5 12a9 9 0 0 1 14 0"/><path d="M8.5 15.5A4.5 4.5 0 0 1 12 14a4.5 4.5 0 0 1 3.5 1.5"/><circle cx="12" cy="19" r="1" fill="white"/></svg>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="white"><rect x="1" y="6" width="15" height="12" rx="2"/><path d="M23 13v-2a1 1 0 0 0-1-1h-1v4h1a1 1 0 0 0 1-1z"/></svg>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="white"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12H0M24 12h-2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="white" stroke-width="1.5" fill="none"/></svg>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="white"><rect x="1" y="6" width="15" height="12" rx="2"/><path d="M23 13v-2a1 1 0 0 0-1-1h-1v4h1a1 1 0 0 0 1-1z"/></svg>
               </div>
             </div>
-            <!-- Header strip -->
-            <div class="px-4 pb-3 flex items-center justify-between" style="background:#0B7E8A">
+            <!-- Greeting header -->
+            <div class="flex justify-between items-center px-4 pb-3" style="background:#0B7E8A">
               <div>
-                <p style="font-size:10px;color:rgba(255,255,255,0.7)">Good morning</p>
-                <p style="font-size:14px;font-weight:700;color:white">Chukwuemeka 👋</p>
+                <p style="font-size:9px;color:rgba(255,255,255,.65)">Good morning</p>
+                <p style="font-size:14px;font-weight:800;color:white">Hello, Emeka 👋</p>
               </div>
-              <div style="width:30px;height:30px;border-radius:15px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center">
+              <div style="width:30px;height:30px;border-radius:15px;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
               </div>
             </div>
-            <!-- White card / chat content -->
-            <div class="phone-screen-content pt-3 pb-2">
-              <div style="padding:0 8px 4px;display:flex;flex-direction:column;gap:2px;flex:1;overflow:hidden">
-                <!-- Chat header inside phone -->
-                <div style="background:#0B7E8A;border-radius:10px;padding:6px 10px;margin-bottom:6px;display:flex;align-items:center;gap:6px">
-                  <div style="width:22px;height:22px;border-radius:11px;background:rgba(255,255,255,0.3)"></div>
-                  <div>
-                    <p style="font-size:8px;font-weight:700;color:white">Dr. Adewale Okonkwo</p>
-                    <p style="font-size:7px;color:rgba(255,255,255,0.7)">Cardiologist · Online</p>
+            <!-- White home card -->
+            <div class="phone-home-card">
+              <div style="padding:10px 10px 0;flex:1;overflow:hidden;display:flex;flex-direction:column;gap:8px">
+                <!-- Search -->
+                <div style="background:white;border-radius:10px;padding:7px 10px;display:flex;align-items:center;gap:5px;border:1px solid #E5E5E5">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9AA3AE" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                  <span style="font-size:8.5px;color:#9AA3AE">Search doctors, hospitals...</span>
+                </div>
+                <!-- Quick actions -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
+                  <!-- Records highlighted -->
+                  <div style="background:#0B7E8A;border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:4px">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    <p style="font-size:8px;font-weight:700;color:white">My Records</p>
+                  </div>
+                  <div style="background:#F5F7FA;border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:4px">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0B7E8A" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <p style="font-size:8px;font-weight:600;color:#171717">Find Doctor</p>
+                  </div>
+                  <div style="background:#F5F7FA;border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:4px">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0B7E8A" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    <p style="font-size:8px;font-weight:600;color:#171717">Book</p>
+                  </div>
+                  <div style="background:#F5F7FA;border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:4px">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0B7E8A" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                    <p style="font-size:8px;font-weight:600;color:#171717">Hospitals</p>
                   </div>
                 </div>
-                <div class="chat-bubble-them">Hello! How can I help you today?</div>
-                <div class="chat-bubble-me">I've been having chest pains since yesterday.</div>
-                <div class="chat-bubble-them">I see. Can you describe the pain? Sharp or dull?</div>
-                <div class="chat-bubble-me">It's a dull pressure, mostly on the left side.</div>
-                <div class="chat-bubble-them" style="display:flex;align-items:center;gap:6px">
-                  <span>Typing</span>
-                  <span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>
+                <!-- Records section -->
+                <div style="background:#E6F5F5;border-radius:10px;padding:8px;border:1px solid #B3DDE2">
+                  <p style="font-size:7.5px;font-weight:700;color:#0B7E8A;margin-bottom:5px">📂 Medical Records</p>
+                  <div style="display:flex;flex-direction:column;gap:3px">
+                    <div style="background:white;border-radius:7px;padding:5px 7px;display:flex;justify-content:space-between;align-items:center">
+                      <span style="font-size:7px;color:#171717;font-weight:500">Lagos General Hospital</span>
+                      <span style="font-size:6.5px;color:#0B7E8A;font-weight:600">3 files</span>
+                    </div>
+                    <div style="background:white;border-radius:7px;padding:5px 7px;display:flex;justify-content:space-between;align-items:center">
+                      <span style="font-size:7px;color:#171717;font-weight:500">Dr. A. Okonkwo</span>
+                      <span style="font-size:6.5px;color:#0B7E8A;font-weight:600">5 files</span>
+                    </div>
+                  </div>
                 </div>
               </div>
               <!-- Tab bar -->
-              <div style="display:flex;justify-content:space-around;padding:6px 10px;background:white;border-top:1px solid #eee;margin:0 4px;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="#0B7E8A"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22" fill="none" stroke="#0B7E8A" stroke-width="1.5"/></svg>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9AA3AE" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="#0B7E8A"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9AA3AE" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              <div class="phone-tab-bar" style="gap:2px;border-top:1px solid #eee">
+                <div class="phone-tab" style="background:#F5F7FA">🏠</div>
+                <div class="phone-tab" style="background:#F5F7FA">🔍</div>
+                <div class="phone-tab" style="background:#F5F7FA">💬</div>
+                <div class="phone-tab" style="background:#0B7E8A">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <div class="phone-tab" style="background:#F5F7FA">👤</div>
               </div>
             </div>
           </div>
@@ -279,525 +314,451 @@
     </div>
   </section>
 
-  <!-- ══════════════════════════════════════
-       STATS
-  ══════════════════════════════════════ -->
-  <section class="bg-teal-dark py-10">
-    <div class="max-w-5xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+  <!-- ════════════════════════════════════════
+       PRE-LAUNCH HONEST STRIP
+  ════════════════════════════════════════ -->
+  <section class="bg-teal-dark py-8">
+    <div class="max-w-5xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
       <div class="fade-up">
-        <p class="text-4xl font-black text-white stat-counter">500+</p>
-        <p class="text-sm text-white/60 mt-1 font-medium">Verified Doctors</p>
+        <p class="text-2xl font-black text-white">Nigeria</p>
+        <p class="text-xs text-white/50 mt-1 font-medium">Where we start</p>
       </div>
       <div class="fade-up delay-100">
-        <p class="text-4xl font-black text-white stat-counter">36</p>
-        <p class="text-sm text-white/60 mt-1 font-medium">States Covered</p>
+        <p class="text-2xl font-black text-white">EMR</p>
+        <p class="text-xs text-white/50 mt-1 font-medium">Core platform</p>
       </div>
       <div class="fade-up delay-200">
-        <p class="text-4xl font-black text-white stat-counter">10k+</p>
-        <p class="text-sm text-white/60 mt-1 font-medium">Patients Served</p>
+        <p class="text-2xl font-black text-white">Free</p>
+        <p class="text-xs text-white/50 mt-1 font-medium">To join &amp; use in beta</p>
       </div>
       <div class="fade-up delay-300">
-        <p class="text-4xl font-black text-white stat-counter">4.9★</p>
-        <p class="text-sm text-white/60 mt-1 font-medium">Average Rating</p>
+        <p class="text-2xl font-black text-white">2026</p>
+        <p class="text-xs text-white/50 mt-1 font-medium">Public launch</p>
       </div>
     </div>
   </section>
 
-  <!-- ══════════════════════════════════════
-       ABOUT THE COMPANY
-  ══════════════════════════════════════ -->
+  <!-- ════════════════════════════════════════
+       ABOUT
+  ════════════════════════════════════════ -->
   <section id="about" class="py-24 bg-white">
     <div class="max-w-7xl mx-auto px-6 lg:px-8">
       <div class="grid lg:grid-cols-2 gap-16 items-center">
-        <!-- Left: Text -->
+        <!-- Copy -->
         <div>
-          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-light text-teal text-sm font-semibold mb-6 fade-up">
-            Our Mission
-          </div>
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-light text-teal text-xs font-bold mb-6 uppercase tracking-wide fade-up">Our Mission</div>
           <h2 class="text-4xl lg:text-5xl font-black leading-tight mb-6 fade-up delay-100">
-            Bridging the gap between<br/>
-            <span class="text-teal">patients and care</span>
+            Nigeria's health data<br/>
+            <span class="text-teal">deserves a digital home</span>
           </h2>
-          <p class="text-gray-600 text-lg leading-relaxed mb-6 fade-up delay-200">
-            Hbridge was founded on a simple belief: quality healthcare should not be a privilege. In Nigeria, millions of people lack access to the doctors and specialists they need — not because those doctors don't exist, but because there is no reliable way to find, consult, and follow up with them.
+          <p class="text-gray-600 text-lg leading-relaxed mb-5 fade-up delay-200">
+            Today, most Nigerians carry their medical history in paper folders, scattered between clinics, hospitals, and pharmacies. Records are lost. Diagnoses are repeated. Time and money are wasted.
           </p>
           <p class="text-gray-600 text-lg leading-relaxed mb-8 fade-up delay-300">
-            We built Hbridge to change that. Our platform removes every barrier between a patient and their doctor — from appointment scheduling and real-time consultations, to secure medical record management and emergency response — putting the full power of modern healthcare in every Nigerian's pocket.
+            Hbridge is an <strong class="text-teal">Electronic Medical Records (EMR) platform</strong> built specifically for Nigeria. It gives every patient a secure, lifelong digital health vault — and gives doctors instant access to the records they need to make better decisions, faster.
           </p>
-          <div class="flex flex-col sm:flex-row gap-6 fade-up delay-400">
-            <div class="flex items-start gap-4">
-              <div class="w-11 h-11 rounded-xl bg-teal-light flex items-center justify-center flex-shrink-0">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B7E8A" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 fade-up delay-400">
+            <div class="flex items-start gap-3">
+              <div class="w-10 h-10 rounded-xl bg-teal-light flex items-center justify-center flex-shrink-0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0B7E8A" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               </div>
-              <div>
-                <p class="font-bold text-gray-900">Built for Nigeria</p>
-                <p class="text-sm text-gray-500 mt-0.5">Designed around the healthcare realities of African patients and providers.</p>
-              </div>
+              <div><p class="font-bold text-gray-900 text-sm">End-to-end secure</p><p class="text-xs text-gray-500 mt-0.5">PIN-protected vault, encrypted storage, and controlled sharing.</p></div>
             </div>
-            <div class="flex items-start gap-4">
-              <div class="w-11 h-11 rounded-xl bg-teal-light flex items-center justify-center flex-shrink-0">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B7E8A" stroke-width="2.5"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            <div class="flex items-start gap-3">
+              <div class="w-10 h-10 rounded-xl bg-teal-light flex items-center justify-center flex-shrink-0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0B7E8A" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
               </div>
-              <div>
-                <p class="font-bold text-gray-900">Verified & Trusted</p>
-                <p class="text-sm text-gray-500 mt-0.5">Every doctor is credentialed and verified before joining the platform.</p>
-              </div>
+              <div><p class="font-bold text-gray-900 text-sm">Doctor + Patient</p><p class="text-xs text-gray-500 mt-0.5">Designed for both sides — patients own their data, doctors get it instantly.</p></div>
             </div>
           </div>
         </div>
-        <!-- Right: Brand image -->
+        <!-- Logo with green background -->
         <div class="fade-up delay-200 flex justify-center">
           <div class="relative">
-            <div class="absolute inset-0 bg-teal-light rounded-3xl transform rotate-3"></div>
-            <img src="logo.png" alt="Hbridge" class="relative w-72 h-72 object-contain rounded-3xl p-12 bg-white shadow-2xl border border-gray-100" />
+            <div class="absolute inset-4 bg-teal-light rounded-3xl"></div>
+            <div class="relative w-72 h-72 rounded-3xl flex items-center justify-center shadow-2xl" style="background:linear-gradient(135deg,#0B7E8A,#064E55)">
+              <img src="logo.png" alt="Hbridge" class="w-48 h-48 object-contain" />
+              <div class="absolute bottom-5 left-0 right-0 text-center">
+                <p class="text-white/70 text-xs font-semibold tracking-widest uppercase">Electronic Medical Records</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ══════════════════════════════════════
-       FEATURES
-  ══════════════════════════════════════ -->
+  <!-- ════════════════════════════════════════
+       FEATURES — EMR first, prominent
+  ════════════════════════════════════════ -->
   <section id="features" class="py-24 bg-gray-50">
     <div class="max-w-7xl mx-auto px-6 lg:px-8">
       <div class="text-center max-w-2xl mx-auto mb-16">
-        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-light text-teal text-sm font-semibold mb-4 fade-up">Features</div>
-        <h2 class="text-4xl font-black mb-4 fade-up delay-100">Everything healthcare,<br/><span class="text-teal">one app</span></h2>
-        <p class="text-gray-500 text-lg fade-up delay-200">Hbridge brings together every layer of healthcare access, designed to work seamlessly for patients and healthcare providers alike.</p>
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-light text-teal text-xs font-bold uppercase tracking-wide mb-4 fade-up">Platform Features</div>
+        <h2 class="text-4xl font-black mb-4 fade-up delay-100">Built around your<br/><span class="text-teal">Medical Records</span></h2>
+        <p class="text-gray-500 text-lg fade-up delay-200">The EMR vault is at the heart of Hbridge. Everything else — consultations, appointments, emergency care — connects through it.</p>
       </div>
-      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- Feature cards -->
-        <div class="feature-card bg-white rounded-2xl p-7 border border-gray-100 shadow-sm fade-up">
-          <div class="w-12 h-12 rounded-xl bg-teal-light flex items-center justify-center mb-5">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0B7E8A" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+
+      <!-- HERO FEATURE: EMR Vault (full-width, prominent) -->
+      <div class="feature-hero rounded-3xl p-10 lg:p-14 mb-6 fade-up text-white relative overflow-hidden">
+        <div class="dot-grid absolute inset-0 opacity-20"></div>
+        <div class="relative grid lg:grid-cols-2 gap-10 items-center">
+          <div>
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/15 border border-white/20 text-xs font-bold mb-6 uppercase tracking-wide">
+              ⭐ Core Feature
+            </div>
+            <h3 class="text-3xl lg:text-4xl font-black mb-4">Electronic Medical Records Vault</h3>
+            <p class="text-white/75 text-base leading-relaxed mb-6">
+              Your lifelong, PIN-secured medical records vault. Store lab results, prescriptions, diagnoses, imaging, and clinical notes — organised by doctor or hospital. Share any record with a verified doctor in one tap, with full access control and audit trail.
+            </p>
+            <ul class="space-y-3 text-sm">
+              <li class="flex items-center gap-3"><div class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0"><svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M9 12l2 2 4-4"/></svg></div>PIN-locked access, no one else can view your data</li>
+              <li class="flex items-center gap-3"><div class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0"><svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M9 12l2 2 4-4"/></svg></div>Organised by hospital and doctor — never lose a record again</li>
+              <li class="flex items-center gap-3"><div class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0"><svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M9 12l2 2 4-4"/></svg></div>Share securely with any doctor on the platform with one tap</li>
+              <li class="flex items-center gap-3"><div class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0"><svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M9 12l2 2 4-4"/></svg></div>Expiry controls — revoke access at any time</li>
+            </ul>
           </div>
-          <h3 class="text-lg font-bold mb-2">Real-time Consultations</h3>
-          <p class="text-gray-500 text-sm leading-relaxed">Chat directly with a verified doctor in seconds. Send photos, voice notes, documents, and get professional medical advice without leaving home.</p>
+          <div class="flex justify-center lg:justify-end">
+            <div class="bg-white/10 border border-white/20 rounded-2xl p-6 w-72">
+              <div class="flex items-center gap-3 mb-5">
+                <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <div>
+                  <p class="text-sm font-bold">My Medical Records</p>
+                  <p class="text-xs text-white/60">2 folders · 8 records</p>
+                </div>
+              </div>
+              <div class="space-y-3">
+                <div class="bg-white/10 rounded-xl p-3 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div>
+                    <div><p class="text-xs font-semibold">Lagos General</p><p class="text-[10px] text-white/60">3 records</p></div>
+                  </div>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" opacity=".5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </div>
+                <div class="bg-white/10 rounded-xl p-3 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+                    <div><p class="text-xs font-semibold">Dr. A. Okonkwo</p><p class="text-[10px] text-white/60">5 records</p></div>
+                  </div>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" opacity=".5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </div>
+                <div class="bg-white/10 border border-white/20 border-dashed rounded-xl p-3 flex items-center gap-2">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" opacity=".6"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  <p class="text-xs text-white/60">Add new folder</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="feature-card bg-white rounded-2xl p-7 border border-gray-100 shadow-sm fade-up delay-100">
-          <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style="background:#ede9fe">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
+
+      <!-- Other features grid -->
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div class="feature-card bg-white rounded-2xl p-6 border border-gray-100 shadow-sm fade-up">
+          <div class="w-11 h-11 rounded-xl mb-4 flex items-center justify-center" style="background:#ede9fe">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           </div>
-          <h3 class="text-lg font-bold mb-2">Appointment Booking</h3>
-          <p class="text-gray-500 text-sm leading-relaxed">Browse doctor schedules and book appointments in real time. Get reminders, manage your bookings, and never miss a consultation.</p>
+          <h3 class="text-base font-bold mb-2">Doctor Consultations</h3>
+          <p class="text-gray-500 text-xs leading-relaxed">Chat with verified doctors in real time. Share records directly from your vault during a consultation.</p>
         </div>
-        <div class="feature-card bg-white rounded-2xl p-7 border border-gray-100 shadow-sm fade-up delay-200">
-          <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style="background:#fef3c7">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <div class="feature-card bg-white rounded-2xl p-6 border border-gray-100 shadow-sm fade-up delay-100">
+          <div class="w-11 h-11 rounded-xl mb-4 flex items-center justify-center" style="background:#fef3c7">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
           </div>
-          <h3 class="text-lg font-bold mb-2">Medical Records Vault</h3>
-          <p class="text-gray-500 text-sm leading-relaxed">Store your medical history, lab results, and prescriptions in a secure PIN-protected vault. Share records with your doctor with one tap.</p>
+          <h3 class="text-base font-bold mb-2">Appointment Booking</h3>
+          <p class="text-gray-500 text-xs leading-relaxed">Book clinic and virtual appointments with any verified doctor on the platform in seconds.</p>
         </div>
-        <div class="feature-card bg-white rounded-2xl p-7 border border-gray-100 shadow-sm fade-up">
-          <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style="background:#fee2e2">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.06 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 9.91A16 16 0 0 0 13 15.09l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 16h1v.92z"/></svg>
+        <div class="feature-card bg-white rounded-2xl p-6 border border-gray-100 shadow-sm fade-up delay-200">
+          <div class="w-11 h-11 rounded-xl mb-4 flex items-center justify-center" style="background:#fee2e2">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.06 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 9.91A16 16 0 0 0 13 15.09l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 16h1v.92z"/></svg>
           </div>
-          <h3 class="text-lg font-bold mb-2">Emergency Services</h3>
-          <p class="text-gray-500 text-sm leading-relaxed">One-tap SOS alert with location sharing. Connect to emergency responders and notify your emergency contacts instantly when it matters most.</p>
+          <h3 class="text-base font-bold mb-2">Emergency Response</h3>
+          <p class="text-gray-500 text-xs leading-relaxed">One-tap SOS with location sharing. Emergency contacts are alerted instantly, with your medical history ready.</p>
         </div>
-        <div class="feature-card bg-white rounded-2xl p-7 border border-gray-100 shadow-sm fade-up delay-100">
-          <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style="background:#d1fae5">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <div class="feature-card bg-white rounded-2xl p-6 border border-gray-100 shadow-sm fade-up delay-300">
+          <div class="w-11 h-11 rounded-xl mb-4 flex items-center justify-center" style="background:#e0f2fe">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0284C7" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
           </div>
-          <h3 class="text-lg font-bold mb-2">Doctor Profiles</h3>
-          <p class="text-gray-500 text-sm leading-relaxed">Browse verified doctors by specialty, location, and availability. Read reviews, check credentials, and choose the right doctor for your needs.</p>
-        </div>
-        <div class="feature-card bg-white rounded-2xl p-7 border border-gray-100 shadow-sm fade-up delay-200">
-          <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style="background:#e0f2fe">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0284C7" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-          </div>
-          <h3 class="text-lg font-bold mb-2">AI Health Assistant</h3>
-          <p class="text-gray-500 text-sm leading-relaxed">Get instant answers to health questions, symptom checks, and medication guidance — powered by AI, always available, and privacy-first.</p>
+          <h3 class="text-base font-bold mb-2">AI Health Assistant</h3>
+          <p class="text-gray-500 text-xs leading-relaxed">Ask health questions, check symptoms, and get medication guidance — powered by AI, always private.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ══════════════════════════════════════
-       APP SCREENSHOTS
-  ══════════════════════════════════════ -->
-  <section id="screenshots" class="py-24 bg-white overflow-hidden">
-    <div class="max-w-7xl mx-auto px-6 lg:px-8">
-      <div class="text-center max-w-2xl mx-auto mb-16">
-        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-light text-teal text-sm font-semibold mb-4 fade-up">The App</div>
-        <h2 class="text-4xl font-black mb-4 fade-up delay-100">See it in action</h2>
-        <p class="text-gray-500 text-lg fade-up delay-200">A beautifully designed experience that makes healthcare simple, accessible, and human.</p>
-      </div>
-
-      <!-- Screenshot grid — replace src="placeholder_N.png" with your actual screenshots -->
-      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-16">
-        <!-- SCREENSHOT 1 — Home Screen -->
-        <div class="screenshot-frame fade-up">
-          <div class="screenshot-placeholder">
-            <!-- Replace this div content with: <img src="screenshot_home.png" style="width:100%" /> -->
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            <span style="font-size:11px;text-align:center;padding:0 12px;">Home Screen<br/>Screenshot here</span>
-          </div>
-        </div>
-        <!-- SCREENSHOT 2 — Chat / Consultation -->
-        <div class="screenshot-frame fade-up delay-100">
-          <div class="screenshot-placeholder">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            <span style="font-size:11px;text-align:center;padding:0 12px;">Consultation Chat<br/>Screenshot here</span>
-          </div>
-        </div>
-        <!-- SCREENSHOT 3 — Doctor Profile -->
-        <div class="screenshot-frame fade-up delay-200">
-          <div class="screenshot-placeholder">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            <span style="font-size:11px;text-align:center;padding:0 12px;">Doctor Profile<br/>Screenshot here</span>
-          </div>
-        </div>
-        <!-- SCREENSHOT 4 — Medical Records -->
-        <div class="screenshot-frame fade-up delay-300">
-          <div class="screenshot-placeholder">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            <span style="font-size:11px;text-align:center;padding:0 12px;">Medical Records<br/>Screenshot here</span>
-          </div>
-        </div>
-        <!-- SCREENSHOT 5 — Appointments -->
-        <div class="screenshot-frame fade-up delay-400">
-          <div class="screenshot-placeholder">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            <span style="font-size:11px;text-align:center;padding:0 12px;">Appointments<br/>Screenshot here</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- VIDEO SECTION -->
-      <div class="max-w-4xl mx-auto fade-up">
-        <div class="video-placeholder" onclick="alert('Add your video URL to this section.')">
-          <!-- Replace this block with: <video src="app-demo.mp4" controls poster="video-thumbnail.jpg" style="width:100%;border-radius:20px"></video> -->
-          <!-- Or embed a YouTube video: <iframe src="https://www.youtube.com/embed/YOUR_VIDEO_ID" ... -->
-          <div class="w-20 h-20 rounded-full bg-teal flex items-center justify-center shadow-2xl">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-          </div>
-          <div class="text-center">
-            <p class="text-teal font-bold text-lg">Watch the App Demo</p>
-            <p class="text-gray-400 text-sm mt-1">2:30 · See Hbridge in action from start to finish</p>
-            <p class="text-gray-300 text-xs mt-3 italic">Replace this placeholder with your video</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ══════════════════════════════════════
-       HOW IT WORKS
-  ══════════════════════════════════════ -->
+  <!-- ════════════════════════════════════════
+       HOW IT WORKS — EMR traction
+  ════════════════════════════════════════ -->
   <section id="how-it-works" class="py-24 bg-teal-dark relative overflow-hidden">
     <div class="dot-grid absolute inset-0 opacity-20"></div>
     <div class="relative max-w-7xl mx-auto px-6 lg:px-8">
       <div class="text-center max-w-2xl mx-auto mb-16">
-        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 text-white text-sm font-semibold mb-4 fade-up">How It Works</div>
-        <h2 class="text-4xl font-black text-white mb-4 fade-up delay-100">Start in under 3 minutes</h2>
-        <p class="text-white/60 text-lg fade-up delay-200">Getting connected to a doctor has never been this simple.</p>
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 text-white text-xs font-bold uppercase tracking-wide mb-4 fade-up">How The EMR Works</div>
+        <h2 class="text-4xl font-black text-white mb-4 fade-up delay-100">Your records, organised<br/>in under 3 minutes</h2>
+        <p class="text-white/60 text-base fade-up delay-200">From signup to a fully organised medical record vault — completely on your phone.</p>
       </div>
-      <div class="grid md:grid-cols-3 gap-8 relative">
-        <!-- Connector lines (desktop) -->
-        <div class="hidden md:block absolute top-8 left-1/3 right-1/3 h-0.5 bg-gradient-to-r from-white/20 to-white/20"></div>
+      <div class="grid md:grid-cols-3 gap-8">
         <div class="text-center fade-up">
           <div class="w-16 h-16 rounded-2xl bg-white mx-auto flex items-center justify-center mb-6 shadow-xl">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0B7E8A" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0B7E8A" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           </div>
-          <div class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white/10 text-white text-xs font-bold mb-3">1</div>
-          <h3 class="text-xl font-bold text-white mb-3">Create Your Profile</h3>
-          <p class="text-white/60 text-sm leading-relaxed">Sign up in seconds. Add your health details, emergency contacts, and you're ready to go.</p>
+          <p class="text-white/50 text-xs font-bold uppercase tracking-widest mb-2">Step 1</p>
+          <h3 class="text-xl font-bold text-white mb-3">Create your secure vault</h3>
+          <p class="text-white/60 text-sm leading-relaxed">Sign up and set a private PIN to protect your medical vault. No one else — not even Hbridge — can access your records.</p>
         </div>
         <div class="text-center fade-up delay-200">
           <div class="w-16 h-16 rounded-2xl bg-white mx-auto flex items-center justify-center mb-6 shadow-xl">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0B7E8A" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0B7E8A" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           </div>
-          <div class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white/10 text-white text-xs font-bold mb-3">2</div>
-          <h3 class="text-xl font-bold text-white mb-3">Find Your Doctor</h3>
-          <p class="text-white/60 text-sm leading-relaxed">Browse verified doctors by specialty or location. Read reviews and choose who you trust.</p>
+          <p class="text-white/50 text-xs font-bold uppercase tracking-widest mb-2">Step 2</p>
+          <h3 class="text-xl font-bold text-white mb-3">Upload &amp; organise your records</h3>
+          <p class="text-white/60 text-sm leading-relaxed">Create folders for each hospital and doctor you visit. Upload PDFs, images of prescriptions, lab results, X-rays — all in one place.</p>
         </div>
         <div class="text-center fade-up delay-400">
           <div class="w-16 h-16 rounded-2xl bg-white mx-auto flex items-center justify-center mb-6 shadow-xl">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0B7E8A" stroke-width="2.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0B7E8A" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
           </div>
-          <div class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white/10 text-white text-xs font-bold mb-3">3</div>
-          <h3 class="text-xl font-bold text-white mb-3">Get Care, Instantly</h3>
-          <p class="text-white/60 text-sm leading-relaxed">Book an appointment or start a consultation immediately. Share records, receive prescriptions, follow up easily.</p>
+          <p class="text-white/50 text-xs font-bold uppercase tracking-widest mb-2">Step 3</p>
+          <h3 class="text-xl font-bold text-white mb-3">Share with any doctor, instantly</h3>
+          <p class="text-white/60 text-sm leading-relaxed">When you see a doctor, share your exact records with one tap. No printing, no carrying, no explaining from memory. You control what they can see and for how long.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ══════════════════════════════════════
-       DOWNLOAD
-  ══════════════════════════════════════ -->
-  <section id="download" class="py-24 bg-white">
+  <!-- ════════════════════════════════════════
+       APP PREVIEW — Coming Soon
+  ════════════════════════════════════════ -->
+  <section id="app-preview" class="py-24 bg-white overflow-hidden">
     <div class="max-w-7xl mx-auto px-6 lg:px-8">
-      <div class="bg-gradient-to-br from-teal-dark to-teal rounded-3xl p-12 lg:p-16 flex flex-col lg:flex-row items-center gap-12 relative overflow-hidden">
-        <div class="dot-grid absolute inset-0 opacity-20"></div>
-        <div class="relative flex-1 text-white">
-          <h2 class="text-4xl font-black mb-4 fade-up">Download Hbridge<br/>and start today</h2>
-          <p class="text-white/70 text-lg mb-8 fade-up delay-100">Available on Android now. iOS version coming soon.</p>
-          <div class="flex flex-col sm:flex-row gap-4 fade-up delay-200">
-            <!-- APK Download button — replace YOUR_APK_URL with your actual APK link -->
-            <a href="YOUR_APK_URL_HERE" id="apk-download-btn"
-               class="inline-flex items-center gap-3 px-7 py-4 rounded-2xl bg-white text-teal font-bold text-base shadow-xl hover:shadow-2xl transition-all hover:-translate-y-0.5">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-              Download APK
-              <span class="text-xs font-normal text-teal/60 ml-1">Android</span>
-            </a>
-            <div class="inline-flex items-center gap-3 px-7 py-4 rounded-2xl border-2 border-white/30 text-white font-bold text-base opacity-60 cursor-not-allowed select-none">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.39-1.32 2.76-2.53 3.99M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-              iOS — Coming Soon
-            </div>
+      <div class="text-center max-w-2xl mx-auto mb-14">
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold uppercase tracking-wide mb-4 fade-up">
+          🔔 App Coming Soon
+        </div>
+        <h2 class="text-4xl font-black mb-4 fade-up delay-100">See what's coming</h2>
+        <p class="text-gray-500 text-base fade-up delay-200">The Hbridge app is currently in development. Be among the first to access it when we launch — join the waitlist and we'll notify you the moment it's ready.</p>
+      </div>
+
+      <!-- Screenshot grid with coming-soon overlay -->
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-12">
+        <div class="ss-frame fade-up">
+          <div class="ss-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C9D0D9" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <span style="font-size:10px;text-align:center;padding:0 10px">Records Vault<br/><span style="color:#C9D0D9">Screenshot here</span></span>
           </div>
-          <!-- Install instructions -->
-          <div class="mt-8 p-5 rounded-2xl bg-white/10 border border-white/20 max-w-md fade-up delay-300">
-            <p class="text-sm font-bold text-white mb-3">How to install the APK on Android:</p>
-            <ol class="text-sm text-white/70 space-y-1.5 list-decimal list-inside">
-              <li>Tap the Download APK button above</li>
-              <li>Open the downloaded file from your notifications</li>
-              <li>If prompted, allow "Install from unknown sources" in Settings</li>
-              <li>Tap Install — done!</li>
-            </ol>
+          <div class="coming-soon-overlay">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            <p style="font-size:11px;color:white;font-weight:700">Coming Soon</p>
           </div>
         </div>
-        <!-- Logo on right -->
-        <div class="relative flex-shrink-0 fade-up delay-200">
-          <div class="w-64 h-64 rounded-3xl bg-white/10 flex items-center justify-center border border-white/20">
-            <img src="logo.png" alt="Hbridge" class="w-44 h-44 object-contain" style="filter: brightness(0) invert(1); opacity: 0.9;" />
+        <div class="ss-frame fade-up delay-100">
+          <div class="ss-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C9D0D9" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            <span style="font-size:10px;text-align:center;padding:0 10px">Home Screen<br/><span style="color:#C9D0D9">Screenshot here</span></span>
           </div>
+          <div class="coming-soon-overlay">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            <p style="font-size:11px;color:white;font-weight:700">Coming Soon</p>
+          </div>
+        </div>
+        <div class="ss-frame fade-up delay-200">
+          <div class="ss-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C9D0D9" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span style="font-size:10px;text-align:center;padding:0 10px">Consultation<br/><span style="color:#C9D0D9">Screenshot here</span></span>
+          </div>
+          <div class="coming-soon-overlay">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            <p style="font-size:11px;color:white;font-weight:700">Coming Soon</p>
+          </div>
+        </div>
+        <div class="ss-frame fade-up delay-300">
+          <div class="ss-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C9D0D9" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span style="font-size:10px;text-align:center;padding:0 10px">Doctor Profile<br/><span style="color:#C9D0D9">Screenshot here</span></span>
+          </div>
+          <div class="coming-soon-overlay">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            <p style="font-size:11px;color:white;font-weight:700">Coming Soon</p>
+          </div>
+        </div>
+        <div class="ss-frame fade-up delay-400">
+          <div class="ss-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C9D0D9" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span style="font-size:10px;text-align:center;padding:0 10px">Appointments<br/><span style="color:#C9D0D9">Screenshot here</span></span>
+          </div>
+          <div class="coming-soon-overlay">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            <p style="font-size:11px;color:white;font-weight:700">Coming Soon</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Video coming soon -->
+      <div class="max-w-3xl mx-auto fade-up">
+        <div class="rounded-2xl border-2 border-dashed border-teal/30 bg-teal-light/30 p-16 text-center">
+          <div class="w-16 h-16 rounded-full bg-teal mx-auto flex items-center justify-center mb-4 shadow-xl">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </div>
+          <p class="text-teal font-bold text-lg mb-2">App Demo Video</p>
+          <p class="text-teal/60 text-sm">Coming when we launch — stay tuned</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ══════════════════════════════════════
-       TESTIMONIALS
-  ══════════════════════════════════════ -->
-  <section class="py-24 bg-gray-50">
-    <div class="max-w-7xl mx-auto px-6 lg:px-8">
-      <div class="text-center max-w-xl mx-auto mb-14">
-        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-light text-teal text-sm font-semibold mb-4 fade-up">Testimonials</div>
-        <h2 class="text-4xl font-black mb-4 fade-up delay-100">What people are saying</h2>
-      </div>
-      <div class="grid md:grid-cols-3 gap-6">
-        <div class="bg-white rounded-2xl p-7 shadow-sm border border-gray-100 fade-up">
-          <div class="flex gap-1 mb-4">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B" class="flex-shrink-0" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B" class="flex-shrink-0"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B" class="flex-shrink-0"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B" class="flex-shrink-0"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B" class="flex-shrink-0"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-          </div>
-          <p class="text-gray-700 text-sm leading-relaxed mb-5">"I was able to consult a cardiologist at 11pm when my father had chest pains. The doctor responded within minutes. Hbridge literally saved us a dangerous hospital run that night."</p>
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-teal-light flex items-center justify-center text-teal font-bold text-sm">AA</div>
-            <div><p class="text-sm font-semibold">Adaeze Afolabi</p><p class="text-xs text-gray-400">Lagos, Nigeria</p></div>
-          </div>
-        </div>
-        <div class="bg-white rounded-2xl p-7 shadow-sm border border-gray-100 fade-up delay-100">
-          <div class="flex gap-1 mb-4">
-            <svg width="16" height="16" fill="#F59E0B" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-            <svg width="16" height="16" fill="#F59E0B" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-            <svg width="16" height="16" fill="#F59E0B" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-            <svg width="16" height="16" fill="#F59E0B" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-            <svg width="16" height="16" fill="#F59E0B" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-          </div>
-          <p class="text-gray-700 text-sm leading-relaxed mb-5">"As a doctor, managing appointments used to be chaos. Hbridge completely streamlined my practice. I can see my schedule, review shared records, and message patients in one place."</p>
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-sm">DO</div>
-            <div><p class="text-sm font-semibold">Dr. David Okonkwo</p><p class="text-xs text-gray-400">Abuja, Nigeria · Physician</p></div>
-          </div>
-        </div>
-        <div class="bg-white rounded-2xl p-7 shadow-sm border border-gray-100 fade-up delay-200">
-          <div class="flex gap-1 mb-4">
-            <svg width="16" height="16" fill="#F59E0B" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-            <svg width="16" height="16" fill="#F59E0B" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-            <svg width="16" height="16" fill="#F59E0B" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-            <svg width="16" height="16" fill="#F59E0B" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-            <svg width="16" height="16" fill="#F59E0B" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-          </div>
-          <p class="text-gray-700 text-sm leading-relaxed mb-5">"The medical records vault is everything. I have Type 2 diabetes and used to carry a folder of papers to every appointment. Now I just share from the app. Every doctor I've seen is impressed."</p>
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 font-bold text-sm">BI</div>
-            <div><p class="text-sm font-semibold">Blessing Ikenna</p><p class="text-xs text-gray-400">Port Harcourt, Nigeria</p></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ══════════════════════════════════════
+  <!-- ════════════════════════════════════════
        EARLY ACCESS
-  ══════════════════════════════════════ -->
-  <section id="early-access" class="py-24 bg-white">
+  ════════════════════════════════════════ -->
+  <section id="early-access" class="py-24 bg-gray-50">
     <div class="max-w-2xl mx-auto px-6 text-center">
-      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-light text-teal text-sm font-semibold mb-6 fade-up">
+      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-light text-teal text-xs font-bold uppercase tracking-wide mb-6 fade-up">
         <span class="w-2 h-2 rounded-full bg-teal animate-pulse"></span>
-        Early Access
+        Waitlist Open
       </div>
-      <h2 class="text-4xl font-black mb-4 fade-up delay-100">Be first. Get Hbridge early.</h2>
-      <p class="text-gray-500 text-lg mb-10 fade-up delay-200">Join thousands of Nigerians already registered for exclusive early access, launch pricing, and priority doctor matching.</p>
-      <form id="waitlist-form" class="flex flex-col gap-4 fade-up delay-300">
-        <input type="text"  id="wl-name"  placeholder="Your full name"           class="waitlist-input w-full px-5 py-4 rounded-xl border border-gray-200 text-base focus:ring-0 transition-all bg-gray-50" />
-        <input type="email" id="wl-email" placeholder="Email address" required   class="waitlist-input w-full px-5 py-4 rounded-xl border border-gray-200 text-base focus:ring-0 transition-all bg-gray-50" />
-        <input type="tel"   id="wl-phone" placeholder="Phone number (optional)"  class="waitlist-input w-full px-5 py-4 rounded-xl border border-gray-200 text-base focus:ring-0 transition-all bg-gray-50" />
-        <button type="submit" id="wl-btn" class="w-full py-4 rounded-xl bg-teal text-white font-bold text-base shadow-lg hover:bg-teal-mid transition-colors">
+      <h2 class="text-4xl font-black mb-4 fade-up delay-100">Be first to access<br/><span class="text-teal">Hbridge EMR</span></h2>
+      <p class="text-gray-500 text-base mb-10 fade-up delay-200">
+        Register now to get priority early access when we launch, launch-day pricing, and to help shape the product as a beta user. Your spot is free.
+      </p>
+      <form id="waitlist-form" class="flex flex-col gap-3 fade-up delay-300">
+        <input type="text"  id="wl-name"  placeholder="Your full name"           class="wl-input w-full px-5 py-4 rounded-xl border border-gray-200 text-sm bg-white transition-all" />
+        <input type="email" id="wl-email" placeholder="Email address" required   class="wl-input w-full px-5 py-4 rounded-xl border border-gray-200 text-sm bg-white transition-all" />
+        <input type="tel"   id="wl-phone" placeholder="Phone number (optional)"  class="wl-input w-full px-5 py-4 rounded-xl border border-gray-200 text-sm bg-white transition-all" />
+        <button type="submit" id="wl-btn" class="w-full py-4 rounded-xl bg-teal text-white font-bold text-sm shadow-lg hover:bg-teal-mid transition-colors">
           Get Early Access →
         </button>
-        <p id="wl-msg" class="text-sm hidden"></p>
+        <p id="wl-msg" class="text-sm hidden mt-1"></p>
       </form>
-      <p class="text-xs text-gray-400 mt-4">No spam, ever. Unsubscribe at any time.</p>
+      <p class="text-xs text-gray-400 mt-4 fade-up">No spam. Unsubscribe any time.</p>
     </div>
   </section>
 
-  <!-- ══════════════════════════════════════
+  <!-- ════════════════════════════════════════
        FOOTER
-  ══════════════════════════════════════ -->
-  <footer class="bg-teal-dark py-16">
+  ════════════════════════════════════════ -->
+  <footer class="bg-teal-dark py-14">
     <div class="max-w-7xl mx-auto px-6 lg:px-8">
-      <div class="flex flex-col md:flex-row justify-between items-start gap-10 mb-12">
+      <div class="flex flex-col md:flex-row justify-between items-start gap-10 mb-10">
+        <!-- Brand -->
         <div class="max-w-xs">
-          <div class="flex items-center gap-2.5 mb-4">
-            <img src="logo.png" alt="Hbridge" class="h-10 w-auto object-contain" style="filter: brightness(0) invert(1);" />
-            <span class="text-xl font-bold text-white">Hbridge</span>
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0" style="background:#0B7E8A;">
+              <img src="logo.png" alt="Hbridge" class="w-8 h-8 object-contain" />
+            </div>
+            <span class="text-xl font-black text-white tracking-tight">Hbridge</span>
           </div>
-          <p class="text-white/50 text-sm leading-relaxed">Bridging the gap between patients and quality healthcare — one tap at a time.</p>
+          <p class="text-white/45 text-sm leading-relaxed">Electronic Medical Records for Nigeria — putting your health history in your pocket.</p>
         </div>
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-8">
+        <!-- Links -->
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-10">
           <div>
-            <p class="text-white font-semibold mb-3 text-sm">Product</p>
+            <p class="text-white font-bold mb-3 text-sm">Product</p>
             <ul class="space-y-2">
-              <li><a href="#features"    class="text-white/50 text-sm hover:text-white transition-colors">Features</a></li>
-              <li><a href="#screenshots" class="text-white/50 text-sm hover:text-white transition-colors">Screenshots</a></li>
-              <li><a href="#download"    class="text-white/50 text-sm hover:text-white transition-colors">Download</a></li>
-              <li><a href="#waitlist"    class="text-white/50 text-sm hover:text-white transition-colors">Waitlist</a></li>
+              <li><a href="#features"     class="text-white/45 text-sm hover:text-white transition-colors">EMR Vault</a></li>
+              <li><a href="#features"     class="text-white/45 text-sm hover:text-white transition-colors">Consultations</a></li>
+              <li><a href="#how-it-works" class="text-white/45 text-sm hover:text-white transition-colors">How It Works</a></li>
+              <li><a href="#early-access" class="text-white/45 text-sm hover:text-white transition-colors">Early Access</a></li>
             </ul>
           </div>
           <div>
-            <p class="text-white font-semibold mb-3 text-sm">Company</p>
+            <p class="text-white font-bold mb-3 text-sm">Company</p>
             <ul class="space-y-2">
-              <li><a href="#about" class="text-white/50 text-sm hover:text-white transition-colors">About</a></li>
-              <li><a href="#"      class="text-white/50 text-sm hover:text-white transition-colors">Blog</a></li>
-              <li><a href="#"      class="text-white/50 text-sm hover:text-white transition-colors">Careers</a></li>
-              <li><a href="#"      class="text-white/50 text-sm hover:text-white transition-colors">Press</a></li>
+              <li><a href="#about"   class="text-white/45 text-sm hover:text-white transition-colors">About Hbridge</a></li>
+              <li><a href="#about"   class="text-white/45 text-sm hover:text-white transition-colors">Our Mission</a></li>
+              <li><a href="#early-access" class="text-white/45 text-sm hover:text-white transition-colors">Join the Team</a></li>
             </ul>
           </div>
           <div>
-            <p class="text-white font-semibold mb-3 text-sm">Contact</p>
+            <p class="text-white font-bold mb-3 text-sm">Contact</p>
             <ul class="space-y-2">
-              <li><a href="mailto:hbrigdenigeria@gmail.com" class="text-white/50 text-sm hover:text-white transition-colors break-all">hbrigdenigeria@gmail.com</a></li>
-              <li><a href="#" class="text-white/50 text-sm hover:text-white transition-colors">Support</a></li>
-              <li><a href="#" class="text-white/50 text-sm hover:text-white transition-colors">Privacy Policy</a></li>
-              <li><a href="#" class="text-white/50 text-sm hover:text-white transition-colors">Terms of Service</a></li>
+              <li><a href="mailto:hbrigdenigeria@gmail.com" class="text-white/45 text-sm hover:text-white transition-colors break-all">hbrigdenigeria@gmail.com</a></li>
+              <li><a href="#early-access" class="text-white/45 text-sm hover:text-white transition-colors">Support &amp; Feedback</a></li>
             </ul>
           </div>
         </div>
       </div>
       <div class="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-        <p class="text-white/30 text-sm">&copy; 2026 Hbridge Technologies Ltd. All rights reserved.</p>
-        <p class="text-white/30 text-sm">Made with care in Nigeria 🇳🇬</p>
+        <p class="text-white/25 text-xs">&copy; 2026 Hbridge Technologies Ltd. All rights reserved.</p>
+        <p class="text-white/25 text-xs">Built in Nigeria 🇳🇬 &middot; For Nigerians</p>
       </div>
     </div>
   </footer>
 
-  <!-- ══════════════════════════════════════
+  <!-- ════════════════════════════════════════
        SCRIPTS
-  ══════════════════════════════════════ -->
+  ════════════════════════════════════════ -->
   <script>
-    // ── Navbar scroll ──────────────────────────────────
-    const navbar = document.getElementById('navbar');
+    // ── Mobile menu ────────────────────
+    document.getElementById('menu-btn').addEventListener('click', () => {
+      document.getElementById('mobile-menu').classList.toggle('hidden');
+    });
+
+    // ── Navbar scroll ──────────────────
+    const navbar  = document.getElementById('navbar');
     const navLogo = document.getElementById('nav-logo-img');
     const navText = document.getElementById('nav-logo-text');
     const updateNavbar = () => {
-      const scrolled = window.scrollY > 40;
+      const scrolled = window.scrollY > 50;
       navbar.classList.toggle('navbar-scrolled', scrolled);
-      navLogo.style.filter  = scrolled ? 'none' : 'brightness(0) invert(1)';
-      navText.style.color   = scrolled ? '#0B7E8A' : 'white';
-      navbar.querySelectorAll('.nav-link').forEach(a => {
+      navText.style.color = scrolled ? '#0B7E8A' : 'white';
+      document.querySelectorAll('.nav-link').forEach(a => {
         a.style.color = scrolled ? '#374151' : '';
       });
     };
     window.addEventListener('scroll', updateNavbar, { passive: true });
     updateNavbar();
 
-    // ── Mobile menu ────────────────────────────────────
-    document.getElementById('menu-btn').addEventListener('click', () => {
-      document.getElementById('mobile-menu').classList.toggle('hidden');
-    });
-    function closeMobileMenu() {
-      document.getElementById('mobile-menu').classList.add('hidden');
-    }
-
-    // ── IntersectionObserver for .fade-up ──────────────
-    const observer = new IntersectionObserver((entries) => {
+    // ── Fade-up on scroll ──────────────
+    const fadeObs = new IntersectionObserver(entries => {
       entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
-    }, { threshold: 0.12 });
-    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+    }, { threshold: 0.10 });
+    document.querySelectorAll('.fade-up').forEach(el => fadeObs.observe(el));
 
-    // ── Active nav section indicator ───────────────────
-    const sections = ['about', 'features', 'screenshots', 'download', 'early-access'];
+    // ── Active section nav indicator ───
+    const sections = ['about','features','how-it-works','app-preview','early-access'];
     const navLinks = document.querySelectorAll('.nav-link');
-    const setActiveNav = (id) => {
-      navLinks.forEach(link => {
-        link.classList.remove('active');
-        if (link.dataset.section === id) link.classList.add('active');
-      });
-    };
-    const sectionObserver = new IntersectionObserver((entries) => {
-      entries.forEach(e => {
-        if (e.isIntersecting) setActiveNav(e.target.id);
-      });
-    }, { threshold: 0.35, rootMargin: '-80px 0px -40% 0px' });
-    sections.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) sectionObserver.observe(el);
+    const setActive = id => navLinks.forEach(a => {
+      a.classList.toggle('active-section', a.dataset.section === id);
     });
+    const secObs = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) setActive(e.target.id); });
+    }, { threshold: 0.4, rootMargin: '-80px 0px -35% 0px' });
+    sections.forEach(id => { const el = document.getElementById(id); if (el) secObs.observe(el); });
 
-    // ── Waitlist form ──────────────────────────────────
+    // ── Early access form ──────────────
     const SUPABASE_URL  = 'YOUR_SUPABASE_URL_HERE';
     const SUPABASE_ANON = 'YOUR_SUPABASE_ANON_KEY_HERE';
 
-    document.getElementById('waitlist-form').addEventListener('submit', async (e) => {
+    document.getElementById('waitlist-form').addEventListener('submit', async e => {
       e.preventDefault();
-      const btn = document.getElementById('wl-btn');
-      const msg = document.getElementById('wl-msg');
+      const btn   = document.getElementById('wl-btn');
+      const msg   = document.getElementById('wl-msg');
       const email = document.getElementById('wl-email').value.trim();
       const name  = document.getElementById('wl-name').value.trim();
       const phone = document.getElementById('wl-phone').value.trim();
-
       if (!email) return;
-      btn.textContent = 'Joining…'; btn.disabled = true;
-
+      btn.textContent = 'Registering…'; btn.disabled = true;
       try {
         const res = await fetch(`${SUPABASE_URL}/rest/v1/waitlist`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': SUPABASE_ANON,
-            'Authorization': `Bearer ${SUPABASE_ANON}`,
-            'Prefer': 'return=minimal',
-          },
+          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}`, 'Prefer': 'return=minimal' },
           body: JSON.stringify({ email, name: name || null, phone: phone || null }),
         });
         if (res.status === 201 || res.status === 200) {
-          msg.textContent = "🎉 You're on the list! We'll be in touch before launch.";
+          msg.textContent = '🎉 You\'re registered! We\'ll reach out before launch.';
           msg.className = 'text-sm text-teal font-medium';
           document.getElementById('waitlist-form').reset();
         } else if (res.status === 409) {
-          msg.textContent = "You're already on the list — we haven't forgotten you!";
+          msg.textContent = 'You\'re already on the list — we have you!';
           msg.className = 'text-sm text-amber-600 font-medium';
-        } else {
-          throw new Error('Server error');
-        }
+        } else { throw new Error(); }
       } catch {
         msg.textContent = 'Something went wrong. Please try again.';
         msg.className = 'text-sm text-red-500 font-medium';
       } finally {
         msg.classList.remove('hidden');
-        btn.textContent = 'Join the Waitlist →'; btn.disabled = false;
+        btn.textContent = 'Get Early Access →'; btn.disabled = false;
       }
     });
   </script>
