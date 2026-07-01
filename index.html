@@ -196,6 +196,67 @@
     .footer-link:hover { color: rgba(255,255,255,.8); }
 
     [data-lucide] { display: inline-block; vertical-align: middle; flex-shrink: 0; }
+
+    /* ═══════════════════════════════════
+       RESPONSIVE
+    ═══════════════════════════════════ */
+
+    /* Tablet + Mobile: EMR hero card stacks */
+    @media (max-width: 1023px) {
+      .rg-emr-inner { grid-template-columns: 1fr !important; gap: 28px !important; }
+    }
+
+    /* Tablet (768–1023px) */
+    @media (min-width: 768px) and (max-width: 1023px) {
+      .rg-h1  { font-size: 44px !important; }
+      .rg-h2  { font-size: 32px !important; line-height: 1.15 !important; }
+      .rg-h3  { font-size: 26px !important; }
+      .rg-feat4 { grid-template-columns: repeat(2, 1fr) !important; }
+      .rg-hiw   { grid-template-columns: repeat(2, 1fr) !important; gap: 28px !important; }
+      .rg-section-py { padding-top: 80px !important; padding-bottom: 80px !important; }
+    }
+
+    /* Mobile (< 768px) */
+    @media (max-width: 767px) {
+      /* Typography */
+      .rg-h1  { font-size: 34px !important; line-height: 1.1 !important; margin-bottom: 16px !important; }
+      .rg-h2  { font-size: 26px !important; line-height: 1.15 !important; margin-bottom: 16px !important; }
+      .rg-h3  { font-size: 22px !important; }
+
+      /* Section spacing */
+      .rg-section-py { padding-top: 60px !important; padding-bottom: 60px !important; }
+      .py-28  { padding-top: 60px !important; padding-bottom: 60px !important; }
+      .py-14  { padding-top: 40px !important; padding-bottom: 40px !important; }
+
+      /* Hero */
+      .rg-hero-inner { padding-top: 60px !important; padding-bottom: 60px !important; }
+      .rg-hero-inner > .flex { flex-direction: column !important; gap: 40px !important; }
+      .rg-hero-p1 { font-size: 15px !important; }
+      .rg-hero-p2 { font-size: 13px !important; margin-bottom: 28px !important; }
+
+      /* About */
+      .rg-about-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
+      .rg-logo-panel { width: min(260px, 85vw) !important; height: min(260px, 85vw) !important; }
+      .rg-attrs { grid-template-columns: 1fr !important; gap: 16px !important; }
+
+      /* Features */
+      .rg-feat4 { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
+      .rg-feat-hero { padding: 28px !important; }
+
+      /* How It Works */
+      .rg-hiw { grid-template-columns: 1fr !important; gap: 36px !important; }
+
+      /* Footer */
+      .rg-footer-top   { flex-direction: column !important; gap: 32px !important; }
+      .rg-footer-links { grid-template-columns: repeat(2, auto) !important; gap: 28px !important; }
+      .rg-footer-brand { max-width: 100% !important; }
+
+      /* Pre-launch strip */
+      .rg-strip { gap: 24px !important; }
+
+      /* Early access */
+      .rg-ea-section { padding: 60px 0 !important; }
+    }
   </style>
 </head>
 <body>
@@ -248,7 +309,7 @@
 <section class="hero-bg min-h-screen pt-16 flex items-center relative">
   <div class="grid-lines"></div>
 
-  <div class="relative max-w-7xl mx-auto px-6 lg:px-10 py-24 w-full">
+  <div class="rg-hero-inner relative max-w-7xl mx-auto px-6 lg:px-10 py-24 w-full">
     <div class="flex flex-col lg:flex-row items-center gap-20">
 
       <!-- Left -->
@@ -257,14 +318,14 @@
           <span class="pulse" style="width:6px;height:6px;border-radius:50%;background:#7FE8F0;display:inline-block"></span>
           Electronic Medical Records &middot; Nigeria
         </div>
-        <h1 class="text-[52px] lg:text-[64px] font-black leading-[1.04] text-white reveal d1"
+        <h1 class="rg-h1 text-[52px] lg:text-[64px] font-black leading-[1.04] text-white reveal d1"
             style="letter-spacing:-.03em;margin-bottom:24px">
           Your health<br/>history,<br/><span style="color:#7FE8F0">secured.</span>
         </h1>
-        <p class="reveal d2" style="font-size:17px;line-height:1.7;color:rgba(255,255,255,.65);margin-bottom:12px">
+        <p class="rg-hero-p1 reveal d2" style="font-size:17px;line-height:1.7;color:rgba(255,255,255,.65);margin-bottom:12px">
           Hbridge is Nigeria's <strong style="color:#fff;font-weight:600">Electronic Medical Records (EMR)</strong> platform — a PIN-locked digital vault for your complete health history, accessible from your phone and shareable with any doctor in seconds.
         </p>
-        <p class="reveal d3" style="font-size:15px;line-height:1.7;color:rgba(255,255,255,.4);margin-bottom:40px">
+        <p class="rg-hero-p2 reveal d3" style="font-size:15px;line-height:1.7;color:rgba(255,255,255,.4);margin-bottom:40px">
           No more lost lab results. No more repeating your history at every clinic. Consultations, appointments, and emergency care — all connected to your records.
         </p>
         <div class="reveal d3" style="display:flex;flex-wrap:wrap;gap:12px">
@@ -368,7 +429,7 @@
      PRE-LAUNCH STRIP
 ═══════════════════════════════ -->
 <section class="py-14 bg-white">
-  <div class="max-w-5xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+  <div class="rg-strip max-w-5xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
     <div class="flex flex-col items-center gap-2 reveal">
       <div style="width:44px;height:44px;border-radius:14px;background:#E6F5F5;display:flex;align-items:center;justify-content:center;margin-bottom:4px">
         <i data-lucide="map-pin" style="width:18px;height:18px;color:#0B7E8A;stroke-width:2"></i>
@@ -405,11 +466,11 @@
 ═══════════════════════════════ -->
 <section id="about" class="py-28 bg-white">
   <div class="max-w-7xl mx-auto px-6 lg:px-10">
-    <div class="grid lg:grid-cols-2 gap-20 items-center">
+    <div class="rg-about-grid grid lg:grid-cols-2 gap-20 items-center">
 
       <!-- Logo panel -->
       <div class="reveal" style="display:flex;align-items:center;justify-content:center">
-        <div style="position:relative;width:340px;height:340px">
+        <div class="rg-logo-panel" style="position:relative;width:340px;height:340px">
           <!-- Slanted decorative box, back layer -->
           <div style="position:absolute;inset:0;border-radius:28px;background:linear-gradient(135deg,#042f35,#0B7E8A);transform:rotate(-9deg);box-shadow:0 24px 60px rgba(11,126,138,.25)"></div>
           <!-- Second layer, slightly less rotated -->
@@ -427,7 +488,7 @@
           <i data-lucide="target" style="width:11px;height:11px;stroke-width:2.5"></i>
           Our Mission
         </div>
-        <h2 class="reveal d1" style="font-size:42px;font-weight:900;line-height:1.1;letter-spacing:-.025em;margin-bottom:24px">
+        <h2 class="rg-h2 reveal d1" style="font-size:42px;font-weight:900;line-height:1.1;letter-spacing:-.025em;margin-bottom:24px">
           Nigeria's health data<br/>deserves a <span style="color:#0B7E8A">digital home.</span>
         </h2>
         <p class="reveal d2" style="font-size:16px;line-height:1.75;color:#555;margin-bottom:16px">
@@ -436,7 +497,7 @@
         <p class="reveal d2" style="font-size:16px;line-height:1.75;color:#555;margin-bottom:36px">
           Hbridge is an <strong style="color:#0f1923">Electronic Medical Records (EMR) platform</strong> built specifically for Nigeria. Every patient gets a secure, lifelong digital health vault. Every doctor gets instant access to the records they need to make better decisions, faster.
         </p>
-        <div class="reveal d3" style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div class="rg-attrs reveal d3" style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
           <div style="display:flex;align-items:flex-start;gap:14px">
             <div style="width:40px;height:40px;border-radius:12px;background:#E6F5F5;display:flex;align-items:center;justify-content:center;flex-shrink:0">
               <i data-lucide="shield-check" style="width:18px;height:18px;color:#0B7E8A;stroke-width:2"></i>
@@ -464,28 +525,28 @@
 <!-- ═══════════════════════════════
      FEATURES
 ═══════════════════════════════ -->
-<section id="features" style="padding:112px 0;background:#f8fafb">
+<section id="features" class="rg-section-py" style="padding:112px 0;background:#f8fafb">
   <div class="max-w-7xl mx-auto px-6 lg:px-10">
     <div style="text-align:center;max-width:560px;margin:0 auto 64px">
       <div class="section-label reveal" style="display:inline-flex;margin-bottom:20px">
         <i data-lucide="layout-grid" style="width:11px;height:11px;stroke-width:2.5"></i>
         Platform Features
       </div>
-      <h2 class="reveal d1" style="font-size:42px;font-weight:900;letter-spacing:-.025em;line-height:1.1;margin-bottom:16px">
+      <h2 class="rg-h2 reveal d1" style="font-size:42px;font-weight:900;letter-spacing:-.025em;line-height:1.1;margin-bottom:16px">
         Built around your<br/><span style="color:#0B7E8A">Medical Records</span>
       </h2>
       <p class="reveal d2" style="font-size:16px;color:#9AA3AE;line-height:1.7">The EMR vault is the heart of Hbridge. Consultations, appointments, and emergency care all flow through it.</p>
     </div>
 
     <!-- EMR hero card -->
-    <div class="feat-hero-card reveal" style="margin-bottom:20px">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;position:relative;z-index:1" class="lg:grid-cols-2 flex flex-col">
+    <div class="feat-hero-card rg-feat-hero reveal" style="margin-bottom:20px">
+      <div class="rg-emr-inner" style="display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;position:relative;z-index:1">
         <div>
           <div style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:100px;margin-bottom:24px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.85);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">
             <i data-lucide="star" style="width:11px;height:11px;stroke-width:2.5;color:#7FE8F0"></i>
             Core Product
           </div>
-          <h3 style="font-size:32px;font-weight:900;line-height:1.15;letter-spacing:-.02em;margin-bottom:16px">Electronic Medical Records Vault</h3>
+          <h3 class="rg-h3" style="font-size:32px;font-weight:900;line-height:1.15;letter-spacing:-.02em;margin-bottom:16px">Electronic Medical Records Vault</h3>
           <p style="color:rgba(255,255,255,.6);font-size:15px;line-height:1.75;margin-bottom:24px">Your lifelong, PIN-secured medical records vault. Store lab results, prescriptions, diagnoses, imaging, and clinical notes — organised by doctor or hospital. Share any record with a verified doctor in one tap, with full access control and an audit trail.</p>
           <ul style="display:flex;flex-direction:column;gap:12px">
             <li style="display:flex;align-items:center;gap:10px;font-size:14px;color:rgba(255,255,255,.8)">
@@ -549,7 +610,7 @@
     </div>
 
     <!-- Secondary 4-up -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px" class="grid md:grid-cols-2 lg:grid-cols-4">
+    <div class="rg-feat4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
       <div class="feat-card reveal">
         <div style="width:44px;height:44px;border-radius:14px;background:#ede9fe;display:flex;align-items:center;justify-content:center;margin-bottom:20px">
           <i data-lucide="message-circle" style="width:20px;height:20px;color:#7C3AED;stroke-width:2"></i>
@@ -585,20 +646,20 @@
 <!-- ═══════════════════════════════
      HOW IT WORKS
 ═══════════════════════════════ -->
-<section id="how-it-works" style="padding:112px 0;background:#fff">
+<section id="how-it-works" class="rg-section-py" style="padding:112px 0;background:#fff">
   <div class="max-w-7xl mx-auto px-6 lg:px-10">
     <div style="text-align:center;max-width:500px;margin:0 auto 80px">
       <div class="section-label reveal" style="display:inline-flex;margin-bottom:20px">
         <i data-lucide="zap" style="width:11px;height:11px;stroke-width:2.5"></i>
         How the EMR Works
       </div>
-      <h2 class="reveal d1" style="font-size:42px;font-weight:900;letter-spacing:-.025em;line-height:1.1;margin-bottom:16px">
+      <h2 class="rg-h2 reveal d1" style="font-size:42px;font-weight:900;letter-spacing:-.025em;line-height:1.1;margin-bottom:16px">
         Organised in<br/>under 3 minutes
       </h2>
       <p class="reveal d2" style="font-size:16px;color:#9AA3AE;line-height:1.7">From signup to a fully organised medical records vault — completely on your phone.</p>
     </div>
 
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:40px" class="grid md:grid-cols-3">
+    <div class="rg-hiw" style="display:grid;grid-template-columns:repeat(3,1fr);gap:40px">
       <div class="reveal">
         <div style="position:relative;display:inline-block;margin-bottom:24px">
           <div style="width:56px;height:56px;border-radius:18px;background:linear-gradient(135deg,#0B7E8A,#0ca8b9);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(11,126,138,.22)">
@@ -642,13 +703,13 @@
 <!-- ═══════════════════════════════
      EARLY ACCESS
 ═══════════════════════════════ -->
-<section id="early-access" style="padding:112px 0;background:#f8fafb">
+<section id="early-access" class="rg-ea-section rg-section-py" style="padding:112px 0;background:#f8fafb">
   <div style="max-width:460px;margin:0 auto;padding:0 24px;text-align:center">
     <div class="section-label reveal" style="display:inline-flex;margin-bottom:24px">
       <span class="pulse" style="width:6px;height:6px;border-radius:50%;background:#0B7E8A;display:inline-block"></span>
       Waitlist Open
     </div>
-    <h2 class="reveal d1" style="font-size:40px;font-weight:900;letter-spacing:-.025em;line-height:1.1;margin-bottom:16px">
+    <h2 class="rg-h2 reveal d1" style="font-size:40px;font-weight:900;letter-spacing:-.025em;line-height:1.1;margin-bottom:16px">
       Be first to access<br/><span style="color:#0B7E8A">Hbridge EMR</span>
     </h2>
     <p class="reveal d2" style="font-size:15px;line-height:1.75;color:#9AA3AE;margin-bottom:40px">
@@ -674,8 +735,8 @@
 <footer style="background:#042f35;padding:64px 0 40px">
   <div class="max-w-7xl mx-auto px-6 lg:px-10">
     <div style="display:flex;flex-direction:column;gap:48px;margin-bottom:48px">
-      <div style="display:flex;flex-direction:row;justify-content:space-between;gap:48px;flex-wrap:wrap">
-        <div style="max-width:260px">
+      <div class="rg-footer-top" style="display:flex;flex-direction:row;justify-content:space-between;gap:48px;flex-wrap:wrap">
+        <div class="rg-footer-brand" style="max-width:260px">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
             <div style="width:36px;height:36px;border-radius:50%;overflow:hidden;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;flex-shrink:0">
               <img src="logo.png" alt="Hbridge" style="width:26px;height:26px;object-fit:contain" />
@@ -684,7 +745,7 @@
           </div>
           <p style="color:rgba(255,255,255,.35);font-size:13px;line-height:1.75">Electronic Medical Records for Nigeria — putting your health history in your pocket.</p>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(3,auto);gap:48px">
+        <div class="rg-footer-links" style="display:grid;grid-template-columns:repeat(3,auto);gap:48px">
           <div>
             <p style="color:#fff;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px">Product</p>
             <ul style="display:flex;flex-direction:column;gap:10px;list-style:none;padding:0;margin:0">
