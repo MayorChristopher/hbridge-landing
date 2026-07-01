@@ -8,6 +8,7 @@
   <meta property="og:title" content="Hbridge — Healthcare at Your Fingertips" />
   <meta property="og:description" content="Your doctor is one tap away. Hbridge is Nigeria's smart healthcare access platform for patients and providers." />
   <meta property="og:type" content="website" />
+  <link rel="icon" href="logo.png" type="image/png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -111,6 +112,19 @@
     }
     .video-placeholder:hover { background: linear-gradient(135deg, #0B7E8A30, #064E5540); }
     .stat-counter { font-variant-numeric: tabular-nums; }
+
+    /* Active nav link */
+    .nav-link { position: relative; }
+    .nav-link.active::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; bottom: -4px;
+      height: 2px;
+      border-radius: 2px;
+      background: currentColor;
+      opacity: 0.8;
+    }
+    .nav-link.active { opacity: 1 !important; }
   </style>
 </head>
 <body class="antialiased">
@@ -122,19 +136,19 @@
     <div class="max-w-7xl mx-auto px-6 lg:px-8 h-16 flex items-center justify-between">
       <!-- Logo -->
       <a href="#" class="flex items-center gap-2.5">
-        <img src="logo.png" alt="Hbridge" class="h-8 w-auto object-contain" style="filter: brightness(0) invert(1);" id="nav-logo-img" />
-        <span class="text-xl font-bold text-white" id="nav-logo-text">hbridge</span>
+        <img src="logo.png" alt="Hbridge" class="h-10 w-auto object-contain" style="filter: brightness(0) invert(1);" id="nav-logo-img" />
+        <span class="text-xl font-bold text-white" id="nav-logo-text">Hbridge</span>
       </a>
       <!-- Desktop Nav -->
       <div class="hidden md:flex items-center gap-8">
-        <a href="#about"       class="text-sm font-medium text-white/80 hover:text-white transition-colors">About</a>
-        <a href="#features"    class="text-sm font-medium text-white/80 hover:text-white transition-colors">Features</a>
-        <a href="#screenshots" class="text-sm font-medium text-white/80 hover:text-white transition-colors">App</a>
-        <a href="#download"    class="text-sm font-medium text-white/80 hover:text-white transition-colors">Download</a>
-        <a href="#waitlist"    class="text-sm font-medium text-white/80 hover:text-white transition-colors">Waitlist</a>
+        <a href="#about"       class="nav-link text-sm font-medium text-white/80 hover:text-white transition-colors" data-section="about">About</a>
+        <a href="#features"    class="nav-link text-sm font-medium text-white/80 hover:text-white transition-colors" data-section="features">Features</a>
+        <a href="#screenshots" class="nav-link text-sm font-medium text-white/80 hover:text-white transition-colors" data-section="screenshots">App</a>
+        <a href="#download"    class="nav-link text-sm font-medium text-white/80 hover:text-white transition-colors" data-section="download">Download</a>
+        <a href="#early-access" class="nav-link text-sm font-medium text-white/80 hover:text-white transition-colors" data-section="early-access">Early Access</a>
       </div>
       <div class="flex items-center gap-3">
-        <a href="#waitlist" class="hidden md:inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-teal text-sm font-semibold hover:bg-teal-light transition-colors">
+        <a href="#early-access" class="hidden md:inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-teal text-sm font-semibold hover:bg-teal-light transition-colors">
           Get Early Access
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </a>
@@ -148,11 +162,11 @@
     </div>
     <!-- Mobile menu -->
     <div id="mobile-menu" class="hidden md:hidden bg-teal-dark border-t border-white/10 px-6 py-4 flex flex-col gap-4">
-      <a href="#about"       class="text-sm font-medium text-white/80 hover:text-white" onclick="closeMobileMenu()">About</a>
-      <a href="#features"    class="text-sm font-medium text-white/80 hover:text-white" onclick="closeMobileMenu()">Features</a>
-      <a href="#screenshots" class="text-sm font-medium text-white/80 hover:text-white" onclick="closeMobileMenu()">App</a>
-      <a href="#download"    class="text-sm font-medium text-white/80 hover:text-white" onclick="closeMobileMenu()">Download</a>
-      <a href="#waitlist"    class="text-sm font-medium text-white/80 hover:text-white" onclick="closeMobileMenu()">Waitlist</a>
+      <a href="#about"        class="text-sm font-medium text-white/80 hover:text-white" onclick="closeMobileMenu()">About</a>
+      <a href="#features"     class="text-sm font-medium text-white/80 hover:text-white" onclick="closeMobileMenu()">Features</a>
+      <a href="#screenshots"  class="text-sm font-medium text-white/80 hover:text-white" onclick="closeMobileMenu()">App</a>
+      <a href="#download"     class="text-sm font-medium text-white/80 hover:text-white" onclick="closeMobileMenu()">Download</a>
+      <a href="#early-access" class="text-sm font-medium text-white/80 hover:text-white" onclick="closeMobileMenu()">Early Access</a>
     </div>
   </nav>
 
@@ -616,19 +630,22 @@
   </section>
 
   <!-- ══════════════════════════════════════
-       WAITLIST
+       EARLY ACCESS
   ══════════════════════════════════════ -->
-  <section id="waitlist" class="py-24 bg-white">
+  <section id="early-access" class="py-24 bg-white">
     <div class="max-w-2xl mx-auto px-6 text-center">
-      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-light text-teal text-sm font-semibold mb-6 fade-up">Join the Waitlist</div>
-      <h2 class="text-4xl font-black mb-4 fade-up delay-100">Be first. Get early access.</h2>
-      <p class="text-gray-500 text-lg mb-10 fade-up delay-200">Join thousands of Nigerians already on the waitlist for exclusive early access, launch discounts, and priority doctor matching.</p>
+      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-light text-teal text-sm font-semibold mb-6 fade-up">
+        <span class="w-2 h-2 rounded-full bg-teal animate-pulse"></span>
+        Early Access
+      </div>
+      <h2 class="text-4xl font-black mb-4 fade-up delay-100">Be first. Get Hbridge early.</h2>
+      <p class="text-gray-500 text-lg mb-10 fade-up delay-200">Join thousands of Nigerians already registered for exclusive early access, launch pricing, and priority doctor matching.</p>
       <form id="waitlist-form" class="flex flex-col gap-4 fade-up delay-300">
-        <input type="text" id="wl-name" placeholder="Your full name" class="waitlist-input w-full px-5 py-4 rounded-xl border border-gray-200 text-base focus:ring-0 transition-all bg-gray-50" />
-        <input type="email" id="wl-email" placeholder="Email address" required class="waitlist-input w-full px-5 py-4 rounded-xl border border-gray-200 text-base focus:ring-0 transition-all bg-gray-50" />
-        <input type="tel" id="wl-phone" placeholder="Phone number (optional)" class="waitlist-input w-full px-5 py-4 rounded-xl border border-gray-200 text-base focus:ring-0 transition-all bg-gray-50" />
+        <input type="text"  id="wl-name"  placeholder="Your full name"           class="waitlist-input w-full px-5 py-4 rounded-xl border border-gray-200 text-base focus:ring-0 transition-all bg-gray-50" />
+        <input type="email" id="wl-email" placeholder="Email address" required   class="waitlist-input w-full px-5 py-4 rounded-xl border border-gray-200 text-base focus:ring-0 transition-all bg-gray-50" />
+        <input type="tel"   id="wl-phone" placeholder="Phone number (optional)"  class="waitlist-input w-full px-5 py-4 rounded-xl border border-gray-200 text-base focus:ring-0 transition-all bg-gray-50" />
         <button type="submit" id="wl-btn" class="w-full py-4 rounded-xl bg-teal text-white font-bold text-base shadow-lg hover:bg-teal-mid transition-colors">
-          Join the Waitlist →
+          Get Early Access →
         </button>
         <p id="wl-msg" class="text-sm hidden"></p>
       </form>
@@ -644,8 +661,8 @@
       <div class="flex flex-col md:flex-row justify-between items-start gap-10 mb-12">
         <div class="max-w-xs">
           <div class="flex items-center gap-2.5 mb-4">
-            <img src="logo.png" alt="Hbridge" class="h-8 w-auto object-contain" style="filter: brightness(0) invert(1);" />
-            <span class="text-xl font-bold text-white">hbridge</span>
+            <img src="logo.png" alt="Hbridge" class="h-10 w-auto object-contain" style="filter: brightness(0) invert(1);" />
+            <span class="text-xl font-bold text-white">Hbridge</span>
           </div>
           <p class="text-white/50 text-sm leading-relaxed">Bridging the gap between patients and quality healthcare — one tap at a time.</p>
         </div>
@@ -694,21 +711,17 @@
     const navbar = document.getElementById('navbar');
     const navLogo = document.getElementById('nav-logo-img');
     const navText = document.getElementById('nav-logo-text');
-    window.addEventListener('scroll', () => {
-      if (window.scrollY > 40) {
-        navbar.classList.add('navbar-scrolled');
-        navbar.querySelectorAll('a:not(#waitlist-cta)').forEach(a => {
-          if (!a.classList.contains('rounded-full')) a.style.color = '#171717';
-        });
-        navLogo.style.filter = 'none';
-        navText.style.color = '#0B7E8A';
-      } else {
-        navbar.classList.remove('navbar-scrolled');
-        navbar.querySelectorAll('a').forEach(a => a.style.color = '');
-        navLogo.style.filter = 'brightness(0) invert(1)';
-        navText.style.color = 'white';
-      }
-    });
+    const updateNavbar = () => {
+      const scrolled = window.scrollY > 40;
+      navbar.classList.toggle('navbar-scrolled', scrolled);
+      navLogo.style.filter  = scrolled ? 'none' : 'brightness(0) invert(1)';
+      navText.style.color   = scrolled ? '#0B7E8A' : 'white';
+      navbar.querySelectorAll('.nav-link').forEach(a => {
+        a.style.color = scrolled ? '#374151' : '';
+      });
+    };
+    window.addEventListener('scroll', updateNavbar, { passive: true });
+    updateNavbar();
 
     // ── Mobile menu ────────────────────────────────────
     document.getElementById('menu-btn').addEventListener('click', () => {
@@ -723,6 +736,25 @@
       entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
     }, { threshold: 0.12 });
     document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+    // ── Active nav section indicator ───────────────────
+    const sections = ['about', 'features', 'screenshots', 'download', 'early-access'];
+    const navLinks = document.querySelectorAll('.nav-link');
+    const setActiveNav = (id) => {
+      navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.dataset.section === id) link.classList.add('active');
+      });
+    };
+    const sectionObserver = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) setActiveNav(e.target.id);
+      });
+    }, { threshold: 0.35, rootMargin: '-80px 0px -40% 0px' });
+    sections.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) sectionObserver.observe(el);
+    });
 
     // ── Waitlist form ──────────────────────────────────
     const SUPABASE_URL  = 'YOUR_SUPABASE_URL_HERE';

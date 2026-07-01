@@ -124,8 +124,8 @@ export default function DoctorHomeScreen({ navigation }: any) {
     <SafeAreaView style={s.container} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor="#0B7E8A" />
       <ScrollView showsVerticalScrollIndicator={false}
-        style={{ backgroundColor: '#ffffff' }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.teal} colors={[C.teal]} />}
+        style={{ backgroundColor: '#0B7E8A' }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" colors={['#fff']} />}
         contentContainerStyle={{ paddingBottom: 110 }}>
 
         {/* Teal Header */}
@@ -188,6 +188,7 @@ export default function DoctorHomeScreen({ navigation }: any) {
 
         {/* White card */}
         <View style={s.contentCard}>
+          <View style={s.handle} />
 
         {/* Stats — all tappable */}
         <View style={s.statsRow}>
@@ -281,7 +282,8 @@ const s = StyleSheet.create({
   credItem:{ flexDirection:'row', alignItems:'center', gap:5 },
   credText:{ fontSize:12, color:'rgba(255,255,255,0.85)', fontWeight:'500', maxWidth:140 },
   credDot:{ width:3, height:3, borderRadius:1.5, backgroundColor:'rgba(255,255,255,0.4)' },
-  contentCard:{ backgroundColor:'#ffffff', borderTopLeftRadius:28, borderTopRightRadius:28, borderBottomLeftRadius:28, borderBottomRightRadius:28, paddingTop:24, flex:1 },
+  contentCard:{ backgroundColor:'#ffffff', borderTopLeftRadius:28, borderTopRightRadius:28, borderBottomLeftRadius:28, borderBottomRightRadius:28, paddingTop:12, flex:1 },
+  handle:{ width:40, height:4, borderRadius:2, backgroundColor:'#E2E8EF', alignSelf:'center', marginBottom:16 },
   statsRow:{ flexDirection:'row', marginHorizontal:24, gap:8, marginBottom:24 },
   statCard:{ flex:1, backgroundColor:C.teal, borderRadius:14, padding:12, alignItems:'center', gap:3 },
   statVal:{ fontSize:20, fontWeight:'800', color:'#fff' },
