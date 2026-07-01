@@ -78,7 +78,7 @@ export default function MessagesScreen({ navigation }: any) {
 
       const convIds = convs.map((c: any) => c.id);
       const { data: lastMsgs } = await supabase
-        .from('messages').select('id, conversation_id, content, created_at, sender_id, read_at')
+        .from('messages').select('id, conversation_id, content, created_at, sender_id, read_at, attachment_type')
         .in('conversation_id', convIds).order('created_at', { ascending: false });
 
       const lastMsgMap = new Map<string, any>();
@@ -146,7 +146,13 @@ export default function MessagesScreen({ navigation }: any) {
         </View>
         <View style={s.infoBottom}>
           <Text style={[s.lastMsg, item.unreadCount > 0 && s.lastMsgUnread]} numberOfLines={1}>
-            {item.lastMessage?.content || 'No messages yet'}
+            {item.lastMessage?.attachment_type === 'voice'
+              ? '🎤 Voice message'
+              : item.lastMessage?.attachment_type === 'image'
+              ? '📷 Photo'
+              : item.lastMessage?.attachment_type === 'file'
+              ? '📎 Document'
+              : item.lastMessage?.content || 'No messages yet'}
           </Text>
           {item.unreadCount > 0 && (
             <View style={s.unreadBadge}>

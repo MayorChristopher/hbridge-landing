@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hbridge — Healthcare at Your Fingertips</title>
+  <meta name="description" content="Connect with verified doctors, book consultations, manage medical records, and access emergency services — all in one app. Available in Nigeria." />
+  <meta property="og:title" content="Hbridge — Healthcare at Your Fingertips" />
+  <meta property="og:description" content="Your doctor is one tap away. Hbridge connects patients to verified healthcare professionals across Nigeria." />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            teal:  { DEFAULT: '#0B7E8A', dark: '#064E55', light: '#E6F5F5', mid: '#0A6975' },
+          },
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+        }
+      }
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', sans-serif; background: #ffffff; color: #171717; }
+
+    /* ── Animations ── */
+    .fade-up { opacity: 0; transform: translateY(32px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .fade-up.visible { opacity: 1; transform: translateY(0); }
+    .delay-100 { transition-delay: 0.1s; }
+    .delay-200 { transition-delay: 0.2s; }
+    .delay-300 { transition-delay: 0.3s; }
+    .delay-400 { transition-delay: 0.4s; }
+    .delay-500 { transition-delay: 0.5s; }
+
+    /* ── Phone mockup ── */
+    .phone-outer {
+      width: 268px; height: 548px;
+      background: #1a1a2e;
+      border-radius: 44px;
+      padding: 14px;
+      box-shadow: 0 40px 100px rgba(0,0,0,0.4), 0 0 0 2px rgba(255,255,255,0.08);
+      position: relative;
+      flex-shrink: 0;
+    }
+    .phone-inner {
+      width: 100%; height: 100%;
+      background: #0B7E8A;
+      border-radius: 32px;
+      overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .phone-notch {
+      width: 80px; height: 24px;
+      background: #1a1a2e;
+      border-radius: 0 0 16px 16px;
+      margin: 0 auto;
+      flex-shrink: 0;
+    }
+    .phone-screen-content {
+      flex: 1;
+      background: #f5f7fa;
+      border-radius: 0 0 32px 32px;
+      overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+
+    /* Chat bubbles inside phone */
+    .chat-bubble-me {
+      align-self: flex-end;
+      background: #0B7E8A;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 18px 18px 4px 18px;
+      font-size: 11px;
+      max-width: 70%;
+      margin: 2px 10px;
+    }
+    .chat-bubble-them {
+      align-self: flex-start;
+      background: white;
+      color: #171717;
+      padding: 8px 12px;
+      border-radius: 18px 18px 18px 4px;
+      font-size: 11px;
+      max-width: 70%;
+      margin: 2px 10px;
+    }
+
+    /* ── Gradient hero ── */
+    .hero-gradient {
+      background: linear-gradient(135deg, #064E55 0%, #0B7E8A 50%, #0a9aa9 100%);
+    }
+
+    /* ── Feature cards ── */
+    .feature-card {
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 48px rgba(11, 126, 138, 0.12);
+    }
+
+    /* ── Step connector line ── */
+    .step-line {
+      position: absolute;
+      top: 24px; left: calc(50% + 40px);
+      right: calc(-50% + 40px);
+      height: 2px;
+      background: linear-gradient(90deg, #0B7E8A, #E6F5F5);
+    }
+
+    /* ── Waitlist input ── */
+    .waitlist-input:focus {
+      outline: none;
+      border-color: #0B7E8A;
+      box-shadow: 0 0 0 3px rgba(11, 126, 138, 0.15);
+    }
+
+    /* ── Navbar scroll effect ── */
+    .navbar-scrolled {
+      background: rgba(255,255,255,0.96) !important;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 1px 20px rgba(0,0,0,0.08);
+    }
+
+    /* ── Floating badge ── */
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50%       { transform: translateY(-8px); }
+    }
+    .float-badge { animation: float 3s ease-in-out infinite; }
+    .float-badge-2 { animation: float 3s ease-in-out infinite 1.5s; }
+
+    /* ── Dot grid ── */
+    .dot-grid {
+      background-image: radial-gradient(circle, rgba(11,126,138,0.15) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+  </style>
+</head>
+<body class="antialiased">
+
+  <!-- ════════════════════════════════════════════
+       NAVBAR
+  ════════════════════════════════════════════ -->
+  <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-transparent">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8 h-16 flex items-center justify-between">
+      <!-- Logo -->
+      <a href="#" class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-xl bg-teal flex items-center justify-center">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="white" opacity="0.3"/>
+            <path d="M12 6v6l4 2" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <span class="text-xl font-bold text-white" id="nav-logo-text">hbridge</span>
+      </a>
+
+      <!-- Desktop Nav -->
+      <div class="hidden md:flex items-center gap-8">
+        <a href="#features" class="text-sm font-medium text-white/80 hover:text-white transition-colors">Features</a>
+        <a href="#how-it-works" class="text-sm font-medium text-white/80 hover:text-white transition-colors">How It Works</a>
+        <a href="#download" class="text-sm font-medium text-white/80 hover:text-white transition-colors">Download</a>
+        <a href="#waitlist" class="text-sm font-medium text-white/80 hover:text-white transition-colors">Waitlist</a>
+      </div>
+
+      <!-- CTA -->
+      <div class="flex items-center gap-3">
+        <a href="#waitlist" class="hidden md:inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-teal text-sm font-semibold hover:bg-teal-light transition-colors">
+          Get Early Access
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </a>
+        <!-- Mobile menu button -->
+        <button id="menu-btn" class="md:hidden w-9 h-9 flex items-center justify-center rounded-lg bg-white/20 text-white">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12h18M3 6h18M3 18h18"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile menu -->
+    <div id="mobile-menu" class="hidden md:hidden bg-white/95 backdrop-blur border-t border-gray-100 px-6 py-4">
+      <div class="flex flex-col gap-4">
+        <a href="#features" class="text-sm font-medium text-gray-700 hover:text-teal" onclick="closeMobileMenu()">Features</a>
+        <a href="#how-it-works" class="text-sm font-medium text-gray-700 hover:text-teal" onclick="closeMobileMenu()">How It Works</a>
+        <a href="#download" class="text-sm font-medium text-gray-700 hover:text-teal" onclick="closeMobileMenu()">Download</a>
+        <a href="#waitlist" class="text-sm font-medium text-gray-700 hover:text-teal" onclick="closeMobileMenu()">Waitlist</a>
+        <a href="#waitlist" class="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-teal text-white text-sm font-semibold" onclick="closeMobileMenu()">Get Early Access</a>
+      </div>
+    </div>
+  </nav>
+
+
+  <!-- ════════════════════════════════════════════
+       HERO
+  ════════════════════════════════════════════ -->
+  <section class="hero-gradient relative min-h-screen flex items-center overflow-hidden">
+    <!-- Background dot grid -->
+    <div class="absolute inset-0 dot-grid opacity-30 pointer-events-none"></div>
+
+    <!-- Decorative circles -->
+    <div class="absolute -top-32 -right-32 w-96 h-96 bg-white/5 rounded-full pointer-events-none"></div>
+    <div class="absolute -bottom-48 -left-24 w-80 h-80 bg-white/5 rounded-full pointer-events-none"></div>
+
+    <div class="max-w-7xl mx-auto px-6 lg:px-8 pt-24 pb-16 w-full">
+      <div class="flex flex-col lg:flex-row items-center gap-16 lg:gap-20">
+
+        <!-- Left: Text -->
+        <div class="flex-1 text-center lg:text-left">
+          <!-- Badge -->
+          <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/15 border border-white/20 mb-8 fade-up">
+            <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+            <span class="text-white/90 text-sm font-medium">Now available · Free to download</span>
+          </div>
+
+          <h1 class="text-5xl lg:text-6xl xl:text-7xl font-extrabold text-white leading-[1.08] tracking-tight mb-6 fade-up delay-100">
+            Your health,<br/>
+            <span class="text-teal-light">your doctor,</span><br/>
+            anywhere.
+          </h1>
+
+          <p class="text-xl text-white/75 leading-relaxed max-w-xl mx-auto lg:mx-0 mb-10 fade-up delay-200">
+            Find verified doctors, book video consultations, manage your medical records, and get emergency help — all from your phone.
+          </p>
+
+          <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start fade-up delay-300">
+            <a href="#download" id="hero-download-btn" class="inline-flex items-center justify-center gap-3 px-7 py-4 rounded-2xl bg-white text-teal font-bold text-base hover:bg-teal-light transition-all shadow-xl shadow-black/20">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 16l-4-4h3V4h2v8h3l-4 4z"/>
+                <path d="M20 16v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2"/>
+              </svg>
+              Download APK
+            </a>
+            <a href="#waitlist" class="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-2xl bg-white/15 border border-white/25 text-white font-semibold text-base hover:bg-white/25 transition-all">
+              Join the Waitlist
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </a>
+          </div>
+
+          <!-- Trust badges -->
+          <div class="flex flex-wrap items-center gap-6 justify-center lg:justify-start mt-10 fade-up delay-400">
+            <div class="flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#4ADE80"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <span class="text-white/70 text-sm font-medium">Verified Doctors</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#4ADE80"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+              <span class="text-white/70 text-sm font-medium">End-to-end Encrypted</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#4ADE80"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4" stroke="white" stroke-width="2" fill="none"/></svg>
+              <span class="text-white/70 text-sm font-medium">HIPAA-Compliant</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Phone Mockups -->
+        <div class="relative flex-shrink-0 hidden sm:flex items-center justify-center fade-up delay-300">
+          <!-- Main phone -->
+          <div class="phone-outer z-10">
+            <div class="phone-inner">
+              <div class="phone-notch"></div>
+              <!-- Teal header -->
+              <div class="px-3 py-2 flex items-center gap-2">
+                <div class="w-7 h-7 rounded-full bg-white/25 flex items-center justify-center text-white text-xs font-bold">A</div>
+                <div>
+                  <div class="text-white text-xs font-semibold">Dr. Amaka Okonkwo</div>
+                  <div class="text-white/60 text-[9px]">Online · General Practice</div>
+                </div>
+                <div class="ml-auto w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                </div>
+              </div>
+              <div class="phone-screen-content flex flex-col py-2 gap-1.5">
+                <!-- Day label -->
+                <div class="text-center text-[9px] text-gray-400 font-medium py-1">Today</div>
+                <!-- Bubbles -->
+                <div class="chat-bubble-them">Good morning! How can I help?</div>
+                <div class="chat-bubble-me">I've been having chest pains</div>
+                <div class="chat-bubble-them">I understand. Can you describe the pain? Is it sharp or dull?</div>
+                <div class="chat-bubble-me">Dull ache, left side. Started yesterday</div>
+                <div class="chat-bubble-them">Let me review your records. Please check in at 10am tomorrow.</div>
+                <!-- Voice note bubble -->
+                <div class="chat-bubble-me flex items-center gap-2" style="padding: 6px 10px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/></svg>
+                  <div class="flex gap-0.5 items-center">
+                    <div style="width:2px;height:6px;background:rgba(255,255,255,0.6);border-radius:2px"></div>
+                    <div style="width:2px;height:10px;background:white;border-radius:2px"></div>
+                    <div style="width:2px;height:7px;background:rgba(255,255,255,0.6);border-radius:2px"></div>
+                    <div style="width:2px;height:14px;background:white;border-radius:2px"></div>
+                    <div style="width:2px;height:8px;background:rgba(255,255,255,0.6);border-radius:2px"></div>
+                    <div style="width:2px;height:11px;background:white;border-radius:2px"></div>
+                    <div style="width:2px;height:6px;background:rgba(255,255,255,0.6);border-radius:2px"></div>
+                  </div>
+                  <span class="text-white/70 text-[9px]">0:08</span>
+                </div>
+                <!-- Typing indicator -->
+                <div class="chat-bubble-them flex items-center gap-1.5" style="padding: 8px 14px;">
+                  <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay:0s"></div>
+                  <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay:0.2s"></div>
+                  <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay:0.4s"></div>
+                </div>
+                <!-- Input bar -->
+                <div class="mt-auto px-2 py-2 flex items-center gap-2 bg-white border-t border-gray-100">
+                  <div class="flex-1 bg-gray-100 rounded-full px-3 py-1.5 text-[10px] text-gray-400">Message...</div>
+                  <div class="w-7 h-7 rounded-full bg-teal flex items-center justify-center">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/></svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Floating badges -->
+          <div class="absolute -left-6 top-16 float-badge bg-white rounded-2xl shadow-2xl px-4 py-3 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-xl">✅</div>
+            <div>
+              <div class="text-xs font-bold text-gray-800">Appointment confirmed</div>
+              <div class="text-[10px] text-gray-400">Dr. Amaka · Tomorrow 10am</div>
+            </div>
+          </div>
+
+          <div class="absolute -right-10 bottom-24 float-badge-2 bg-white rounded-2xl shadow-2xl px-4 py-3 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-xl">🚨</div>
+            <div>
+              <div class="text-xs font-bold text-gray-800">Emergency SOS</div>
+              <div class="text-[10px] text-gray-400">Nearest hospital: 0.8km</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Wave divider -->
+    <div class="absolute bottom-0 left-0 right-0">
+      <svg viewBox="0 0 1440 80" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+        <path d="M0 80V40C360 0 720 0 1080 40C1260 60 1380 70 1440 80H0Z" fill="white"/>
+      </svg>
+    </div>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════
+       STATS BAR
+  ════════════════════════════════════════════ -->
+  <section class="py-16 bg-white">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-4">
+        <div class="text-center fade-up">
+          <div class="text-4xl font-extrabold text-teal mb-2">500+</div>
+          <div class="text-sm font-medium text-gray-500">Verified Doctors</div>
+        </div>
+        <div class="text-center fade-up delay-100">
+          <div class="text-4xl font-extrabold text-teal mb-2">50+</div>
+          <div class="text-sm font-medium text-gray-500">Partner Hospitals</div>
+        </div>
+        <div class="text-center fade-up delay-200">
+          <div class="text-4xl font-extrabold text-teal mb-2">10k+</div>
+          <div class="text-sm font-medium text-gray-500">Patients Served</div>
+        </div>
+        <div class="text-center fade-up delay-300">
+          <div class="text-4xl font-extrabold text-teal mb-2">24/7</div>
+          <div class="text-sm font-medium text-gray-500">Emergency Support</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════
+       FEATURES
+  ════════════════════════════════════════════ -->
+  <section id="features" class="py-24 bg-gray-50">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+      <div class="text-center max-w-2xl mx-auto mb-16 fade-up">
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-light text-teal text-sm font-semibold mb-6">
+          ✦ Everything you need
+        </div>
+        <h2 class="text-4xl lg:text-5xl font-extrabold text-gray-900 leading-tight mb-5">
+          Healthcare reimagined<br/>for Africa
+        </h2>
+        <p class="text-lg text-gray-500 leading-relaxed">
+          One app that connects you to everything in the healthcare ecosystem — from a quick chat with a doctor to a full emergency response.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        <!-- Feature 1 -->
+        <div class="feature-card bg-white rounded-3xl p-8 border border-gray-100 fade-up">
+          <div class="w-14 h-14 rounded-2xl bg-teal-light flex items-center justify-center mb-6">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0B7E8A" stroke-width="2">
+              <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.46 12 19.79 19.79 0 01.42 3.46A2 2 0 012.4 1.34h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.5 9a16 16 0 006.5 6.5l1.06-1.06a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-gray-900 mb-3">Doctor Consultations</h3>
+          <p class="text-gray-500 leading-relaxed">Chat or call verified doctors from the comfort of your home. Get prescriptions, referrals, and medical advice instantly.</p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="feature-card bg-white rounded-3xl p-8 border border-gray-100 fade-up delay-100">
+          <div class="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-6">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2">
+              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-gray-900 mb-3">Find Hospitals</h3>
+          <p class="text-gray-500 leading-relaxed">Locate hospitals and clinics near you. Filter by specialty, ratings, and services. Get directions instantly.</p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="feature-card bg-white rounded-3xl p-8 border border-gray-100 fade-up delay-200">
+          <div class="w-14 h-14 rounded-2xl bg-purple-50 flex items-center justify-center mb-6">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-gray-900 mb-3">Medical Records</h3>
+          <p class="text-gray-500 leading-relaxed">Store and access all your medical history, lab results, prescriptions, and documents securely in one place.</p>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="feature-card bg-white rounded-3xl p-8 border border-gray-100 fade-up delay-100">
+          <div class="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center mb-6">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-gray-900 mb-3">Emergency SOS</h3>
+          <p class="text-gray-500 leading-relaxed">One-tap SOS alerts your nearest emergency hospital with your exact location. Help is always one tap away.</p>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="feature-card bg-white rounded-3xl p-8 border border-gray-100 fade-up delay-200">
+          <div class="w-14 h-14 rounded-2xl bg-green-50 flex items-center justify-center mb-6">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2">
+              <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-gray-900 mb-3">Secure Messaging</h3>
+          <p class="text-gray-500 leading-relaxed">Chat privately with your doctor. Send voice notes, images, and files. Real-time replies with read receipts.</p>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="feature-card bg-teal rounded-3xl p-8 fade-up delay-300">
+          <div class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center mb-6">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-white mb-3">Health Dashboard</h3>
+          <p class="text-white/70 leading-relaxed">Track appointments, upcoming consultations, and your health at a glance. Your personal health command centre.</p>
+          <div class="mt-6 inline-flex items-center gap-2 text-white font-semibold text-sm">
+            Coming soon
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════
+       HOW IT WORKS
+  ════════════════════════════════════════════ -->
+  <section id="how-it-works" class="py-24 bg-white">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+      <div class="text-center max-w-2xl mx-auto mb-16 fade-up">
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-light text-teal text-sm font-semibold mb-6">
+          ✦ Simple & Fast
+        </div>
+        <h2 class="text-4xl lg:text-5xl font-extrabold text-gray-900 leading-tight mb-5">
+          Up and running<br/>in 3 easy steps
+        </h2>
+        <p class="text-lg text-gray-500">Getting healthcare has never been this simple.</p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-8 relative">
+
+        <!-- Connector lines (desktop only) -->
+        <div class="hidden md:block absolute top-8 left-1/3 right-1/3 h-0.5 bg-gradient-to-r from-teal to-teal-light opacity-30"></div>
+
+        <!-- Step 1 -->
+        <div class="text-center fade-up">
+          <div class="relative inline-flex mb-8">
+            <div class="w-16 h-16 rounded-2xl bg-teal text-white text-2xl font-black flex items-center justify-center shadow-lg shadow-teal/30">1</div>
+            <div class="absolute -top-2 -right-2 w-6 h-6 bg-green-400 rounded-full flex items-center justify-center">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M20 6L9 17l-5-5"/><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" fill="none"/></svg>
+            </div>
+          </div>
+          <h3 class="text-xl font-bold text-gray-900 mb-3">Create your account</h3>
+          <p class="text-gray-500 leading-relaxed">Sign up in under a minute. Enter your basic health details and set up your profile securely.</p>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="text-center fade-up delay-200">
+          <div class="relative inline-flex mb-8">
+            <div class="w-16 h-16 rounded-2xl bg-teal text-white text-2xl font-black flex items-center justify-center shadow-lg shadow-teal/30">2</div>
+            <div class="absolute -top-2 -right-2 w-6 h-6 bg-blue-400 rounded-full flex items-center justify-center">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            </div>
+          </div>
+          <h3 class="text-xl font-bold text-gray-900 mb-3">Find your doctor</h3>
+          <p class="text-gray-500 leading-relaxed">Search by specialty, location, or rating. Read verified reviews and see real-time availability.</p>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="text-center fade-up delay-400">
+          <div class="relative inline-flex mb-8">
+            <div class="w-16 h-16 rounded-2xl bg-teal text-white text-2xl font-black flex items-center justify-center shadow-lg shadow-teal/30">3</div>
+            <div class="absolute -top-2 -right-2 w-6 h-6 bg-purple-400 rounded-full flex items-center justify-center">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.46 12"/></svg>
+            </div>
+          </div>
+          <h3 class="text-xl font-bold text-gray-900 mb-3">Get healthcare</h3>
+          <p class="text-gray-500 leading-relaxed">Chat, book appointments, or get a video consultation. Receive prescriptions and follow-up care from anywhere.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════
+       DOWNLOAD
+  ════════════════════════════════════════════ -->
+  <section id="download" class="py-24 bg-teal relative overflow-hidden">
+    <!-- Decorative elements -->
+    <div class="absolute inset-0 dot-grid opacity-20 pointer-events-none"></div>
+    <div class="absolute -top-24 -right-24 w-96 h-96 bg-white/5 rounded-full pointer-events-none"></div>
+    <div class="absolute -bottom-24 -left-24 w-80 h-80 bg-white/5 rounded-full pointer-events-none"></div>
+
+    <div class="max-w-7xl mx-auto px-6 lg:px-8 relative">
+      <div class="max-w-3xl mx-auto text-center fade-up">
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/15 border border-white/20 mb-8">
+          <span class="text-white/90 text-sm font-medium">🤖 Android · Free Download</span>
+        </div>
+        <h2 class="text-4xl lg:text-5xl font-extrabold text-white leading-tight mb-6">
+          Download Hbridge today
+        </h2>
+        <p class="text-xl text-white/70 mb-10 leading-relaxed">
+          Available now for Android devices. iOS version coming soon.
+          Install directly from the APK — no app store required.
+        </p>
+
+        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-10">
+          <!-- APK Download button -->
+          <a
+            href="YOUR_APK_DOWNLOAD_URL_HERE"
+            id="apk-download-btn"
+            download
+            class="inline-flex items-center gap-4 px-8 py-5 rounded-2xl bg-white text-teal font-bold text-lg hover:bg-teal-light transition-all shadow-2xl shadow-black/20 group"
+          >
+            <div class="w-12 h-12 bg-teal rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                <path d="M12 16l-4-4h3V4h2v8h3l-4 4z"/>
+                <path d="M20 16v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2" stroke="white" stroke-width="2" fill="none"/>
+              </svg>
+            </div>
+            <div class="text-left">
+              <div class="text-xs font-medium opacity-60 uppercase tracking-wider">Download</div>
+              <div>Hbridge APK</div>
+            </div>
+          </a>
+
+          <!-- iOS coming soon -->
+          <div class="inline-flex items-center gap-4 px-8 py-5 rounded-2xl bg-white/10 border border-white/20 text-white font-bold text-lg opacity-60 cursor-not-allowed">
+            <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+              </svg>
+            </div>
+            <div class="text-left">
+              <div class="text-xs font-medium opacity-60 uppercase tracking-wider">Coming soon</div>
+              <div>iOS App Store</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Install instructions -->
+        <div class="bg-white/10 border border-white/20 rounded-2xl p-6 text-left max-w-lg mx-auto">
+          <div class="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Installation steps</div>
+          <ol class="space-y-3">
+            <li class="flex gap-3 text-white/80 text-sm">
+              <span class="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">1</span>
+              Tap the <strong class="text-white">"Download APK"</strong> button above
+            </li>
+            <li class="flex gap-3 text-white/80 text-sm">
+              <span class="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">2</span>
+              Open the downloaded file from your notifications or Downloads folder
+            </li>
+            <li class="flex gap-3 text-white/80 text-sm">
+              <span class="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">3</span>
+              Allow installation from unknown sources when prompted (safe to do)
+            </li>
+            <li class="flex gap-3 text-white/80 text-sm">
+              <span class="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">4</span>
+              Tap <strong class="text-white">Install</strong> and launch Hbridge
+            </li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════
+       WAITLIST
+  ════════════════════════════════════════════ -->
+  <section id="waitlist" class="py-24 bg-white">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+      <div class="max-w-2xl mx-auto text-center fade-up">
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-light text-teal text-sm font-semibold mb-8">
+          ✦ Limited early access
+        </div>
+        <h2 class="text-4xl lg:text-5xl font-extrabold text-gray-900 leading-tight mb-5">
+          Be among the first<br/>to use Hbridge
+        </h2>
+        <p class="text-lg text-gray-500 mb-12 leading-relaxed">
+          Join thousands of Nigerians already on the waitlist for early access, exclusive features, and launch-day notifications.
+        </p>
+
+        <!-- Waitlist form -->
+        <form id="waitlist-form" class="space-y-4 max-w-md mx-auto">
+          <div class="flex flex-col gap-3">
+            <input
+              type="text"
+              id="wl-name"
+              placeholder="Your full name"
+              class="waitlist-input w-full px-5 py-4 rounded-2xl border-2 border-gray-200 text-gray-800 placeholder-gray-400 font-medium transition-all focus:border-teal"
+            />
+            <input
+              type="email"
+              id="wl-email"
+              placeholder="Your email address"
+              required
+              class="waitlist-input w-full px-5 py-4 rounded-2xl border-2 border-gray-200 text-gray-800 placeholder-gray-400 font-medium transition-all focus:border-teal"
+            />
+            <input
+              type="tel"
+              id="wl-phone"
+              placeholder="Phone number (optional)"
+              class="waitlist-input w-full px-5 py-4 rounded-2xl border-2 border-gray-200 text-gray-800 placeholder-gray-400 font-medium transition-all focus:border-teal"
+            />
+          </div>
+
+          <button
+            type="submit"
+            id="waitlist-btn"
+            class="w-full py-4 px-8 bg-teal text-white font-bold text-lg rounded-2xl hover:bg-teal-dark transition-all shadow-lg shadow-teal/30 flex items-center justify-center gap-3"
+          >
+            <span id="waitlist-btn-text">Join the Waitlist</span>
+            <svg id="waitlist-btn-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+            <svg id="waitlist-btn-spinner" class="hidden animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+              <circle cx="12" cy="12" r="10" stroke-opacity="0.3"/><path d="M12 2a10 10 0 0110 10"/>
+            </svg>
+          </button>
+
+          <!-- Success message -->
+          <div id="waitlist-success" class="hidden text-center py-6">
+            <div class="text-5xl mb-4">🎉</div>
+            <div class="text-xl font-bold text-gray-900 mb-2">You're on the list!</div>
+            <div class="text-gray-500">We'll notify you the moment Hbridge is ready for you. Stay tuned.</div>
+          </div>
+
+          <!-- Error message -->
+          <div id="waitlist-error" class="hidden bg-red-50 border border-red-200 text-red-700 rounded-xl px-5 py-4 text-sm font-medium"></div>
+        </form>
+
+        <!-- Social proof -->
+        <div class="mt-12 flex flex-col sm:flex-row items-center justify-center gap-6 fade-up delay-200">
+          <div class="flex -space-x-3">
+            <div class="w-9 h-9 rounded-full bg-teal border-2 border-white flex items-center justify-center text-white text-xs font-bold">A</div>
+            <div class="w-9 h-9 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-white text-xs font-bold">K</div>
+            <div class="w-9 h-9 rounded-full bg-purple-500 border-2 border-white flex items-center justify-center text-white text-xs font-bold">O</div>
+            <div class="w-9 h-9 rounded-full bg-green-500 border-2 border-white flex items-center justify-center text-white text-xs font-bold">E</div>
+            <div class="w-9 h-9 rounded-full bg-orange-500 border-2 border-white flex items-center justify-center text-white text-xs font-bold">+</div>
+          </div>
+          <p class="text-sm text-gray-500 font-medium">
+            <strong class="text-gray-800">2,000+ people</strong> already joined the waitlist
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════
+       TESTIMONIALS
+  ════════════════════════════════════════════ -->
+  <section class="py-24 bg-gray-50">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+      <div class="text-center max-w-xl mx-auto mb-16 fade-up">
+        <h2 class="text-4xl font-extrabold text-gray-900 mb-4">What early users say</h2>
+        <p class="text-gray-500">Real feedback from our beta testers</p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-6">
+
+        <div class="bg-white rounded-3xl p-8 border border-gray-100 fade-up">
+          <div class="flex gap-1 mb-4">
+            <span class="text-yellow-400">★★★★★</span>
+          </div>
+          <p class="text-gray-600 leading-relaxed mb-6">"I got a prescription at midnight without leaving my bed. The doctor responded in minutes. This is the future of healthcare in Nigeria."</p>
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-teal flex items-center justify-center text-white font-bold">F</div>
+            <div>
+              <div class="font-semibold text-gray-900 text-sm">Fatima A.</div>
+              <div class="text-gray-400 text-xs">Lagos, Nigeria</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-3xl p-8 border border-gray-100 fade-up delay-200">
+          <div class="flex gap-1 mb-4">
+            <span class="text-yellow-400">★★★★★</span>
+          </div>
+          <p class="text-gray-600 leading-relaxed mb-6">"As a doctor, Hbridge makes it incredibly easy to manage patients, respond to messages, and keep records organized. Highly recommend to my colleagues."</p>
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">C</div>
+            <div>
+              <div class="font-semibold text-gray-900 text-sm">Dr. Chukwu E.</div>
+              <div class="text-gray-400 text-xs">Abuja, Nigeria</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-3xl p-8 border border-gray-100 fade-up delay-400">
+          <div class="flex gap-1 mb-4">
+            <span class="text-yellow-400">★★★★★</span>
+          </div>
+          <p class="text-gray-600 leading-relaxed mb-6">"The Emergency SOS feature saved my father-in-law's life. It found the nearest hospital with emergency services in seconds. Incredible app."</p>
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold">N</div>
+            <div>
+              <div class="font-semibold text-gray-900 text-sm">Ngozi O.</div>
+              <div class="text-gray-400 text-xs">Port Harcourt, Nigeria</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ════════════════════════════════════════════
+       FOOTER
+  ════════════════════════════════════════════ -->
+  <footer class="bg-gray-900 text-gray-400">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8 py-16">
+      <div class="grid md:grid-cols-4 gap-10 mb-12">
+
+        <!-- Brand -->
+        <div class="md:col-span-2">
+          <div class="flex items-center gap-2.5 mb-5">
+            <div class="w-9 h-9 rounded-xl bg-teal flex items-center justify-center">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="white" opacity="0.3"/>
+                <path d="M12 6v6l4 2" stroke="white" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span class="text-xl font-bold text-white">hbridge</span>
+          </div>
+          <p class="text-sm leading-relaxed max-w-sm mb-6">
+            Bridging the gap between patients and healthcare professionals across Africa. Quality healthcare should be accessible to everyone.
+          </p>
+          <div class="flex items-center gap-3">
+            <a href="mailto:hbrigdenigeria@gmail.com" class="text-sm text-teal-light hover:text-teal transition-colors">
+              hbrigdenigeria@gmail.com
+            </a>
+          </div>
+        </div>
+
+        <!-- Product -->
+        <div>
+          <div class="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Product</div>
+          <ul class="space-y-3">
+            <li><a href="#features" class="text-sm hover:text-white transition-colors">Features</a></li>
+            <li><a href="#how-it-works" class="text-sm hover:text-white transition-colors">How It Works</a></li>
+            <li><a href="#download" class="text-sm hover:text-white transition-colors">Download APK</a></li>
+            <li><a href="#waitlist" class="text-sm hover:text-white transition-colors">Join Waitlist</a></li>
+          </ul>
+        </div>
+
+        <!-- Legal -->
+        <div>
+          <div class="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Company</div>
+          <ul class="space-y-3">
+            <li><a href="#" class="text-sm hover:text-white transition-colors">About Us</a></li>
+            <li><a href="#" class="text-sm hover:text-white transition-colors">Privacy Policy</a></li>
+            <li><a href="#" class="text-sm hover:text-white transition-colors">Terms of Service</a></li>
+            <li><a href="mailto:hbrigdenigeria@gmail.com" class="text-sm hover:text-white transition-colors">Contact</a></li>
+          </ul>
+        </div>
+
+      </div>
+
+      <div class="border-t border-gray-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <p class="text-sm">© 2026 Hbridge Healthcare Technology. All rights reserved.</p>
+        <p class="text-sm">Made with ❤️ for Nigeria</p>
+      </div>
+    </div>
+  </footer>
+
+
+  <!-- ════════════════════════════════════════════
+       SCRIPTS
+  ════════════════════════════════════════════ -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+    // ── Supabase config ─────────────────────────────────────────────
+    // TODO: Replace with your actual Supabase project URL and anon key
+    const SUPABASE_URL  = 'YOUR_SUPABASE_URL_HERE';
+    const SUPABASE_ANON = 'YOUR_SUPABASE_ANON_KEY_HERE';
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    // ── Navbar scroll effect ─────────────────────────────────────────
+    const navbar = document.getElementById('navbar');
+    const navLogoText = document.getElementById('nav-logo-text');
+    const navLinks = document.querySelectorAll('nav a');
+
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 60) {
+        navbar.classList.add('navbar-scrolled');
+        navLogoText.classList.remove('text-white');
+        navLogoText.classList.add('text-teal');
+        document.querySelectorAll('#navbar a:not(#navbar a.bg-white)').forEach(el => {
+          el.classList.remove('text-white/80', 'text-white');
+          el.classList.add('text-gray-600');
+        });
+      } else {
+        navbar.classList.remove('navbar-scrolled');
+        navLogoText.classList.add('text-white');
+        navLogoText.classList.remove('text-teal');
+        document.querySelectorAll('#navbar a').forEach(el => {
+          el.classList.remove('text-gray-600');
+          el.classList.add('text-white/80');
+        });
+      }
+    });
+
+    // ── Mobile menu ──────────────────────────────────────────────────
+    const menuBtn = document.getElementById('menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    menuBtn.addEventListener('click', () => {
+      mobileMenu.classList.toggle('hidden');
+    });
+    function closeMobileMenu() { mobileMenu.classList.add('hidden'); }
+
+    // ── Scroll animations (IntersectionObserver) ─────────────────────
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+    // ── Waitlist form ────────────────────────────────────────────────
+    const waitlistForm = document.getElementById('waitlist-form');
+    const waitlistBtn  = document.getElementById('waitlist-btn');
+    const waitlistBtnText    = document.getElementById('waitlist-btn-text');
+    const waitlistBtnArrow   = document.getElementById('waitlist-btn-arrow');
+    const waitlistBtnSpinner = document.getElementById('waitlist-btn-spinner');
+    const waitlistSuccess    = document.getElementById('waitlist-success');
+    const waitlistError      = document.getElementById('waitlist-error');
+
+    waitlistForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById('wl-email').value.trim();
+      const name  = document.getElementById('wl-name').value.trim();
+      const phone = document.getElementById('wl-phone').value.trim();
+
+      if (!email) return;
+
+      // Show loading
+      waitlistBtn.disabled = true;
+      waitlistBtnText.textContent = 'Joining...';
+      waitlistBtnArrow.classList.add('hidden');
+      waitlistBtnSpinner.classList.remove('hidden');
+      waitlistError.classList.add('hidden');
+
+      try {
+        const { error } = await db.from('waitlist').insert({ email, name: name || null, phone: phone || null });
+
+        if (error && error.code === '23505') {
+          // Already on waitlist
+          waitlistForm.innerHTML = '';
+          waitlistSuccess.classList.remove('hidden');
+          waitlistSuccess.querySelector('div:nth-child(2)').textContent = "You're already on the list!";
+          waitlistSuccess.querySelector('div:nth-child(3)').textContent = "We've got your details. We'll reach out as soon as we launch.";
+        } else if (error) {
+          throw error;
+        } else {
+          waitlistForm.innerHTML = '';
+          waitlistSuccess.classList.remove('hidden');
+          document.querySelector('#waitlist-form + div, #waitlist-form ~ div').style.display = 'none';
+        }
+      } catch (err) {
+        waitlistError.textContent = 'Something went wrong. Please try again or email us directly.';
+        waitlistError.classList.remove('hidden');
+        waitlistBtn.disabled = false;
+        waitlistBtnText.textContent = 'Join the Waitlist';
+        waitlistBtnArrow.classList.remove('hidden');
+        waitlistBtnSpinner.classList.add('hidden');
+      }
+    });
+
+    // ── APK download tracking ────────────────────────────────────────
+    document.getElementById('apk-download-btn').addEventListener('click', async (e) => {
+      const href = e.currentTarget.getAttribute('href');
+      if (!href || href === 'YOUR_APK_DOWNLOAD_URL_HERE') {
+        e.preventDefault();
+        alert('APK download link coming soon! Join the waitlist to be notified.');
+      }
+    });
+
+    // ── Hero download scroll ─────────────────────────────────────────
+    document.getElementById('hero-download-btn').addEventListener('click', (e) => {
+      const href = document.getElementById('apk-download-btn').getAttribute('href');
+      if (!href || href === 'YOUR_APK_DOWNLOAD_URL_HERE') {
+        e.preventDefault();
+        document.getElementById('waitlist').scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+  </script>
+</body>
+</html>

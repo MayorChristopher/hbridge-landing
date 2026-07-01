@@ -886,22 +886,22 @@ const s = StyleSheet.create({
   msgAvatarFallback: { backgroundColor: C.greenLight, alignItems: 'center', justifyContent: 'center' },
 
   // Bubbles
-  bubble: { maxWidth: '76%', paddingHorizontal: 13, paddingVertical: 9, borderRadius: 18 },
+  bubble: { maxWidth: '80%', minWidth: 96, paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4, borderRadius: 20 },
   bubbleMe: { backgroundColor: C.teal },
   bubbleThem: { backgroundColor: C.surface },
 
   // Attachments
-  attachImg: { width: 210, height: 165, borderRadius: 10, marginBottom: 4 },
+  attachImg: { width: 220, height: 170, borderRadius: 12, marginBottom: 4 },
   fileCard: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4, paddingHorizontal: 2 },
-  fileIconBox: { width: 36, height: 36, borderRadius: 8, backgroundColor: C.greenLight, alignItems: 'center', justifyContent: 'center' },
+  fileIconBox: { width: 38, height: 38, borderRadius: 10, backgroundColor: C.greenLight, alignItems: 'center', justifyContent: 'center' },
   fileName: { fontSize: 13, fontWeight: '600', color: C.text },
   fileSize: { fontSize: 11, color: C.muted, marginTop: 1 },
 
   // Text + meta
-  msgText: { fontSize: 15, color: C.text, lineHeight: 21 },
+  msgText: { fontSize: 15, color: C.text, lineHeight: 22 },
   msgTextMe: { color: '#fff' },
-  msgMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4, gap: 2 },
-  msgTime: { fontSize: 10, color: C.muted },
+  msgMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 2, paddingBottom: 2, gap: 3 },
+  msgTime: { fontSize: 10.5, color: C.muted },
   msgTimeMe: { color: 'rgba(255,255,255,0.6)' },
 
   // Upload bar
