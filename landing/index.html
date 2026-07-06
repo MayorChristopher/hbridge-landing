@@ -33,29 +33,72 @@
     body { font-family: 'Inter', sans-serif; background: #ffffff; color: #0f1923; margin: 0; }
 
     /* ─── Scroll reveal ─── */
-    .reveal { opacity: 0; transform: translateY(32px); transition: opacity 0.7s cubic-bezier(.16,1,.3,1), transform 0.7s cubic-bezier(.16,1,.3,1); }
-    .reveal.in { opacity: 1; transform: translateY(0); }
+    .reveal { opacity: 1; transform: translateY(0); }
+    .js-ready .reveal { opacity: 0; transform: translateY(32px); transition: opacity 0.7s cubic-bezier(.16,1,.3,1), transform 0.7s cubic-bezier(.16,1,.3,1); }
+    .js-ready .reveal.in { opacity: 1; transform: translateY(0); }
     .reveal.d1 { transition-delay: .08s; }
     .reveal.d2 { transition-delay: .18s; }
     .reveal.d3 { transition-delay: .28s; }
     .reveal.d4 { transition-delay: .38s; }
 
-    /* ─── Hero gradient mesh ─── */
-    .hero-bg { background: #042f35; position: relative; overflow: hidden; }
-    .hero-bg::before {
-      content: '';
-      position: absolute; inset: 0;
+    /* ─── Hero background ─── */
+    .hero-bg {
       background:
-        radial-gradient(ellipse 80% 60% at 70% 40%, rgba(11,126,138,.45) 0%, transparent 70%),
-        radial-gradient(ellipse 60% 80% at 10% 80%, rgba(6,78,85,.6) 0%, transparent 70%);
-      pointer-events: none;
+        radial-gradient(ellipse 60% 80% at 15% 60%, rgba(4,47,53,.5) 0%, transparent 70%),
+        linear-gradient(100deg,
+          rgba(2,18,22,.97) 0%,
+          rgba(4,47,53,.94) 30%,
+          rgba(4,47,53,.72) 55%,
+          rgba(4,47,53,.28) 78%,
+          rgba(4,47,53,.08) 100%),
+        url('https://images.pexels.com/photos/5452224/pexels-photo-5452224.jpeg?auto=compress&cs=tinysrgb&w=1920&q=80') 30% 10% / cover no-repeat;
+      position: relative; overflow: hidden;
     }
-    .grid-lines {
+
+    /* ─── Ambient orbs ─── */
+    @keyframes heroOrb1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(30px,-22px) scale(1.06)} }
+    @keyframes heroOrb2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-22px,28px) scale(0.94)} }
+    @keyframes heroOrb3 { 0%,100%{transform:translate(0,0)} 60%{transform:translate(18px,-12px)} }
+    .hero-orb { position:absolute; border-radius:50%; pointer-events:none; }
+    .hero-orb-1 { width:700px; height:700px; background:radial-gradient(circle, rgba(11,126,138,.28) 0%, transparent 60%); top:-220px; right:-160px; filter:blur(100px); animation:heroOrb1 22s ease-in-out infinite; }
+    .hero-orb-2 { width:480px; height:480px; background:radial-gradient(circle, rgba(127,232,240,.09) 0%, transparent 65%); bottom:0; left:-100px; filter:blur(90px); animation:heroOrb2 28s ease-in-out infinite; }
+    .hero-orb-3 { width:360px; height:360px; background:radial-gradient(circle, rgba(4,47,53,.5) 0%, transparent 65%); top:35%; left:32%; filter:blur(110px); animation:heroOrb3 16s ease-in-out infinite; }
+
+    /* ─── Pulse rings (heartbeat / signal effect) ─── */
+    @keyframes pulseFade {
+      0%   { transform: translate(-50%,-50%) scale(0.55); opacity: 0.55; }
+      100% { transform: translate(-50%,-50%) scale(2.4);  opacity: 0; }
+    }
+    .hero-pulse {
+      position: absolute; top: 50%; right: 16%;
+      width: 1px; height: 1px;
+      pointer-events: none; display: none;
+    }
+    @media (min-width: 1024px) { .hero-pulse { display: block; } }
+    .pulse-ring {
+      position: absolute; top: 0; left: 0;
+      width: 340px; height: 340px;
+      border-radius: 50%;
+      border: 1px solid rgba(127,232,240,0.22);
+      animation: pulseFade 5.5s ease-out infinite;
+    }
+    .pulse-ring:nth-child(2) { animation-delay: 1.83s; }
+    .pulse-ring:nth-child(3) { animation-delay: 3.66s; }
+
+    /* ─── Subtle dot texture ─── */
+    .hero-dots {
       position: absolute; inset: 0; pointer-events: none;
-      background-image:
-        linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
-      background-size: 48px 48px;
+      background-image: radial-gradient(circle, rgba(255,255,255,.06) 1px, transparent 1px);
+      background-size: 32px 32px;
+      mask-image: radial-gradient(ellipse 70% 80% at 60% 50%, black 0%, transparent 75%);
+      -webkit-mask-image: radial-gradient(ellipse 70% 80% at 60% 50%, black 0%, transparent 75%);
+    }
+
+    /* ─── Bottom fade into white ─── */
+    .hero-bottom-fade {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 120px;
+      background: linear-gradient(to bottom, transparent, rgba(255,255,255,0));
+      pointer-events: none;
     }
 
     /* ─── Navbar ─── */
@@ -140,9 +183,12 @@
     .float-a { animation: floatA 4s ease-in-out infinite; }
     .float-b { animation: floatB 4s ease-in-out infinite 2s; }
     .badge-float {
-      background: #fff; border-radius: 16px; padding: 10px 14px;
-      box-shadow: 0 16px 48px rgba(0,0,0,.18);
-      display: flex; align-items: center; gap: 10px; white-space: nowrap;
+      background: rgba(255,255,255,.88);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,.6);
+      border-radius: 16px; padding: 11px 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.18);
+      display: flex; align-items: center; gap: 12px; white-space: nowrap;
     }
 
     /* ─── Feature cards ─── */
@@ -246,9 +292,17 @@
      HERO
 ═══════════════════════════════ -->
 <section class="hero-bg min-h-screen pt-16 flex items-center relative">
-  <div class="grid-lines"></div>
+  <div class="hero-orb hero-orb-1"></div>
+  <div class="hero-orb hero-orb-2"></div>
+  <div class="hero-orb hero-orb-3"></div>
+  <div class="hero-dots"></div>
+  <div class="hero-pulse">
+    <div class="pulse-ring"></div>
+    <div class="pulse-ring"></div>
+    <div class="pulse-ring"></div>
+  </div>
 
-  <div class="relative max-w-7xl mx-auto px-6 lg:px-10 py-24 w-full">
+  <div class="relative max-w-7xl mx-auto px-6 lg:px-10 py-24 w-full" style="z-index:1">
     <div class="flex flex-col lg:flex-row items-center gap-20">
 
       <!-- Left -->
@@ -277,81 +331,81 @@
             <i data-lucide="chevron-down" style="width:14px;height:14px;stroke-width:2.5"></i>
           </a>
         </div>
-        <p class="reveal d4" style="font-size:12px;color:rgba(255,255,255,.28);margin-top:20px">
-          App launching 2026 &nbsp;&middot;&nbsp; Free to join &nbsp;&middot;&nbsp; Nigeria-first
-        </p>
+        <!-- Social proof -->
+        <div class="reveal d4" style="display:flex;align-items:center;gap:12px;margin-top:28px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center">
+            <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#0B7E8A,#0ca8b9);border:2px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff">A</div>
+            <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#064E55,#0B7E8A);border:2px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;margin-left:-8px">C</div>
+            <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#D4A843,#e8bf6a);border:2px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;margin-left:-8px">N</div>
+            <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#042f35,#0B7E8A);border:2px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:rgba(255,255,255,.8);margin-left:-8px;font-size:9px">+</div>
+          </div>
+          <p style="font-size:13px;color:rgba(255,255,255,.55)"><strong style="color:#fff;font-weight:600">340+</strong> people already on the waitlist</p>
+        </div>
+
+        <!-- Mobile-only stat pills -->
+        <div class="lg:hidden reveal d4" style="display:flex;gap:8px;margin-top:20px;flex-wrap:wrap">
+          <div style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:100px">
+            <i data-lucide="shield-check" style="width:12px;height:12px;color:#7FE8F0;stroke-width:2.5"></i>
+            <span style="font-size:12px;color:rgba(255,255,255,.8)">PIN-locked vault</span>
+          </div>
+          <div style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:100px">
+            <i data-lucide="share-2" style="width:12px;height:12px;color:#7FE8F0;stroke-width:2.5"></i>
+            <span style="font-size:12px;color:rgba(255,255,255,.8)">Share in 1 tap</span>
+          </div>
+          <div style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:100px">
+            <i data-lucide="brain-circuit" style="width:12px;height:12px;color:#7FE8F0;stroke-width:2.5"></i>
+            <span style="font-size:12px;color:rgba(255,255,255,.8)">AI assistant</span>
+          </div>
+        </div>
       </div>
 
-      <!-- Right: Vault UI -->
-      <div class="flex-shrink-0 relative reveal d2 hidden lg:block">
+      <!-- Right: Floating feature badges -->
+      <div class="flex-shrink-0 hidden lg:block" style="position:relative;width:300px;height:360px;flex-shrink:0">
 
-        <div class="float-a" style="position:absolute;left:-72px;top:32px;z-index:10">
-          <div class="badge-float">
-            <div style="width:32px;height:32px;border-radius:10px;background:#E6F5F5;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-              <i data-lucide="share-2" style="width:15px;height:15px;color:#0B7E8A;stroke-width:2.5"></i>
-            </div>
-            <div>
-              <p style="font-size:11px;font-weight:700;color:#1a1a1a;line-height:1.3">Record Shared</p>
-              <p style="font-size:10px;color:#9AA3AE">Dr. Adewale can view</p>
-            </div>
+        <!-- Badge 1: Records secured – top left -->
+        <div class="badge-float float-a" style="position:absolute;top:0;left:0">
+          <div style="width:34px;height:34px;border-radius:11px;background:#E6F5F5;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i data-lucide="shield-check" style="width:16px;height:16px;color:#0B7E8A;stroke-width:2.5"></i>
+          </div>
+          <div>
+            <p style="font-size:12px;font-weight:700;color:#1a1a1a;line-height:1.3">Records Secured</p>
+            <p style="font-size:10px;color:#9AA3AE">PIN-locked · 8 files</p>
           </div>
         </div>
 
-        <div class="float-b" style="position:absolute;right:-44px;bottom:72px;z-index:10">
-          <div class="badge-float">
-            <div style="width:32px;height:32px;border-radius:10px;background:#fef3c7;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-              <i data-lucide="file-plus" style="width:15px;height:15px;color:#D97706;stroke-width:2.5"></i>
-            </div>
-            <div>
-              <p style="font-size:11px;font-weight:700;color:#1a1a1a;line-height:1.3">Lab Result Added</p>
-              <p style="font-size:10px;color:#9AA3AE">Blood panel &middot; Today</p>
-            </div>
+        <!-- Badge 2: Record shared – right side -->
+        <div class="badge-float float-b" style="position:absolute;top:28%;right:0">
+          <div style="width:34px;height:34px;border-radius:11px;background:#E6F5F5;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i data-lucide="share-2" style="width:16px;height:16px;color:#0B7E8A;stroke-width:2.5"></i>
+          </div>
+          <div>
+            <p style="font-size:12px;font-weight:700;color:#1a1a1a;line-height:1.3">Record Shared</p>
+            <p style="font-size:10px;color:#9AA3AE">Dr. Adewale can view</p>
           </div>
         </div>
 
-        <div class="vault-card" style="width:320px">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
-            <div style="width:40px;height:40px;border-radius:12px;flex-shrink:0;background:rgba(127,232,240,.15);border:1px solid rgba(127,232,240,.2);display:flex;align-items:center;justify-content:center">
-              <i data-lucide="shield" style="width:18px;height:18px;color:#7FE8F0;stroke-width:2"></i>
-            </div>
-            <div>
-              <p style="color:#fff;font-weight:700;font-size:15px;line-height:1.3">Medical Vault</p>
-              <p style="color:rgba(255,255,255,.4);font-size:12px">PIN protected &middot; 8 records</p>
-            </div>
+        <!-- Badge 3: Appointment – bottom left -->
+        <div class="badge-float float-a" style="position:absolute;bottom:18%;left:10%;animation-delay:1.2s">
+          <div style="width:34px;height:34px;border-radius:11px;background:#fef3c7;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i data-lucide="calendar-check" style="width:16px;height:16px;color:#D97706;stroke-width:2.5"></i>
           </div>
-
-          <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
-            <div class="vault-file">
-              <div style="width:36px;height:36px;border-radius:10px;background:rgba(127,232,240,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                <i data-lucide="building-2" style="width:15px;height:15px;color:#7FE8F0;stroke-width:2"></i>
-              </div>
-              <div style="flex:1;min-width:0">
-                <p style="color:#fff;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Lagos General Hospital</p>
-                <p style="color:rgba(255,255,255,.4);font-size:11px">3 records</p>
-              </div>
-              <i data-lucide="chevron-right" style="width:14px;height:14px;color:rgba(255,255,255,.3);stroke-width:2;flex-shrink:0"></i>
-            </div>
-            <div class="vault-file">
-              <div style="width:36px;height:36px;border-radius:10px;background:rgba(127,232,240,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                <i data-lucide="stethoscope" style="width:15px;height:15px;color:#7FE8F0;stroke-width:2"></i>
-              </div>
-              <div style="flex:1;min-width:0">
-                <p style="color:#fff;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Dr. Adewale Okonkwo</p>
-                <p style="color:rgba(255,255,255,.4);font-size:11px">5 records</p>
-              </div>
-              <i data-lucide="chevron-right" style="width:14px;height:14px;color:rgba(255,255,255,.3);stroke-width:2;flex-shrink:0"></i>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;border:1.5px dashed rgba(127,232,240,.25)">
-              <i data-lucide="folder-plus" style="width:15px;height:15px;color:rgba(127,232,240,.45);stroke-width:2"></i>
-              <p style="color:rgba(255,255,255,.32);font-size:13px">Add new folder</p>
-            </div>
+          <div>
+            <p style="font-size:12px;font-weight:700;color:#1a1a1a;line-height:1.3">Appointment Set</p>
+            <p style="font-size:10px;color:#9AA3AE">Dr. Ngozi · Tomorrow</p>
           </div>
-
-          <button style="width:100%;padding:10px;border-radius:12px;background:rgba(127,232,240,.12);border:1px solid rgba(127,232,240,.2);color:#7FE8F0;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:background .2s">
-            <i data-lucide="plus" style="width:14px;height:14px;stroke-width:2.5"></i>
-            Add record
-          </button>
         </div>
+
+        <!-- Badge 4: Lab result – bottom right -->
+        <div class="badge-float float-b" style="position:absolute;bottom:0;right:0;animation-delay:2.5s">
+          <div style="width:34px;height:34px;border-radius:11px;background:#fef3c7;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i data-lucide="file-plus" style="width:16px;height:16px;color:#D97706;stroke-width:2.5"></i>
+          </div>
+          <div>
+            <p style="font-size:12px;font-weight:700;color:#1a1a1a;line-height:1.3">Lab Result Added</p>
+            <p style="font-size:10px;color:#9AA3AE">Blood panel · Today</p>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -407,16 +461,49 @@
   <div class="max-w-7xl mx-auto px-6 lg:px-10">
     <div class="grid lg:grid-cols-2 gap-20 items-center">
 
-      <!-- Logo panel -->
-      <div class="reveal" style="display:flex;align-items:center;justify-content:center">
-        <div style="position:relative;width:340px;height:340px">
-          <!-- Slanted decorative box, back layer -->
-          <div style="position:absolute;inset:0;border-radius:28px;background:linear-gradient(135deg,#042f35,#0B7E8A);transform:rotate(-9deg);box-shadow:0 24px 60px rgba(11,126,138,.25)"></div>
-          <!-- Second layer, slightly less rotated -->
-          <div style="position:absolute;inset:12px;border-radius:22px;background:#E6F5F5;transform:rotate(-4deg)"></div>
-          <!-- Logo centered on top -->
-          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
-            <img src="logo.png" alt="Hbridge" style="width:46%;object-fit:contain;position:relative;z-index:1" />
+      <!-- Editorial panel -->
+      <div class="reveal">
+        <!-- Bold statement -->
+        <div style="margin-bottom:32px">
+          <p style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#0B7E8A;margin-bottom:12px">The problem we're solving</p>
+          <p style="font-size:52px;font-weight:900;line-height:1.05;letter-spacing:-.03em;color:#0f1923">No more<br/>paper<br/><span style="color:#0B7E8A">folders.</span></p>
+        </div>
+        <!-- Before / After cards -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">
+          <div style="padding:20px;border-radius:16px;background:#FFF5F5;border:1.5px solid #FDD">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+              <div style="width:28px;height:28px;border-radius:8px;background:#FEE2E2;display:flex;align-items:center;justify-content:center">
+                <i data-lucide="folder-open" style="width:13px;height:13px;color:#DC2626;stroke-width:2"></i>
+              </div>
+              <p style="font-size:11px;font-weight:800;color:#DC2626;text-transform:uppercase;letter-spacing:.08em">Before</p>
+            </div>
+            <p style="font-size:13px;color:#555;line-height:1.6">Paper folders. Lost labs. Repeating your history at every clinic. Records no one can find.</p>
+          </div>
+          <div style="padding:20px;border-radius:16px;background:#E6F5F5;border:1.5px solid #C8E8EB">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+              <div style="width:28px;height:28px;border-radius:8px;background:#CCE9EC;display:flex;align-items:center;justify-content:center">
+                <img src="logo.png" alt="" style="width:16px;height:16px;object-fit:contain" />
+              </div>
+              <p style="font-size:11px;font-weight:800;color:#0B7E8A;text-transform:uppercase;letter-spacing:.08em">With Hbridge</p>
+            </div>
+            <p style="font-size:13px;color:#555;line-height:1.6">One vault. Every record. Share in a tap — any doctor, anywhere, instantly.</p>
+          </div>
+        </div>
+        <!-- Stat row -->
+        <div style="display:flex;gap:24px;padding-top:24px;border-top:1px solid #E8EDF2">
+          <div>
+            <p style="font-size:28px;font-weight:900;color:#0f1923;line-height:1">200M+</p>
+            <p style="font-size:12px;color:#9AA3AE;margin-top:2px">Nigerians we serve</p>
+          </div>
+          <div style="width:1px;background:#E8EDF2"></div>
+          <div>
+            <p style="font-size:28px;font-weight:900;color:#0f1923;line-height:1">1 tap</p>
+            <p style="font-size:12px;color:#9AA3AE;margin-top:2px">to share any record</p>
+          </div>
+          <div style="width:1px;background:#E8EDF2"></div>
+          <div>
+            <p style="font-size:28px;font-weight:900;color:#0f1923;line-height:1">Free</p>
+            <p style="font-size:12px;color:#9AA3AE;margin-top:2px">beta access</p>
           </div>
         </div>
       </div>
@@ -705,7 +792,7 @@
           <div>
             <p style="color:#fff;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px">Contact</p>
             <ul style="display:flex;flex-direction:column;gap:10px;list-style:none;padding:0;margin:0">
-              <li><a href="mailto:hbrigdenigeria@gmail.com" class="footer-link" style="word-break:break-all">hbrigdenigeria@gmail.com</a></li>
+              <li><a href="mailto:hbridgenigeria@gmail.com" class="footer-link" style="word-break:break-all">hbridgenigeria@gmail.com</a></li>
               <li><a href="#early-access" class="footer-link">Support</a></li>
             </ul>
           </div>
@@ -723,8 +810,11 @@
      SCRIPTS
 ═══════════════════════════════ -->
 <script>
+  // Mark body ready so reveal animations activate (text shows even if this errors)
+  document.body.classList.add('js-ready');
+
   // Init Lucide icons
-  lucide.createIcons();
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 
   // Mobile menu
   document.getElementById('menu-btn').addEventListener('click', () => {
@@ -764,8 +854,8 @@
   secs.forEach(id => { const el = document.getElementById(id); if (el) so.observe(el); });
 
   // Waitlist form
-  const SUPABASE_URL  = 'YOUR_SUPABASE_URL';
-  const SUPABASE_ANON = 'YOUR_SUPABASE_ANON_KEY';
+  const SUPABASE_URL  = 'https://vapoyosssxnprxznnfgb.supabase.co';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhcG95b3Nzc3hucHJ4em5uZmdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzNTM3MDgsImV4cCI6MjA4MTkyOTcwOH0.kM-qHB-K4xU0pFsh2_Eb2MlZf9gG9diD-0TGNxIaceM';
 
   document.getElementById('wl-form').addEventListener('submit', async e => {
     e.preventDefault();

@@ -1,6 +1,7 @@
 {
   "cli": {
-    "appVersionSource": "local"
+    "appVersionSource": "local",
+    "version": ">= 20.0.0"
   },
   "build": {
     "development": {
@@ -30,10 +31,13 @@
       }
     },
     "production": {
+      "developmentClient": false,
+      "distribution": "internal",
       "android": {
         "buildType": "apk",
         "env": {
-          "EXPO_PUBLIC_ENV": "production"
+          "EXPO_PUBLIC_ENV": "production",
+          "NODE_ENV": "production"
         }
       }
     }
