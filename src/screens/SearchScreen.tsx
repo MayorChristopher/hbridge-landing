@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Component } from 'react';
 import {
   StyleSheet, Text, View, TextInput, TouchableOpacity,
   ScrollView, ActivityIndicator, Image, RefreshControl,
@@ -7,6 +7,23 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
+
+class MapErrorBoundary extends Component<{children: React.ReactNode}, {hasError: boolean}> {
+  constructor(props: any) { super(props); this.state = { hasError: false }; }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F5F7FA' }}>
+          <Ionicons name="map-outline" size={48} color="#9AA3AE" />
+          <Text style={{ color: '#555F6D', marginTop: 12, fontSize: 14 }}>Map unavailable</Text>
+          <Text style={{ color: '#9AA3AE', marginTop: 4, fontSize: 12 }}>Google Maps API key required</Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
 import { supabase } from '../lib/supabase';
 import { locationService } from '../services/locationService';
 
@@ -154,14 +171,15 @@ export default function SearchScreen({ route, navigation }: any) {
 
   return (
     <View style={s.root}>
-      <MapView style={StyleSheet.absoluteFillObject} provider={PROVIDER_DEFAULT} region={mapRegion} showsUserLocation showsMyLocationButton={false} scrollEnabled zoomEnabled>
-        {/* Only show hospitals with proper coordinates - remove non-functional markers */}
-        {hospitalMarkers.filter(h => h.latitude && h.longitude && !h.name?.toLowerCase().includes('pharm')).map(h => (
-          <Marker key={h.id} coordinate={{latitude:h.latitude,longitude:h.longitude}} onPress={() => navigation.navigate('HospitalDetail',{hospitalId:h.id})}>
-            <View style={[s.mapPin,{backgroundColor:C.teal}]}><Ionicons name="business" size={14} color="#fff" /></View>
-          </Marker>
-        ))}
-      </MapView>
+      <MapErrorBoundary>
+        <MapView style={StyleSheet.absoluteFillObject} provider={PROVIDER_DEFAULT} region={mapRegion} showsUserLocation showsMyLocationButton={false} scrollEnabled zoomEnabled>
+          {hospitalMarkers.filter(h => h.latitude && h.longitude && !h.name?.toLowerCase().includes('pharm')).map(h => (
+            <Marker key={h.id} coordinate={{latitude:h.latitude,longitude:h.longitude}} onPress={() => navigation.navigate('HospitalDetail',{hospitalId:h.id})}>
+              <View style={[s.mapPin,{backgroundColor:C.teal}]}><Ionicons name="business" size={14} color="#fff" /></View>
+            </Marker>
+          ))}
+        </MapView>
+      </MapErrorBoundary>
 
       {userLocation && (
         <TouchableOpacity style={s.recenterBtn} onPress={() => setMapRegion({latitude:userLocation.latitude,longitude:userLocation.longitude,latitudeDelta:0.05,longitudeDelta:0.05})}>
