@@ -3,543 +3,900 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hbridge — Electronic Medical Records Platform</title>
-  <meta name="description" content="Hbridge is Nigeria's Electronic Medical Records platform. Securely store, manage, and share your complete health history with any doctor — from your phone." />
-  <meta property="og:title" content="Hbridge — Electronic Medical Records Platform" />
-  <meta property="og:description" content="Your health history, secured and accessible everywhere. Hbridge brings Nigeria's health data into the digital age." />
+  <title>Hbridge — Nigeria's Healthcare Platform</title>
+  <meta name="description" content="Hbridge connects patients, doctors, and hospitals across Nigeria. Secure medical records, instant doctor consultations, appointment booking, AI health guidance, and emergency response — all in one app." />
+  <meta property="og:title" content="Hbridge — Nigeria's Healthcare Platform" />
+  <meta property="og:description" content="Your health history secured. Book doctors. Share records. Get AI health guidance. Nigeria's complete healthcare platform." />
   <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://hbridge.ng" />
   <link rel="icon" href="logo.png" type="image/png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            teal: { DEFAULT: '#0B7E8A', dark: '#064E55', light: '#E6F5F5', mid: '#0A6975', deeper: '#042f35' },
-          },
-          fontFamily: { sans: ['Inter', 'sans-serif'] },
-        }
-      }
-    }
-  </script>
 
   <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
-    body { font-family: 'Inter', sans-serif; background: #ffffff; color: #0f1923; margin: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* ─── Scroll reveal ─── */
-    .reveal { opacity: 1; transform: translateY(0); }
-    .js-ready .reveal { opacity: 0; transform: translateY(32px); transition: opacity 0.7s cubic-bezier(.16,1,.3,1), transform 0.7s cubic-bezier(.16,1,.3,1); }
-    .js-ready .reveal.in { opacity: 1; transform: translateY(0); }
-    .reveal.d1 { transition-delay: .08s; }
-    .reveal.d2 { transition-delay: .18s; }
-    .reveal.d3 { transition-delay: .28s; }
-    .reveal.d4 { transition-delay: .38s; }
-
-    /* ─── Hero background ─── */
-    .hero-bg {
-      background:
-        radial-gradient(ellipse 60% 80% at 15% 60%, rgba(4,47,53,.5) 0%, transparent 70%),
-        linear-gradient(100deg,
-          rgba(2,18,22,.97) 0%,
-          rgba(4,47,53,.94) 30%,
-          rgba(4,47,53,.72) 55%,
-          rgba(4,47,53,.28) 78%,
-          rgba(4,47,53,.08) 100%),
-        url('https://images.pexels.com/photos/5452224/pexels-photo-5452224.jpeg?auto=compress&cs=tinysrgb&w=1920&q=80') 30% 10% / cover no-repeat;
-      position: relative; overflow: hidden;
+    :root {
+      --paper:   #F5F3EE;
+      --surface: #EDE9E0;
+      --card:    #FFFFFF;
+      --ink:     #0C2E30;
+      --muted:   #6B7E7F;
+      --border:  #EAE5DA;
+      --teal:    #0B7E8A;
+      --teal-lt: rgba(11,126,138,0.10);
+      --teal-dk: #083236;
+      --gold:    #D4A843;
+      --gold-bg: rgba(212,168,67,0.12);
     }
 
-    /* ─── Ambient orbs ─── */
-    @keyframes heroOrb1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(30px,-22px) scale(1.06)} }
-    @keyframes heroOrb2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-22px,28px) scale(0.94)} }
-    @keyframes heroOrb3 { 0%,100%{transform:translate(0,0)} 60%{transform:translate(18px,-12px)} }
-    .hero-orb { position:absolute; border-radius:50%; pointer-events:none; }
-    .hero-orb-1 { width:700px; height:700px; background:radial-gradient(circle, rgba(11,126,138,.28) 0%, transparent 60%); top:-220px; right:-160px; filter:blur(100px); animation:heroOrb1 22s ease-in-out infinite; }
-    .hero-orb-2 { width:480px; height:480px; background:radial-gradient(circle, rgba(127,232,240,.09) 0%, transparent 65%); bottom:0; left:-100px; filter:blur(90px); animation:heroOrb2 28s ease-in-out infinite; }
-    .hero-orb-3 { width:360px; height:360px; background:radial-gradient(circle, rgba(4,47,53,.5) 0%, transparent 65%); top:35%; left:32%; filter:blur(110px); animation:heroOrb3 16s ease-in-out infinite; }
+    html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; font-size: 16px; }
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      overflow-x: hidden;
+    }
+    h1, h2, h3, h4 { font-family: 'Montserrat', sans-serif; }
 
-    /* ─── Pulse rings (heartbeat / signal effect) ─── */
-    @keyframes pulseFade {
-      0%   { transform: translate(-50%,-50%) scale(0.55); opacity: 0.55; }
-      100% { transform: translate(-50%,-50%) scale(2.4);  opacity: 0; }
-    }
-    .hero-pulse {
-      position: absolute; top: 50%; right: 16%;
-      width: 1px; height: 1px;
-      pointer-events: none; display: none;
-    }
-    @media (min-width: 1024px) { .hero-pulse { display: block; } }
-    .pulse-ring {
-      position: absolute; top: 0; left: 0;
-      width: 340px; height: 340px;
-      border-radius: 50%;
-      border: 1px solid rgba(127,232,240,0.22);
-      animation: pulseFade 5.5s ease-out infinite;
-    }
-    .pulse-ring:nth-child(2) { animation-delay: 1.83s; }
-    .pulse-ring:nth-child(3) { animation-delay: 3.66s; }
+    /* ── Reveal ── */
+    .reveal { opacity: 0; transform: translateY(28px); transition: opacity .65s cubic-bezier(.16,1,.3,1), transform .65s cubic-bezier(.16,1,.3,1); }
+    .reveal.in { opacity: 1; transform: translateY(0); }
+    .d1 { transition-delay: .08s; }
+    .d2 { transition-delay: .16s; }
+    .d3 { transition-delay: .24s; }
+    .d4 { transition-delay: .32s; }
 
-    /* ─── Subtle dot texture ─── */
-    .hero-dots {
-      position: absolute; inset: 0; pointer-events: none;
-      background-image: radial-gradient(circle, rgba(255,255,255,.06) 1px, transparent 1px);
-      background-size: 32px 32px;
-      mask-image: radial-gradient(ellipse 70% 80% at 60% 50%, black 0%, transparent 75%);
-      -webkit-mask-image: radial-gradient(ellipse 70% 80% at 60% 50%, black 0%, transparent 75%);
-    }
+    /* ── Layout ── */
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    section { position: relative; }
 
-    /* ─── Bottom fade into white ─── */
-    .hero-bottom-fade {
-      position: absolute; bottom: 0; left: 0; right: 0; height: 120px;
-      background: linear-gradient(to bottom, transparent, rgba(255,255,255,0));
-      pointer-events: none;
-    }
-
-    /* ─── Navbar ─── */
-    #nav { transition: background .35s ease, box-shadow .35s ease; }
-    #nav.scrolled {
-      background: rgba(255,255,255,.96) !important;
-      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-      box-shadow: 0 1px 0 rgba(0,0,0,.06), 0 4px 24px rgba(0,0,0,.05);
-    }
-    #nav.scrolled .nav-link  { color: #374151 !important; }
-    #nav.scrolled #logo-text { color: #0B7E8A !important; }
-    #nav.scrolled .nav-link:hover { color: #0B7E8A !important; }
-    #nav.scrolled .nav-link.active { color: #0B7E8A !important; }
-
-    .nav-link {
-      position: relative; color: rgba(255,255,255,.75);
-      font-size: 14px; font-weight: 500;
-      text-decoration: none; padding-bottom: 3px;
-      transition: color .2s ease;
-    }
-    .nav-link:hover { color: #fff; }
-    .nav-link::after {
-      content: ''; position: absolute; left: 0; right: 0; bottom: -2px;
-      height: 1.5px; background: #0B7E8A;
-      transform: scaleX(0); transform-origin: left;
-      transition: transform .25s cubic-bezier(.16,1,.3,1);
-      border-radius: 2px;
-    }
-    .nav-link.active::after { transform: scaleX(1); }
-    .nav-link.active { color: #fff; }
-
-    /* ─── Buttons ─── */
-    .btn-primary {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 12px 26px; border-radius: 100px;
-      background: #ffffff; color: #0B7E8A;
-      font-size: 14px; font-weight: 700; text-decoration: none;
-      transition: transform .2s cubic-bezier(.16,1,.3,1), box-shadow .2s ease;
-      box-shadow: 0 4px 20px rgba(0,0,0,.18); white-space: nowrap;
-    }
-    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 32px rgba(0,0,0,.22); }
-
-    .btn-outline {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 12px 26px; border-radius: 100px;
-      border: 1.5px solid rgba(255,255,255,.28); color: #fff;
-      font-size: 14px; font-weight: 600; text-decoration: none;
-      transition: background .2s, border-color .2s;
-    }
-    .btn-outline:hover { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.5); }
-
-    .btn-teal {
-      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-      width: 100%; padding: 14px; border-radius: 14px;
-      background: #0B7E8A; color: #fff;
-      font-size: 15px; font-weight: 700;
-      border: none; cursor: pointer; font-family: 'Inter', sans-serif;
-      transition: background .2s, transform .2s;
-    }
-    .btn-teal:hover { background: #0A6975; transform: translateY(-1px); }
-    .btn-teal:disabled { opacity: .65; cursor: not-allowed; transform: none; }
-
-    /* ─── Vault card (hero) ─── */
-    .vault-card {
-      background: rgba(255,255,255,.07);
-      border: 1px solid rgba(255,255,255,.12);
-      backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-      border-radius: 24px; padding: 28px;
-    }
-    .vault-file {
-      background: rgba(255,255,255,.08);
-      border: 1px solid rgba(255,255,255,.1);
-      border-radius: 12px; padding: 12px 14px;
-      display: flex; align-items: center; gap: 12px;
-      transition: background .2s;
-    }
-    .vault-file:hover { background: rgba(255,255,255,.13); }
-
-    /* ─── Floating badges ─── */
-    @keyframes floatA { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-    @keyframes floatB { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
-    .float-a { animation: floatA 4s ease-in-out infinite; }
-    .float-b { animation: floatB 4s ease-in-out infinite 2s; }
-    .badge-float {
-      background: rgba(255,255,255,.88);
-      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-      border: 1px solid rgba(255,255,255,.6);
-      border-radius: 16px; padding: 11px 16px;
-      box-shadow: 0 8px 32px rgba(0,0,0,.18);
-      display: flex; align-items: center; gap: 12px; white-space: nowrap;
-    }
-
-    /* ─── Feature cards ─── */
-    .feat-card {
-      background: #fff; border: 1px solid #e8edf2;
-      border-radius: 20px; padding: 28px;
-      transition: transform .25s cubic-bezier(.16,1,.3,1), box-shadow .25s ease;
-    }
-    .feat-card:hover { transform: translateY(-5px); box-shadow: 0 20px 60px rgba(11,126,138,.1); }
-
-    .feat-hero-card {
-      background: linear-gradient(135deg, #042f35 0%, #0B7E8A 100%);
-      border-radius: 28px; padding: 48px;
-      position: relative; overflow: hidden; color: #fff;
-    }
-    .feat-hero-card::before {
-      content: ''; position: absolute; top: -60px; right: -60px;
-      width: 320px; height: 320px; border-radius: 50%;
-      background: rgba(255,255,255,.04); pointer-events: none;
-    }
-
-    /* ─── Section label ─── */
-    .section-label {
+    /* ── Section label ── */
+    .label {
       display: inline-flex; align-items: center; gap: 6px;
-      padding: 5px 12px; border-radius: 100px;
-      background: #E6F5F5; color: #0B7E8A;
+      padding: 5px 13px; border-radius: 100px;
+      background: var(--teal-lt); color: var(--teal);
       font-size: 11px; font-weight: 700;
       letter-spacing: .08em; text-transform: uppercase;
     }
-
-    /* ─── Glow pulse ─── */
-    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.5)} }
-    .pulse { animation: pulse 2s ease-in-out infinite; }
-
-    /* ─── Form inputs ─── */
-    .form-input {
-      width: 100%; padding: 14px 16px;
-      border: 1.5px solid #e2e8ef; border-radius: 12px;
-      font-size: 14px; color: #0f1923; background: #fff;
-      transition: border-color .2s, box-shadow .2s;
-      font-family: 'Inter', sans-serif;
+    .label-gold {
+      background: var(--gold-bg); color: var(--gold);
     }
-    .form-input:focus { outline: none; border-color: #0B7E8A; box-shadow: 0 0 0 3px rgba(11,126,138,.12); }
-    .form-input::placeholder { color: #9AA3AE; }
+    .label-white {
+      background: rgba(255,255,255,.12); color: rgba(255,255,255,.8);
+      border: 1px solid rgba(255,255,255,.15);
+    }
 
-    /* ─── Wave divider ─── */
-    .wave { display: block; width: 100%; line-height: 0; }
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 13px 26px; border-radius: 100px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 14px; font-weight: 700;
+      text-decoration: none; border: none; cursor: pointer;
+      transition: transform .2s cubic-bezier(.16,1,.3,1), box-shadow .2s ease, background .2s;
+      white-space: nowrap;
+    }
+    .btn-white { background: #fff; color: var(--teal); box-shadow: 0 4px 20px rgba(0,0,0,.15); }
+    .btn-white:hover { transform: translateY(-1px); box-shadow: 0 8px 32px rgba(0,0,0,.2); }
+    .btn-teal { background: var(--teal); color: #fff; }
+    .btn-teal:hover { background: #0A6975; transform: translateY(-1px); }
+    .btn-teal:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+    .btn-outline-white {
+      background: transparent; color: #fff;
+      border: 1.5px solid rgba(255,255,255,.3);
+    }
+    .btn-outline-white:hover { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.6); }
+    .btn-outline-teal {
+      background: transparent; color: var(--teal);
+      border: 1.5px solid var(--teal);
+    }
+    .btn-outline-teal:hover { background: var(--teal-lt); }
+    .btn-lg { padding: 15px 32px; font-size: 15px; }
+    .btn-full { width: 100%; justify-content: center; border-radius: 14px; }
 
-    /* ─── Footer links ─── */
-    .footer-link { color: rgba(255,255,255,.38); font-size: 13px; text-decoration: none; transition: color .2s; }
-    .footer-link:hover { color: rgba(255,255,255,.8); }
+    /* ── Navbar ── */
+    #nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: transparent;
+      transition: background .3s ease, box-shadow .3s ease;
+    }
+    #nav.scrolled {
+      background: rgba(245,243,238,.96);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 1px 0 var(--border), 0 4px 24px rgba(0,0,0,.06);
+    }
+    .nav-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px; gap: 16px;
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
+    .nav-logo-img {
+      width: 36px; height: 36px; border-radius: 50%;
+      overflow: hidden; flex-shrink: 0;
+    }
+    .nav-logo-img img { width: 36px; height: 36px; object-fit: cover; border-radius: 50%; display: block; }
+    .nav-logo-text {
+      font-size: 18px; font-weight: 700; color: #fff;
+      font-family: 'Montserrat', sans-serif;
+      transition: color .3s; letter-spacing: -.02em;
+    }
+    #nav.scrolled .nav-logo-text { color: var(--ink); }
+    #nav.scrolled .nav-link { color: var(--muted); }
+    #nav.scrolled .nav-link:hover { color: var(--teal); }
+    #nav.scrolled .nav-cta-ghost { color: var(--ink); border-color: var(--border); }
+    #nav.scrolled .nav-cta-ghost:hover { background: var(--surface); }
 
-    [data-lucide] { display: inline-block; vertical-align: middle; flex-shrink: 0; }
+    .nav-links { display: flex; align-items: center; gap: 4px; }
+    .nav-link {
+      color: rgba(255,255,255,.7); font-size: 14px; font-weight: 500;
+      text-decoration: none; padding: 6px 12px; border-radius: 8px;
+      transition: color .2s, background .2s;
+    }
+    .nav-link:hover { color: #fff; background: rgba(255,255,255,.08); }
+    .nav-cta {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .nav-cta-ghost {
+      font-size: 14px; font-weight: 600; color: rgba(255,255,255,.75);
+      text-decoration: none; padding: 8px 16px; border-radius: 100px;
+      border: 1.5px solid rgba(255,255,255,.2);
+      transition: color .2s, background .2s, border-color .2s;
+    }
+    .nav-cta-ghost:hover { color: #fff; border-color: rgba(255,255,255,.5); }
+    .hamburger {
+      display: none; background: none; border: none; cursor: pointer;
+      padding: 6px; color: rgba(255,255,255,.8);
+    }
+    #nav.scrolled .hamburger { color: var(--ink); }
+
+    /* ── Mobile menu ── */
+    #mobile-menu {
+      display: none; flex-direction: column; gap: 6px;
+      padding: 16px 24px 20px;
+      background: rgba(8,50,54,.97);
+      border-top: 1px solid rgba(255,255,255,.08);
+    }
+    #mobile-menu.open { display: flex; }
+    #nav.scrolled #mobile-menu { background: rgba(245,243,238,.97); border-color: var(--border); }
+    .mob-link {
+      color: rgba(255,255,255,.75); font-size: 15px; font-weight: 500;
+      text-decoration: none; padding: 10px 4px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      transition: color .2s;
+    }
+    #nav.scrolled .mob-link { color: var(--muted); border-color: var(--border); }
+    .mob-link:hover { color: #fff; }
+    #nav.scrolled .mob-link:hover { color: var(--teal); }
+
+    /* ── Hero ── */
+    .hero {
+      background: var(--teal-dk);
+      min-height: 100vh; padding-top: 64px;
+      display: flex; align-items: center;
+      position: relative; overflow: hidden;
+    }
+    .hero-bg-img {
+      position: absolute; inset: 0;
+      background: url('../assets/hb-slide-2.jpg') center center / cover no-repeat;
+      opacity: 0.18;
+      pointer-events: none;
+      filter: brightness(0.5) saturate(0.7);
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0; pointer-events: none; z-index: 1;
+      background:
+        radial-gradient(ellipse 80% 60% at 70% 40%, rgba(11,126,138,.45) 0%, transparent 65%),
+        radial-gradient(ellipse 55% 75% at 5% 85%, rgba(6,78,85,.55) 0%, transparent 65%);
+    }
+    .hero-grid { display: none; }
+    .hero-inner {
+      position: relative; z-index: 2; padding: 80px 0;
+      display: flex; align-items: center; gap: 80px;
+    }
+    .hero-left { flex: 1; max-width: 560px; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 5px 14px; border-radius: 100px;
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12);
+      color: rgba(255,255,255,.65); font-size: 11px; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase; margin-bottom: 28px;
+    }
+    .hero-badge-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: #7FE8F0;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.6)} }
+    .hero-h1 {
+      font-size: 62px; font-weight: 700; line-height: 1.03;
+      letter-spacing: -.03em; color: #fff; margin-bottom: 24px;
+    }
+    .hero-h1 span { color: #7FE8F0; }
+    .hero-sub {
+      font-size: 17px; line-height: 1.7; color: rgba(255,255,255,.62);
+      margin-bottom: 12px;
+    }
+    .hero-sub strong { color: rgba(255,255,255,.9); font-weight: 600; }
+    .hero-sub2 {
+      font-size: 14px; line-height: 1.7; color: rgba(255,255,255,.35);
+      margin-bottom: 36px;
+    }
+    .hero-btns { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+    .hero-hint { font-size: 12px; color: rgba(255,255,255,.25); }
+
+    /* Hero right — mockup card */
+    .hero-right { flex-shrink: 0; position: relative; }
+    .hero-card {
+      width: 300px; padding: 24px;
+      background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
+      backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+      border-radius: 24px;
+    }
+    .hero-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+    .hero-card-icon {
+      width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+      background: rgba(127,232,240,.15); border: 1px solid rgba(127,232,240,.2);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .vault-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 12px; border-radius: 11px;
+      background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.08);
+      margin-bottom: 8px; transition: background .2s;
+    }
+    .vault-row:hover { background: rgba(255,255,255,.11); }
+    .vault-row-icon {
+      width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+      background: rgba(127,232,240,.12);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .vault-row-dashed {
+      border: 1.5px dashed rgba(127,232,240,.25);
+      background: transparent !important;
+    }
+    .badge-float {
+      position: absolute;
+      background: #fff; border-radius: 14px; padding: 10px 14px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.18);
+      display: flex; align-items: center; gap: 9px;
+      white-space: nowrap; z-index: 10;
+    }
+    .badge-float-icon {
+      width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    @keyframes floatA { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-9px)} }
+    @keyframes floatB { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
+    .float-a { animation: floatA 4s ease-in-out infinite; }
+    .float-b { animation: floatB 4s ease-in-out infinite 1.8s; }
+
+    /* Hero wave */
+    .hero-wave { position: absolute; bottom: 0; left: 0; right: 0; line-height: 0; z-index: 2; }
+    .hero-wave svg { display: block; width: 100%; }
+
+    /* ── Stats strip ── */
+    .stats { background: var(--card); padding: 56px 0; border-bottom: 1px solid var(--border); }
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .stat-item {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 24px 16px;
+    }
+    .stat-icon {
+      width: 44px; height: 44px; border-radius: 13px;
+      background: var(--teal-lt);
+      display: flex; align-items: center; justify-content: center; margin-bottom: 6px;
+    }
+    .stat-num { font-size: 30px; font-weight: 700; color: var(--ink); line-height: 1; }
+    .stat-label { font-size: 12px; color: var(--muted); font-weight: 500; text-align: center; }
+
+    /* ── Platform (What we do) ── */
+    .platform { background: var(--paper); padding: 100px 0; }
+    .section-heading { text-align: center; max-width: 580px; margin: 0 auto 64px; }
+    .section-heading h2 {
+      font-size: 42px; font-weight: 700; line-height: 1.08;
+      letter-spacing: -.025em; color: var(--ink); margin: 16px 0;
+    }
+    .section-heading h2 span { color: var(--teal); }
+    .section-heading p { font-size: 16px; color: var(--muted); line-height: 1.7; }
+
+    /* EMR hero card */
+    .emr-card {
+      background: linear-gradient(135deg, var(--teal-dk) 0%, #0B7E8A 100%);
+      border-radius: 28px; padding: 48px; color: #fff;
+      position: relative; overflow: hidden; margin-bottom: 20px;
+    }
+    .emr-card::before {
+      content: ''; position: absolute; top: -80px; right: -80px;
+      width: 360px; height: 360px; border-radius: 50%;
+      background: rgba(255,255,255,.04); pointer-events: none;
+    }
+    .emr-card::after {
+      content: ''; position: absolute; bottom: -60px; left: 30%;
+      width: 240px; height: 240px; border-radius: 50%;
+      background: rgba(127,232,240,.06); pointer-events: none;
+    }
+    .emr-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; position: relative; z-index: 1; }
+    .emr-list { list-style: none; display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+    .emr-list li {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 14px; color: rgba(255,255,255,.8);
+    }
+    .emr-panel {
+      background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1);
+      border-radius: 18px; padding: 22px;
+    }
+
+    /* Feature grid */
+    .feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .feat-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 28px;
+      transition: transform .25s cubic-bezier(.16,1,.3,1), box-shadow .25s ease;
+    }
+    .feat-card:hover { transform: translateY(-4px); box-shadow: 0 16px 48px rgba(11,126,138,.1); }
+    .feat-icon {
+      width: 48px; height: 48px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center; margin-bottom: 18px;
+    }
+
+    /* ── For Doctors ── */
+    .for-doctors { background: var(--teal-dk); padding: 100px 0; color: #fff; }
+    .for-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+    .benefit-list { display: flex; flex-direction: column; gap: 20px; margin-top: 24px; }
+    .benefit-item { display: flex; align-items: flex-start; gap: 14px; }
+    .benefit-icon {
+      width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
+      background: rgba(127,232,240,.12); border: 1px solid rgba(127,232,240,.18);
+      display: flex; align-items: center; justify-content: center; margin-top: 2px;
+    }
+
+    /* ── For Hospitals ── */
+    .for-hospitals { background: var(--paper); padding: 100px 0; }
+
+    /* ── How it works ── */
+    .how { background: var(--card); padding: 100px 0; }
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 48px; position: relative; }
+    .steps::before {
+      content: ''; position: absolute; top: 28px; left: calc(33.33% + 8px); right: calc(33.33% + 8px);
+      height: 1.5px; background: var(--border);
+    }
+    .step-num {
+      width: 56px; height: 56px; border-radius: 18px; margin-bottom: 20px;
+      background: var(--teal-lt);
+      border: 1.5px solid rgba(11,126,138,0.18);
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+    .step-num i { color: var(--teal) !important; }
+    .step-badge {
+      position: absolute; top: -7px; right: -7px;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--teal); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 10px; font-weight: 700;
+    }
+
+    /* ── Waitlist ── */
+    .waitlist-section { background: var(--paper); padding: 100px 0; }
+    .waitlist-metrics {
+      display: flex; align-items: center; justify-content: center; gap: 32px;
+      flex-wrap: wrap; margin-bottom: 48px;
+    }
+    .metric-pill {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 20px; border-radius: 100px;
+      background: var(--card); border: 1px solid var(--border);
+    }
+    .metric-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+    .waitlist-card {
+      max-width: 480px; margin: 0 auto;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 28px; padding: 40px;
+      box-shadow: 0 8px 48px rgba(8,50,54,.07);
+    }
+    .role-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 24px; }
+    .role-tab {
+      padding: 11px 8px; border-radius: 12px; text-align: center;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      border: 1.5px solid var(--border); background: var(--paper);
+      color: var(--muted); transition: all .2s; font-family: 'Space Grotesk', sans-serif;
+    }
+    .role-tab:hover { border-color: var(--teal); color: var(--teal); }
+    .role-tab.active { border-color: var(--teal); background: var(--teal); color: #fff; }
+    .form-group { display: flex; flex-direction: column; gap: 10px; }
+    .form-input {
+      width: 100%; padding: 13px 16px;
+      border: 1.5px solid var(--border); border-radius: 12px;
+      font-size: 14px; color: var(--ink); background: var(--paper);
+      font-family: 'Space Grotesk', sans-serif;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .form-input:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(11,126,138,.1); background: #fff; }
+    .form-input::placeholder { color: var(--muted); }
+    .form-select {
+      width: 100%; padding: 13px 16px;
+      border: 1.5px solid var(--border); border-radius: 12px;
+      font-size: 14px; color: var(--ink); background: var(--paper);
+      font-family: 'Space Grotesk', sans-serif; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7E7F' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 14px center;
+      transition: border-color .2s, box-shadow .2s; cursor: pointer;
+    }
+    .form-select:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(11,126,138,.1); background-color: #fff; }
+    .field-hidden { display: none !important; }
+    .wl-msg { font-size: 13px; text-align: center; margin-top: 8px; min-height: 18px; }
+
+    /* ── Footer ── */
+    footer { background: var(--teal-dk); padding: 64px 0 36px; }
+    .footer-inner { display: flex; gap: 56px; flex-wrap: wrap; margin-bottom: 48px; }
+    .footer-brand { flex: 0 0 240px; max-width: 260px; }
+    .footer-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .footer-logo-img {
+      width: 36px; height: 36px; border-radius: 50%;
+      overflow: hidden; flex-shrink: 0;
+    }
+    .footer-logo-img img { width: 36px; height: 36px; object-fit: cover; border-radius: 50%; display: block; }
+    .footer-links-grid { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; }
+    .footer-col-title {
+      font-size: 11px; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: rgba(255,255,255,.9); margin-bottom: 16px;
+    }
+    .footer-link {
+      display: block; font-size: 13px; color: rgba(255,255,255,.38);
+      text-decoration: none; margin-bottom: 10px;
+      transition: color .2s;
+    }
+    .footer-link:hover { color: rgba(255,255,255,.75); }
+    .footer-bottom {
+      border-top: 1px solid rgba(255,255,255,.07); padding-top: 28px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 10px;
+    }
+
+    /* ── Dividers ── */
+    .wave-div { display: block; width: 100%; line-height: 0; }
+
+    /* ══════════════════════════
+       RESPONSIVE
+    ══════════════════════════ */
+
+    /* Tablet */
+    @media (max-width: 1023px) {
+      .hero-right { display: none; }
+      .hero-h1 { font-size: 48px; }
+      .emr-inner { grid-template-columns: 1fr; gap: 28px; }
+      .for-grid { grid-template-columns: 1fr; gap: 40px; }
+      .feat-grid { grid-template-columns: repeat(2, 1fr); }
+      .footer-links-grid { grid-template-columns: repeat(2, 1fr); gap: 32px; }
+    }
+
+    /* Mobile */
+    @media (max-width: 767px) {
+      .container { padding: 0 18px; }
+      .hero-inner { padding: 60px 0 80px; flex-direction: column; gap: 0; }
+      .hero-h1 { font-size: 38px; }
+      .hero-sub { font-size: 15px; }
+      .hero-btns { gap: 10px; }
+      .hero-btns .btn { padding: 12px 20px; font-size: 14px; }
+
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+
+      .platform { padding: 72px 0; }
+      .section-heading h2 { font-size: 30px; }
+      .section-heading { margin-bottom: 40px; }
+      .emr-card { padding: 28px; }
+      .feat-grid { grid-template-columns: 1fr; gap: 12px; }
+
+      .for-doctors, .for-hospitals { padding: 72px 0; }
+      .for-grid { gap: 32px; }
+
+      .how { padding: 72px 0; }
+      .steps { grid-template-columns: 1fr; gap: 36px; }
+      .steps::before { display: none; }
+
+      .waitlist-section { padding: 72px 0; }
+      .waitlist-card { padding: 28px 20px; }
+      .waitlist-metrics { gap: 12px; }
+
+      footer { padding: 48px 0 28px; }
+      .footer-inner { flex-direction: column; gap: 36px; }
+      .footer-brand { max-width: 100%; flex: none; }
+      .footer-links-grid { grid-template-columns: repeat(2, 1fr); gap: 28px; }
+      .footer-bottom { flex-direction: column; align-items: flex-start; gap: 6px; }
+
+      .nav-links { display: none; }
+      .nav-cta .nav-cta-ghost { display: none; }
+      .hamburger { display: block; }
+      .btn-lg { padding: 13px 24px; font-size: 14px; }
+
+      .steps::before { display: none; }
+    }
+
+    @media (max-width: 480px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .hero-h1 { font-size: 34px; }
+      .feat-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
 
-<!-- ═══════════════════════════════
+<!-- ════════════════════════════
      NAVBAR
-═══════════════════════════════ -->
-<nav id="nav" class="fixed top-0 left-0 right-0 z-50" style="background:transparent">
-  <div class="max-w-7xl mx-auto px-6 lg:px-10 h-16 flex items-center justify-between gap-8">
-
-    <a href="#" class="flex items-center gap-2.5 flex-shrink-0 no-underline">
-      <div id="nav-logo-ring" style="width:36px;height:36px;border-radius:50%;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.22);transition:background .35s,border-color .35s">
-        <img src="logo.png" alt="Hbridge" style="width:26px;height:26px;object-fit:contain" />
-      </div>
-      <span id="logo-text" class="text-[17px] font-black tracking-tight text-white" style="transition:color .3s">Hbridge</span>
-    </a>
-
-    <div class="hidden md:flex items-center gap-7">
-      <a href="#about"        class="nav-link" data-s="about">About</a>
-      <a href="#features"     class="nav-link" data-s="features">Features</a>
-      <a href="#how-it-works" class="nav-link" data-s="how-it-works">How It Works</a>
-    </div>
-
-    <div class="flex items-center gap-3">
-      <a href="#early-access" class="btn-primary hidden sm:inline-flex">
-        Get Early Access
-        <i data-lucide="arrow-right" style="width:14px;height:14px;stroke-width:2.5"></i>
+════════════════════════════ -->
+<nav id="nav">
+  <div class="container">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo" data-nav="/">
+        <div class="nav-logo-img">
+          <img src="logo.png" alt="Hbridge" />
+        </div>
+        <span class="nav-logo-text">Hbridge</span>
       </a>
-      <button id="menu-btn" class="md:hidden p-2 rounded-lg" style="color:rgba(255,255,255,.8);background:none;border:none;cursor:pointer">
-        <i data-lucide="menu" style="width:22px;height:22px"></i>
-      </button>
+
+      <div class="nav-links">
+        <a href="/about"       class="nav-link" data-nav="/about">About</a>
+        <a href="/features"    class="nav-link" data-nav="/features">Features</a>
+        <a href="/for-doctors" class="nav-link" data-nav="/for-doctors">For Doctors</a>
+        <a href="/hospitals"   class="nav-link" data-nav="/hospitals">For Hospitals</a>
+        <a href="/how-it-works" class="nav-link" data-nav="/how-it-works">How It Works</a>
+      </div>
+
+      <div class="nav-cta">
+        <a href="/waitlist" class="btn btn-white" style="padding:9px 20px;font-size:13px" data-nav="/waitlist">
+          Join Waitlist
+          <i data-lucide="arrow-right" style="width:13px;height:13px;stroke-width:2.5"></i>
+        </a>
+        <button class="hamburger" id="menu-btn" aria-label="Menu">
+          <i data-lucide="menu" style="width:22px;height:22px;stroke-width:2"></i>
+        </button>
+      </div>
     </div>
   </div>
 
-  <div id="mobile-menu" class="hidden md:hidden border-t px-6 py-5 flex flex-col gap-4"
-       style="background:rgba(4,47,53,.97);border-color:rgba(255,255,255,.08)">
-    <a href="#about"        style="color:rgba(255,255,255,.75);font-size:14px;font-weight:500;text-decoration:none" onclick="closeMobileMenu()">About</a>
-    <a href="#features"     style="color:rgba(255,255,255,.75);font-size:14px;font-weight:500;text-decoration:none" onclick="closeMobileMenu()">Features</a>
-    <a href="#how-it-works" style="color:rgba(255,255,255,.75);font-size:14px;font-weight:500;text-decoration:none" onclick="closeMobileMenu()">How It Works</a>
-    <a href="#early-access" class="btn-primary" style="justify-content:center;margin-top:8px" onclick="closeMobileMenu()">
-      Get Early Access
+  <div id="mobile-menu">
+    <a href="/about"        class="mob-link" data-nav="/about">About</a>
+    <a href="/features"     class="mob-link" data-nav="/features">Features</a>
+    <a href="/for-doctors"  class="mob-link" data-nav="/for-doctors">For Doctors</a>
+    <a href="/hospitals"    class="mob-link" data-nav="/hospitals">For Hospitals</a>
+    <a href="/how-it-works" class="mob-link" data-nav="/how-it-works">How It Works</a>
+    <a href="/waitlist" class="btn btn-teal btn-full" style="margin-top:8px;border-radius:12px" data-nav="/waitlist">
+      Join the Waitlist
       <i data-lucide="arrow-right" style="width:14px;height:14px;stroke-width:2.5"></i>
     </a>
   </div>
 </nav>
 
-<!-- ═══════════════════════════════
+<!-- ════════════════════════════
      HERO
-═══════════════════════════════ -->
-<section class="hero-bg min-h-screen pt-16 flex items-center relative">
-  <div class="hero-orb hero-orb-1"></div>
-  <div class="hero-orb hero-orb-2"></div>
-  <div class="hero-orb hero-orb-3"></div>
-  <div class="hero-dots"></div>
-  <div class="hero-pulse">
-    <div class="pulse-ring"></div>
-    <div class="pulse-ring"></div>
-    <div class="pulse-ring"></div>
-  </div>
-
-  <div class="relative max-w-7xl mx-auto px-6 lg:px-10 py-24 w-full" style="z-index:1">
-    <div class="flex flex-col lg:flex-row items-center gap-20">
+════════════════════════════ -->
+<section class="hero" id="home">
+  <div class="hero-bg-img"></div>
+  <div class="hero-grid"></div>
+  <div class="container" style="width:100%">
+    <div class="hero-inner">
 
       <!-- Left -->
-      <div class="flex-1 max-w-xl">
-        <div class="reveal mb-8" style="display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:100px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.65);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">
-          <span class="pulse" style="width:6px;height:6px;border-radius:50%;background:#7FE8F0;display:inline-block"></span>
-          Electronic Medical Records &middot; Nigeria
+      <div class="hero-left">
+        <div class="hero-badge reveal">
+          <span class="hero-badge-dot"></span>
+          Healthcare Platform &middot; Nigeria
         </div>
-        <h1 class="text-[52px] lg:text-[64px] font-black leading-[1.04] text-white reveal d1"
-            style="letter-spacing:-.03em;margin-bottom:24px">
-          Your health<br/>history,<br/><span style="color:#7FE8F0">secured.</span>
+        <h1 class="hero-h1 reveal d1">
+          Healthcare,<br/><span>bridged.</span>
         </h1>
-        <p class="reveal d2" style="font-size:17px;line-height:1.7;color:rgba(255,255,255,.65);margin-bottom:12px">
-          Hbridge is Nigeria's <strong style="color:#fff;font-weight:600">Electronic Medical Records (EMR)</strong> platform — a PIN-locked digital vault for your complete health history, accessible from your phone and shareable with any doctor in seconds.
+        <p class="hero-sub reveal d2">
+          Hbridge is Nigeria's <strong>complete healthcare platform</strong> — secure medical records, instant doctor consultations, appointment booking, AI health guidance, and emergency response, all on your phone.
         </p>
-        <p class="reveal d3" style="font-size:15px;line-height:1.7;color:rgba(255,255,255,.4);margin-bottom:40px">
-          No more lost lab results. No more repeating your history at every clinic. Consultations, appointments, and emergency care — all connected to your records.
+        <p class="hero-sub2 reveal d2">
+          For patients, doctors, and hospitals. One platform. Every healthcare need.
         </p>
-        <div class="reveal d3" style="display:flex;flex-wrap:wrap;gap:12px">
-          <a href="#early-access" class="btn-primary">
+        <div class="hero-btns reveal d3">
+          <a href="/waitlist" class="btn btn-white btn-lg" data-nav="/waitlist">
             Join the Waitlist
-            <i data-lucide="arrow-right" style="width:14px;height:14px;stroke-width:2.5;color:#0B7E8A"></i>
+            <i data-lucide="arrow-right" style="width:15px;height:15px;stroke-width:2.5;color:var(--teal)"></i>
           </a>
-          <a href="#features" class="btn-outline">
+          <a href="/features" class="btn btn-outline-white btn-lg" data-nav="/features">
             See Features
-            <i data-lucide="chevron-down" style="width:14px;height:14px;stroke-width:2.5"></i>
+            <i data-lucide="chevron-down" style="width:15px;height:15px;stroke-width:2.5"></i>
           </a>
         </div>
-        <!-- Social proof -->
-        <div class="reveal d4" style="display:flex;align-items:center;gap:12px;margin-top:28px;flex-wrap:wrap">
-          <div style="display:flex;align-items:center">
-            <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#0B7E8A,#0ca8b9);border:2px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff">A</div>
-            <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#064E55,#0B7E8A);border:2px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;margin-left:-8px">C</div>
-            <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#D4A843,#e8bf6a);border:2px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;margin-left:-8px">N</div>
-            <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#042f35,#0B7E8A);border:2px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:rgba(255,255,255,.8);margin-left:-8px;font-size:9px">+</div>
-          </div>
-          <p style="font-size:13px;color:rgba(255,255,255,.55)"><strong style="color:#fff;font-weight:600">340+</strong> people already on the waitlist</p>
-        </div>
-
-        <!-- Mobile-only stat pills -->
-        <div class="lg:hidden reveal d4" style="display:flex;gap:8px;margin-top:20px;flex-wrap:wrap">
-          <div style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:100px">
-            <i data-lucide="shield-check" style="width:12px;height:12px;color:#7FE8F0;stroke-width:2.5"></i>
-            <span style="font-size:12px;color:rgba(255,255,255,.8)">PIN-locked vault</span>
-          </div>
-          <div style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:100px">
-            <i data-lucide="share-2" style="width:12px;height:12px;color:#7FE8F0;stroke-width:2.5"></i>
-            <span style="font-size:12px;color:rgba(255,255,255,.8)">Share in 1 tap</span>
-          </div>
-          <div style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:100px">
-            <i data-lucide="brain-circuit" style="width:12px;height:12px;color:#7FE8F0;stroke-width:2.5"></i>
-            <span style="font-size:12px;color:rgba(255,255,255,.8)">AI assistant</span>
-          </div>
-        </div>
+        <p class="hero-hint reveal d4">Launching 2026 &nbsp;&middot;&nbsp; Free to join &nbsp;&middot;&nbsp; Built in Nigeria</p>
       </div>
 
-      <!-- Right: Floating feature badges -->
-      <div class="flex-shrink-0 hidden lg:block" style="position:relative;width:300px;height:360px;flex-shrink:0">
+      <!-- Right: mockup -->
+      <div class="hero-right reveal d2" style="position:relative">
 
-        <!-- Badge 1: Records secured – top left -->
-        <div class="badge-float float-a" style="position:absolute;top:0;left:0">
-          <div style="width:34px;height:34px;border-radius:11px;background:#E6F5F5;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            <i data-lucide="shield-check" style="width:16px;height:16px;color:#0B7E8A;stroke-width:2.5"></i>
+        <div class="badge-float float-a" style="left:-64px;top:24px">
+          <div class="badge-float-icon" style="background:#E6F5F5">
+            <i data-lucide="share-2" style="width:14px;height:14px;color:#0B7E8A;stroke-width:2.5"></i>
           </div>
           <div>
-            <p style="font-size:12px;font-weight:700;color:#1a1a1a;line-height:1.3">Records Secured</p>
-            <p style="font-size:10px;color:#9AA3AE">PIN-locked · 8 files</p>
+            <p style="font-size:11px;font-weight:700;color:#1a1a1a;line-height:1.3">Record Shared</p>
+            <p style="font-size:10px;color:#9AA3AE">Your doctor can view</p>
           </div>
         </div>
 
-        <!-- Badge 2: Record shared – right side -->
-        <div class="badge-float float-b" style="position:absolute;top:28%;right:0">
-          <div style="width:34px;height:34px;border-radius:11px;background:#E6F5F5;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            <i data-lucide="share-2" style="width:16px;height:16px;color:#0B7E8A;stroke-width:2.5"></i>
+        <div class="badge-float float-b" style="right:-40px;bottom:64px">
+          <div class="badge-float-icon" style="background:#fef3c7">
+            <i data-lucide="calendar-check" style="width:14px;height:14px;color:#D97706;stroke-width:2.5"></i>
           </div>
           <div>
-            <p style="font-size:12px;font-weight:700;color:#1a1a1a;line-height:1.3">Record Shared</p>
-            <p style="font-size:10px;color:#9AA3AE">Dr. Adewale can view</p>
+            <p style="font-size:11px;font-weight:700;color:#1a1a1a;line-height:1.3">Appointment Booked</p>
+            <p style="font-size:10px;color:#9AA3AE">Tomorrow, 10:00 AM</p>
           </div>
         </div>
 
-        <!-- Badge 3: Appointment – bottom left -->
-        <div class="badge-float float-a" style="position:absolute;bottom:18%;left:10%;animation-delay:1.2s">
-          <div style="width:34px;height:34px;border-radius:11px;background:#fef3c7;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            <i data-lucide="calendar-check" style="width:16px;height:16px;color:#D97706;stroke-width:2.5"></i>
+        <div class="hero-card">
+          <div class="hero-card-header">
+            <div class="hero-card-icon">
+              <i data-lucide="shield" style="width:18px;height:18px;color:#7FE8F0;stroke-width:2"></i>
+            </div>
+            <div>
+              <p style="color:#fff;font-weight:700;font-size:14px;line-height:1.3">Medical Vault</p>
+              <p style="color:rgba(255,255,255,.4);font-size:12px">PIN protected &middot; Secured</p>
+            </div>
           </div>
-          <div>
-            <p style="font-size:12px;font-weight:700;color:#1a1a1a;line-height:1.3">Appointment Set</p>
-            <p style="font-size:10px;color:#9AA3AE">Dr. Ngozi · Tomorrow</p>
-          </div>
-        </div>
 
-        <!-- Badge 4: Lab result – bottom right -->
-        <div class="badge-float float-b" style="position:absolute;bottom:0;right:0;animation-delay:2.5s">
-          <div style="width:34px;height:34px;border-radius:11px;background:#fef3c7;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            <i data-lucide="file-plus" style="width:16px;height:16px;color:#D97706;stroke-width:2.5"></i>
+          <div class="vault-row">
+            <div class="vault-row-icon">
+              <i data-lucide="building-2" style="width:14px;height:14px;color:#7FE8F0;stroke-width:2"></i>
+            </div>
+            <div style="flex:1;min-width:0">
+              <p style="color:#fff;font-size:13px;font-weight:600">Hospital Records</p>
+              <p style="color:rgba(255,255,255,.38);font-size:11px">3 documents</p>
+            </div>
+            <i data-lucide="chevron-right" style="width:13px;height:13px;color:rgba(255,255,255,.25);stroke-width:2;flex-shrink:0"></i>
           </div>
-          <div>
-            <p style="font-size:12px;font-weight:700;color:#1a1a1a;line-height:1.3">Lab Result Added</p>
-            <p style="font-size:10px;color:#9AA3AE">Blood panel · Today</p>
-          </div>
-        </div>
 
+          <div class="vault-row">
+            <div class="vault-row-icon">
+              <i data-lucide="stethoscope" style="width:14px;height:14px;color:#7FE8F0;stroke-width:2"></i>
+            </div>
+            <div style="flex:1;min-width:0">
+              <p style="color:#fff;font-size:13px;font-weight:600">Doctor Visits</p>
+              <p style="color:rgba(255,255,255,.38);font-size:11px">5 records</p>
+            </div>
+            <i data-lucide="chevron-right" style="width:13px;height:13px;color:rgba(255,255,255,.25);stroke-width:2;flex-shrink:0"></i>
+          </div>
+
+          <div class="vault-row vault-row-dashed">
+            <i data-lucide="folder-plus" style="width:14px;height:14px;color:rgba(127,232,240,.4);stroke-width:2;flex-shrink:0"></i>
+            <p style="color:rgba(255,255,255,.28);font-size:13px">Add new folder</p>
+          </div>
+
+          <button style="width:100%;margin-top:12px;padding:10px;border-radius:11px;background:rgba(127,232,240,.1);border:1px solid rgba(127,232,240,.18);color:#7FE8F0;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:background .2s">
+            <i data-lucide="plus" style="width:13px;height:13px;stroke-width:2.5"></i>
+            Add record
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Wave -->
-  <div style="position:absolute;bottom:0;left:0;right:0;line-height:0">
-    <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="display:block;width:100%;height:60px">
-      <path d="M0 60V30C360 0 720 60 1080 30C1260 15 1380 30 1440 40V60H0Z" fill="#ffffff"/>
+  <div class="hero-wave">
+    <svg viewBox="0 0 1440 64" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="height:64px">
+      <path d="M0 64V36C360 4 720 64 1080 32C1260 16 1380 32 1440 42V64H0Z" fill="#F5F3EE"/>
     </svg>
   </div>
 </section>
 
-<!-- ═══════════════════════════════
-     PRE-LAUNCH STRIP
-═══════════════════════════════ -->
-<section class="py-14 bg-white">
-  <div class="max-w-5xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-    <div class="flex flex-col items-center gap-2 reveal">
-      <div style="width:44px;height:44px;border-radius:14px;background:#E6F5F5;display:flex;align-items:center;justify-content:center;margin-bottom:4px">
-        <i data-lucide="map-pin" style="width:18px;height:18px;color:#0B7E8A;stroke-width:2"></i>
+<!-- ════════════════════════════
+     STATS
+════════════════════════════ -->
+<section class="stats" id="stats">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-item reveal">
+        <div class="stat-icon">
+          <i data-lucide="users" style="width:20px;height:20px;color:var(--teal);stroke-width:2"></i>
+        </div>
+        <p class="stat-num" id="stat-patients">—</p>
+        <p class="stat-label">Patients on waitlist</p>
       </div>
-      <p style="font-size:28px;font-weight:900;color:#0f1923;line-height:1">Nigeria</p>
-      <p style="font-size:12px;color:#9AA3AE;font-weight:500">Where we start</p>
-    </div>
-    <div class="flex flex-col items-center gap-2 reveal d1">
-      <div style="width:44px;height:44px;border-radius:14px;background:#E6F5F5;display:flex;align-items:center;justify-content:center;margin-bottom:4px">
-        <i data-lucide="database" style="width:18px;height:18px;color:#0B7E8A;stroke-width:2"></i>
+      <div class="stat-item reveal d1">
+        <div class="stat-icon">
+          <i data-lucide="stethoscope" style="width:20px;height:20px;color:var(--teal);stroke-width:2"></i>
+        </div>
+        <p class="stat-num" id="stat-doctors">—</p>
+        <p class="stat-label">Doctors joined</p>
       </div>
-      <p style="font-size:28px;font-weight:900;color:#0f1923;line-height:1">EMR</p>
-      <p style="font-size:12px;color:#9AA3AE;font-weight:500">Core platform</p>
-    </div>
-    <div class="flex flex-col items-center gap-2 reveal d2">
-      <div style="width:44px;height:44px;border-radius:14px;background:#E6F5F5;display:flex;align-items:center;justify-content:center;margin-bottom:4px">
-        <i data-lucide="gift" style="width:18px;height:18px;color:#0B7E8A;stroke-width:2"></i>
+      <div class="stat-item reveal d2">
+        <div class="stat-icon">
+          <i data-lucide="building-2" style="width:20px;height:20px;color:var(--teal);stroke-width:2"></i>
+        </div>
+        <p class="stat-num" id="stat-hospitals">—</p>
+        <p class="stat-label">Hospitals registered</p>
       </div>
-      <p style="font-size:28px;font-weight:900;color:#0f1923;line-height:1">Free</p>
-      <p style="font-size:12px;color:#9AA3AE;font-weight:500">Beta access</p>
-    </div>
-    <div class="flex flex-col items-center gap-2 reveal d3">
-      <div style="width:44px;height:44px;border-radius:14px;background:#E6F5F5;display:flex;align-items:center;justify-content:center;margin-bottom:4px">
-        <i data-lucide="rocket" style="width:18px;height:18px;color:#0B7E8A;stroke-width:2"></i>
+      <div class="stat-item reveal d3">
+        <div class="stat-icon">
+          <i data-lucide="rocket" style="width:20px;height:20px;color:var(--teal);stroke-width:2"></i>
+        </div>
+        <p class="stat-num">2026</p>
+        <p class="stat-label">Public launch</p>
       </div>
-      <p style="font-size:28px;font-weight:900;color:#0f1923;line-height:1">2026</p>
-      <p style="font-size:12px;color:#9AA3AE;font-weight:500">Public launch</p>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════
-     ABOUT
-═══════════════════════════════ -->
-<section id="about" class="py-28 bg-white">
-  <div class="max-w-7xl mx-auto px-6 lg:px-10">
-    <div class="grid lg:grid-cols-2 gap-20 items-center">
+<!-- ════════════════════════════
+     PLATFORM / FEATURES
+════════════════════════════ -->
+<section class="platform" id="features">
+  <div class="container">
+    <div class="section-heading">
+      <div class="label reveal" style="display:inline-flex;margin-bottom:12px">
+        <i data-lucide="layout-grid" style="width:11px;height:11px;stroke-width:2.5"></i>
+        Platform
+      </div>
+      <h2 class="reveal d1">One platform.<br/><span>Every healthcare need.</span></h2>
+      <p class="reveal d2">Hbridge is more than medical records — it's the complete layer between you and quality healthcare in Nigeria.</p>
+    </div>
 
-      <!-- Editorial panel -->
-      <div class="reveal">
-        <!-- Bold statement -->
-        <div style="margin-bottom:32px">
-          <p style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#0B7E8A;margin-bottom:12px">The problem we're solving</p>
-          <p style="font-size:52px;font-weight:900;line-height:1.05;letter-spacing:-.03em;color:#0f1923">No more<br/>paper<br/><span style="color:#0B7E8A">folders.</span></p>
+    <!-- EMR Hero Card -->
+    <div class="emr-card reveal">
+      <div class="emr-inner">
+        <div>
+          <div class="label label-white" style="display:inline-flex;margin-bottom:20px">
+            <i data-lucide="star" style="width:11px;height:11px;stroke-width:2.5;color:#7FE8F0"></i>
+            Core Product
+          </div>
+          <h3 style="font-size:30px;font-weight:700;line-height:1.12;letter-spacing:-.02em;margin-bottom:14px">
+            Electronic Medical Records Vault
+          </h3>
+          <p style="color:rgba(255,255,255,.62);font-size:15px;line-height:1.75;margin-bottom:8px">
+            Your lifelong, PIN-secured digital health vault. Store lab results, prescriptions, diagnoses, imaging, and clinical notes — organised by doctor or hospital. Share any record with a verified doctor in one tap.
+          </p>
+          <ul class="emr-list">
+            <li><i data-lucide="check-circle-2" style="width:15px;height:15px;color:#7FE8F0;stroke-width:2;flex-shrink:0"></i> PIN-locked — only you can access your records</li>
+            <li><i data-lucide="check-circle-2" style="width:15px;height:15px;color:#7FE8F0;stroke-width:2;flex-shrink:0"></i> Organised by hospital and doctor</li>
+            <li><i data-lucide="check-circle-2" style="width:15px;height:15px;color:#7FE8F0;stroke-width:2;flex-shrink:0"></i> Share securely with any verified doctor</li>
+            <li><i data-lucide="check-circle-2" style="width:15px;height:15px;color:#7FE8F0;stroke-width:2;flex-shrink:0"></i> Revoke access anytime — full control stays with you</li>
+          </ul>
         </div>
-        <!-- Before / After cards -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">
-          <div style="padding:20px;border-radius:16px;background:#FFF5F5;border:1.5px solid #FDD">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-              <div style="width:28px;height:28px;border-radius:8px;background:#FEE2E2;display:flex;align-items:center;justify-content:center">
-                <i data-lucide="folder-open" style="width:13px;height:13px;color:#DC2626;stroke-width:2"></i>
-              </div>
-              <p style="font-size:11px;font-weight:800;color:#DC2626;text-transform:uppercase;letter-spacing:.08em">Before</p>
+        <div class="emr-panel">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+            <div style="width:38px;height:38px;border-radius:11px;background:rgba(127,232,240,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <i data-lucide="lock-keyhole" style="width:16px;height:16px;color:#7FE8F0;stroke-width:2"></i>
             </div>
-            <p style="font-size:13px;color:#555;line-height:1.6">Paper folders. Lost labs. Repeating your history at every clinic. Records no one can find.</p>
+            <div>
+              <p style="color:#fff;font-weight:700;font-size:14px">My Medical Records</p>
+              <p style="color:rgba(255,255,255,.38);font-size:12px">Secured vault</p>
+            </div>
           </div>
-          <div style="padding:20px;border-radius:16px;background:#E6F5F5;border:1.5px solid #C8E8EB">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-              <div style="width:28px;height:28px;border-radius:8px;background:#CCE9EC;display:flex;align-items:center;justify-content:center">
-                <img src="logo.png" alt="" style="width:16px;height:16px;object-fit:contain" />
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:10px;padding:11px;border-radius:11px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08)">
+              <div style="width:34px;height:34px;border-radius:9px;background:rgba(127,232,240,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <i data-lucide="building-2" style="width:14px;height:14px;color:#7FE8F0;stroke-width:2"></i>
               </div>
-              <p style="font-size:11px;font-weight:800;color:#0B7E8A;text-transform:uppercase;letter-spacing:.08em">With Hbridge</p>
+              <div style="flex:1"><p style="color:#fff;font-size:13px;font-weight:600">Hospital Records</p><p style="color:rgba(255,255,255,.35);font-size:11px">3 documents</p></div>
+              <i data-lucide="chevron-right" style="width:13px;height:13px;color:rgba(255,255,255,.25);stroke-width:2;flex-shrink:0"></i>
             </div>
-            <p style="font-size:13px;color:#555;line-height:1.6">One vault. Every record. Share in a tap — any doctor, anywhere, instantly.</p>
+            <div style="display:flex;align-items:center;gap:10px;padding:11px;border-radius:11px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08)">
+              <div style="width:34px;height:34px;border-radius:9px;background:rgba(127,232,240,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <i data-lucide="stethoscope" style="width:14px;height:14px;color:#7FE8F0;stroke-width:2"></i>
+              </div>
+              <div style="flex:1"><p style="color:#fff;font-size:13px;font-weight:600">Doctor Consultations</p><p style="color:rgba(255,255,255,.35);font-size:11px">5 records</p></div>
+              <i data-lucide="chevron-right" style="width:13px;height:13px;color:rgba(255,255,255,.25);stroke-width:2;flex-shrink:0"></i>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:11px;border-radius:11px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08)">
+              <div style="width:34px;height:34px;border-radius:9px;background:rgba(127,232,240,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <i data-lucide="flask-conical" style="width:14px;height:14px;color:#7FE8F0;stroke-width:2"></i>
+              </div>
+              <div style="flex:1"><p style="color:#fff;font-size:13px;font-weight:600">Lab Results</p><p style="color:rgba(255,255,255,.35);font-size:11px">2 documents</p></div>
+              <i data-lucide="chevron-right" style="width:13px;height:13px;color:rgba(255,255,255,.25);stroke-width:2;flex-shrink:0"></i>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:11px;border-radius:11px;border:1.5px dashed rgba(127,232,240,.22)">
+              <i data-lucide="folder-plus" style="width:14px;height:14px;color:rgba(127,232,240,.4);stroke-width:2;flex-shrink:0"></i>
+              <p style="color:rgba(255,255,255,.25);font-size:13px">Add new folder</p>
+            </div>
           </div>
         </div>
-        <!-- Stat row -->
-        <div style="display:flex;gap:24px;padding-top:24px;border-top:1px solid #E8EDF2">
-          <div>
-            <p style="font-size:28px;font-weight:900;color:#0f1923;line-height:1">200M+</p>
-            <p style="font-size:12px;color:#9AA3AE;margin-top:2px">Nigerians we serve</p>
-          </div>
-          <div style="width:1px;background:#E8EDF2"></div>
-          <div>
-            <p style="font-size:28px;font-weight:900;color:#0f1923;line-height:1">1 tap</p>
-            <p style="font-size:12px;color:#9AA3AE;margin-top:2px">to share any record</p>
-          </div>
-          <div style="width:1px;background:#E8EDF2"></div>
-          <div>
-            <p style="font-size:28px;font-weight:900;color:#0f1923;line-height:1">Free</p>
-            <p style="font-size:12px;color:#9AA3AE;margin-top:2px">beta access</p>
+      </div>
+    </div>
+
+    <!-- 5 secondary features -->
+    <div class="feat-grid">
+      <div class="feat-card reveal">
+        <div class="feat-icon" style="background:#ede9fe">
+          <i data-lucide="message-circle" style="width:22px;height:22px;color:#7C3AED;stroke-width:2"></i>
+        </div>
+        <h3 style="font-weight:700;font-size:15px;color:var(--ink);margin-bottom:8px">Doctor Consultations</h3>
+        <p style="color:var(--muted);font-size:13px;line-height:1.7">Chat with verified Nigerian doctors in real time. Share records directly from your vault during every consultation.</p>
+      </div>
+      <div class="feat-card reveal d1">
+        <div class="feat-icon" style="background:#fef3c7">
+          <i data-lucide="calendar-check" style="width:22px;height:22px;color:#D97706;stroke-width:2"></i>
+        </div>
+        <h3 style="font-weight:700;font-size:15px;color:var(--ink);margin-bottom:8px">Appointment Booking</h3>
+        <p style="color:var(--muted);font-size:13px;line-height:1.7">Book clinic and virtual appointments with verified doctors. Manage all your bookings in one place.</p>
+      </div>
+      <div class="feat-card reveal d2">
+        <div class="feat-icon" style="background:#e0f2fe">
+          <i data-lucide="brain-circuit" style="width:22px;height:22px;color:#0284C7;stroke-width:2"></i>
+        </div>
+        <h3 style="font-weight:700;font-size:15px;color:var(--ink);margin-bottom:8px">AI Health Assistant</h3>
+        <p style="color:var(--muted);font-size:13px;line-height:1.7">Ask health questions, check symptoms, and get guidance — powered by AI, private, and available 24/7.</p>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon" style="background:#fee2e2">
+          <i data-lucide="phone-call" style="width:22px;height:22px;color:#DC2626;stroke-width:2"></i>
+        </div>
+        <h3 style="font-weight:700;font-size:15px;color:var(--ink);margin-bottom:8px">Emergency Response</h3>
+        <p style="color:var(--muted);font-size:13px;line-height:1.7">One-tap SOS with location. Emergency contacts alerted immediately, with your full medical history ready for responders.</p>
+      </div>
+      <div class="feat-card reveal d1">
+        <div class="feat-icon" style="background:#dcfce7">
+          <i data-lucide="hospital" style="width:22px;height:22px;color:#16A34A;stroke-width:2"></i>
+        </div>
+        <h3 style="font-weight:700;font-size:15px;color:var(--ink);margin-bottom:8px">Hospital Integration</h3>
+        <p style="color:var(--muted);font-size:13px;line-height:1.7">Hospitals receive patient records digitally. No more paper folders — cleaner handoffs, faster care decisions.</p>
+      </div>
+      <div class="feat-card reveal d2">
+        <div class="feat-icon" style="background:var(--teal-lt)">
+          <i data-lucide="heart-pulse" style="width:22px;height:22px;color:var(--teal);stroke-width:2"></i>
+        </div>
+        <h3 style="font-weight:700;font-size:15px;color:var(--ink);margin-bottom:8px">Health Tracking</h3>
+        <p style="color:var(--muted);font-size:13px;line-height:1.7">Track vitals, allergies, blood type, and conditions. Your full health profile at your fingertips and your doctor's.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════
+     ABOUT
+════════════════════════════ -->
+<section style="background:var(--card);padding:100px 0" id="about">
+  <div class="container">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center" class="rg-about">
+      <!-- Logo panel -->
+      <div class="reveal" style="display:flex;align-items:center;justify-content:center">
+        <div style="position:relative;width:320px;height:320px;max-width:85vw;max-height:85vw">
+          <div style="position:absolute;inset:0;border-radius:28px;background:linear-gradient(135deg,var(--teal-dk),var(--teal));transform:rotate(-9deg);box-shadow:0 24px 60px rgba(11,126,138,.22)"></div>
+          <div style="position:absolute;inset:14px;border-radius:22px;background:var(--surface);transform:rotate(-4deg)"></div>
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
+            <img src="logo.png" alt="Hbridge" style="width:130px;height:130px;object-fit:cover;border-radius:50%;display:block;box-shadow:0 8px 32px rgba(8,50,54,.18)" />
           </div>
         </div>
       </div>
 
       <!-- Copy -->
       <div>
-        <div class="section-label reveal" style="margin-bottom:24px">
+        <div class="label reveal" style="display:inline-flex;margin-bottom:20px">
           <i data-lucide="target" style="width:11px;height:11px;stroke-width:2.5"></i>
           Our Mission
         </div>
-        <h2 class="reveal d1" style="font-size:42px;font-weight:900;line-height:1.1;letter-spacing:-.025em;margin-bottom:24px">
-          Nigeria's health data<br/>deserves a <span style="color:#0B7E8A">digital home.</span>
+        <h2 class="reveal d1" style="font-size:38px;font-weight:700;line-height:1.1;letter-spacing:-.025em;color:var(--ink);margin-bottom:20px">
+          Nigeria's health data<br/>deserves a <span style="color:var(--teal)">digital home.</span>
         </h2>
-        <p class="reveal d2" style="font-size:16px;line-height:1.75;color:#555;margin-bottom:16px">
+        <p class="reveal d2" style="font-size:15px;line-height:1.8;color:var(--muted);margin-bottom:16px">
           Most Nigerians carry their medical history in paper folders scattered between clinics, hospitals, and pharmacies. Records are lost. Diagnoses are repeated. Time and money are wasted.
         </p>
-        <p class="reveal d2" style="font-size:16px;line-height:1.75;color:#555;margin-bottom:36px">
-          Hbridge is an <strong style="color:#0f1923">Electronic Medical Records (EMR) platform</strong> built specifically for Nigeria. Every patient gets a secure, lifelong digital health vault. Every doctor gets instant access to the records they need to make better decisions, faster.
+        <p class="reveal d2" style="font-size:15px;line-height:1.8;color:var(--muted);margin-bottom:32px">
+          Hbridge bridges that gap — connecting patients, doctors, and hospitals on one secure platform built specifically for Nigeria.
         </p>
-        <div class="reveal d3" style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
-          <div style="display:flex;align-items:flex-start;gap:14px">
-            <div style="width:40px;height:40px;border-radius:12px;background:#E6F5F5;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-              <i data-lucide="shield-check" style="width:18px;height:18px;color:#0B7E8A;stroke-width:2"></i>
+        <div class="reveal d3" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div style="display:flex;align-items:flex-start;gap:12px;padding:16px;background:var(--paper);border-radius:14px">
+            <div style="width:36px;height:36px;border-radius:10px;background:var(--teal-lt);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <i data-lucide="shield-check" style="width:16px;height:16px;color:var(--teal);stroke-width:2"></i>
             </div>
             <div>
-              <p style="font-weight:700;color:#0f1923;font-size:14px;margin-bottom:4px">End-to-end secure</p>
-              <p style="color:#9AA3AE;font-size:13px;line-height:1.6">PIN-locked vault, encrypted at rest, full access control.</p>
+              <p style="font-weight:700;color:var(--ink);font-size:13px;margin-bottom:3px">End-to-end secure</p>
+              <p style="color:var(--muted);font-size:12px;line-height:1.6">Encrypted, PIN-locked, full access control.</p>
             </div>
           </div>
-          <div style="display:flex;align-items:flex-start;gap:14px">
-            <div style="width:40px;height:40px;border-radius:12px;background:#E6F5F5;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-              <i data-lucide="users" style="width:18px;height:18px;color:#0B7E8A;stroke-width:2"></i>
+          <div style="display:flex;align-items:flex-start;gap:12px;padding:16px;background:var(--paper);border-radius:14px">
+            <div style="width:36px;height:36px;border-radius:10px;background:var(--teal-lt);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <i data-lucide="users" style="width:16px;height:16px;color:var(--teal);stroke-width:2"></i>
             </div>
             <div>
-              <p style="font-weight:700;color:#0f1923;font-size:14px;margin-bottom:4px">Patient + Doctor</p>
-              <p style="color:#9AA3AE;font-size:13px;line-height:1.6">Patients own their data. Doctors receive it instantly.</p>
+              <p style="font-weight:700;color:var(--ink);font-size:13px;margin-bottom:3px">Built for everyone</p>
+              <p style="color:var(--muted);font-size:12px;line-height:1.6">Patients, doctors, and hospitals.</p>
             </div>
           </div>
         </div>
@@ -548,315 +905,517 @@
   </div>
 </section>
 
-<!-- ═══════════════════════════════
-     FEATURES
-═══════════════════════════════ -->
-<section id="features" style="padding:112px 0;background:#f8fafb">
-  <div class="max-w-7xl mx-auto px-6 lg:px-10">
-    <div style="text-align:center;max-width:560px;margin:0 auto 64px">
-      <div class="section-label reveal" style="display:inline-flex;margin-bottom:20px">
-        <i data-lucide="layout-grid" style="width:11px;height:11px;stroke-width:2.5"></i>
-        Platform Features
-      </div>
-      <h2 class="reveal d1" style="font-size:42px;font-weight:900;letter-spacing:-.025em;line-height:1.1;margin-bottom:16px">
-        Built around your<br/><span style="color:#0B7E8A">Medical Records</span>
-      </h2>
-      <p class="reveal d2" style="font-size:16px;color:#9AA3AE;line-height:1.7">The EMR vault is the heart of Hbridge. Consultations, appointments, and emergency care all flow through it.</p>
-    </div>
-
-    <!-- EMR hero card -->
-    <div class="feat-hero-card reveal" style="margin-bottom:20px">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;position:relative;z-index:1" class="lg:grid-cols-2 flex flex-col">
-        <div>
-          <div style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:100px;margin-bottom:24px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.85);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">
-            <i data-lucide="star" style="width:11px;height:11px;stroke-width:2.5;color:#7FE8F0"></i>
-            Core Product
-          </div>
-          <h3 style="font-size:32px;font-weight:900;line-height:1.15;letter-spacing:-.02em;margin-bottom:16px">Electronic Medical Records Vault</h3>
-          <p style="color:rgba(255,255,255,.6);font-size:15px;line-height:1.75;margin-bottom:24px">Your lifelong, PIN-secured medical records vault. Store lab results, prescriptions, diagnoses, imaging, and clinical notes — organised by doctor or hospital. Share any record with a verified doctor in one tap, with full access control and an audit trail.</p>
-          <ul style="display:flex;flex-direction:column;gap:12px">
-            <li style="display:flex;align-items:center;gap:10px;font-size:14px;color:rgba(255,255,255,.8)">
-              <i data-lucide="check-circle-2" style="width:16px;height:16px;color:#7FE8F0;stroke-width:2;flex-shrink:0"></i>
-              PIN-locked — only you access your records
-            </li>
-            <li style="display:flex;align-items:center;gap:10px;font-size:14px;color:rgba(255,255,255,.8)">
-              <i data-lucide="check-circle-2" style="width:16px;height:16px;color:#7FE8F0;stroke-width:2;flex-shrink:0"></i>
-              Organised by hospital and doctor
-            </li>
-            <li style="display:flex;align-items:center;gap:10px;font-size:14px;color:rgba(255,255,255,.8)">
-              <i data-lucide="check-circle-2" style="width:16px;height:16px;color:#7FE8F0;stroke-width:2;flex-shrink:0"></i>
-              Share securely with any verified doctor
-            </li>
-            <li style="display:flex;align-items:center;gap:10px;font-size:14px;color:rgba(255,255,255,.8)">
-              <i data-lucide="check-circle-2" style="width:16px;height:16px;color:#7FE8F0;stroke-width:2;flex-shrink:0"></i>
-              Revoke access at any time — full control stays with you
-            </li>
-          </ul>
+<!-- ════════════════════════════
+     FOR DOCTORS
+════════════════════════════ -->
+<section class="for-doctors" id="for-doctors">
+  <div class="container">
+    <div class="for-grid">
+      <div>
+        <div class="label label-white reveal" style="display:inline-flex;margin-bottom:20px">
+          <i data-lucide="stethoscope" style="width:11px;height:11px;stroke-width:2.5"></i>
+          For Doctors
         </div>
-
-        <!-- Vault panel -->
-        <div style="border-radius:20px;padding:24px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
-            <div style="width:40px;height:40px;border-radius:12px;background:rgba(127,232,240,.15);display:flex;align-items:center;justify-content:center">
-              <i data-lucide="lock-keyhole" style="width:18px;height:18px;color:#7FE8F0;stroke-width:2"></i>
+        <h2 class="reveal d1" style="font-size:38px;font-weight:700;line-height:1.1;letter-spacing:-.025em;margin-bottom:16px">
+          Grow your practice.<br/><span style="color:#7FE8F0">Reach more patients.</span>
+        </h2>
+        <p class="reveal d2" style="font-size:15px;color:rgba(255,255,255,.6);line-height:1.8;margin-bottom:28px">
+          Join a network of verified Nigerian doctors. Get discovered by patients, receive appointment requests, and access shared medical records — all from one professional dashboard.
+        </p>
+        <div class="benefit-list reveal d3">
+          <div class="benefit-item">
+            <div class="benefit-icon">
+              <i data-lucide="calendar-plus" style="width:16px;height:16px;color:#7FE8F0;stroke-width:2"></i>
             </div>
             <div>
-              <p style="color:#fff;font-weight:700;font-size:14px">My Medical Records</p>
-              <p style="color:rgba(255,255,255,.4);font-size:12px">2 folders &middot; 8 records</p>
+              <p style="font-weight:700;color:#fff;font-size:14px;margin-bottom:3px">Receive appointment requests</p>
+              <p style="color:rgba(255,255,255,.5);font-size:13px;line-height:1.6">Patients book directly with you. Manage your schedule in-app.</p>
+            </div>
+          </div>
+          <div class="benefit-item">
+            <div class="benefit-icon">
+              <i data-lucide="file-text" style="width:16px;height:16px;color:#7FE8F0;stroke-width:2"></i>
+            </div>
+            <div>
+              <p style="font-weight:700;color:#fff;font-size:14px;margin-bottom:3px">Access patient records instantly</p>
+              <p style="color:rgba(255,255,255,.5);font-size:13px;line-height:1.6">Patients share their medical history with you before every visit.</p>
+            </div>
+          </div>
+          <div class="benefit-item">
+            <div class="benefit-icon">
+              <i data-lucide="message-square" style="width:16px;height:16px;color:#7FE8F0;stroke-width:2"></i>
+            </div>
+            <div>
+              <p style="font-weight:700;color:#fff;font-size:14px;margin-bottom:3px">Consult and message patients</p>
+              <p style="color:rgba(255,255,255,.5);font-size:13px;line-height:1.6">Built-in secure messaging and case file management.</p>
+            </div>
+          </div>
+          <div class="benefit-item">
+            <div class="benefit-icon">
+              <i data-lucide="badge-check" style="width:16px;height:16px;color:#7FE8F0;stroke-width:2"></i>
+            </div>
+            <div>
+              <p style="font-weight:700;color:#fff;font-size:14px;margin-bottom:3px">Verified doctor badge</p>
+              <p style="color:rgba(255,255,255,.5);font-size:13px;line-height:1.6">NMA verification builds patient trust on your profile.</p>
+            </div>
+          </div>
+        </div>
+        <div class="reveal d4" style="margin-top:36px">
+          <a href="/waitlist" class="btn btn-white" data-nav="/waitlist">
+            Join as a Doctor
+            <i data-lucide="arrow-right" style="width:14px;height:14px;stroke-width:2.5;color:var(--teal)"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Doctor card -->
+      <div class="reveal d2">
+        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:28px">
+          <div style="display:flex;align-items:center;gap:14px;padding:16px;background:rgba(255,255,255,.06);border-radius:16px;margin-bottom:16px">
+            <div style="width:48px;height:48px;border-radius:50%;background:rgba(127,232,240,.15);border:2px solid rgba(127,232,240,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <i data-lucide="user" style="width:22px;height:22px;color:#7FE8F0;stroke-width:1.5"></i>
+            </div>
+            <div style="flex:1">
+              <p style="color:#fff;font-weight:700;font-size:14px">Doctor Profile</p>
+              <p style="color:rgba(255,255,255,.4);font-size:12px">Verified · General Practitioner</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:100px;background:rgba(127,232,240,.12)">
+              <span style="width:6px;height:6px;border-radius:50%;background:#7FE8F0;display:inline-block"></span>
+              <span style="font-size:11px;color:#7FE8F0;font-weight:600">Active</span>
             </div>
           </div>
           <div style="display:flex;flex-direction:column;gap:10px">
-            <div style="display:flex;align-items:center;gap:10px;padding:12px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08)">
-              <div style="width:36px;height:36px;border-radius:10px;background:rgba(127,232,240,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                <i data-lucide="building-2" style="width:15px;height:15px;color:#7FE8F0;stroke-width:2"></i>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:rgba(255,255,255,.05);border-radius:12px">
+              <div style="display:flex;align-items:center;gap:10px">
+                <i data-lucide="calendar" style="width:15px;height:15px;color:rgba(255,255,255,.5);stroke-width:2"></i>
+                <span style="font-size:13px;color:rgba(255,255,255,.7)">Appointment Request</span>
               </div>
-              <div style="flex:1">
-                <p style="color:#fff;font-size:13px;font-weight:600">Lagos General Hospital</p>
-                <p style="color:rgba(255,255,255,.4);font-size:11px">3 records</p>
-              </div>
-              <i data-lucide="chevron-right" style="width:14px;height:14px;color:rgba(255,255,255,.3);stroke-width:2;flex-shrink:0"></i>
+              <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:100px;background:var(--gold-bg);color:var(--gold)">Pending</span>
             </div>
-            <div style="display:flex;align-items:center;gap:10px;padding:12px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08)">
-              <div style="width:36px;height:36px;border-radius:10px;background:rgba(127,232,240,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                <i data-lucide="stethoscope" style="width:15px;height:15px;color:#7FE8F0;stroke-width:2"></i>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:rgba(255,255,255,.05);border-radius:12px">
+              <div style="display:flex;align-items:center;gap:10px">
+                <i data-lucide="file-text" style="width:15px;height:15px;color:rgba(255,255,255,.5);stroke-width:2"></i>
+                <span style="font-size:13px;color:rgba(255,255,255,.7)">Patient Shared Records</span>
               </div>
-              <div style="flex:1">
-                <p style="color:#fff;font-size:13px;font-weight:600">Dr. Adewale Okonkwo</p>
-                <p style="color:rgba(255,255,255,.4);font-size:11px">5 records</p>
-              </div>
-              <i data-lucide="chevron-right" style="width:14px;height:14px;color:rgba(255,255,255,.3);stroke-width:2;flex-shrink:0"></i>
+              <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:100px;background:rgba(127,232,240,.12);color:#7FE8F0">New</span>
             </div>
-            <div style="display:flex;align-items:center;gap:10px;padding:12px;border-radius:12px;border:1.5px dashed rgba(127,232,240,.25)">
-              <i data-lucide="folder-plus" style="width:15px;height:15px;color:rgba(127,232,240,.45);stroke-width:2;flex-shrink:0"></i>
-              <p style="color:rgba(255,255,255,.32);font-size:13px">Add new folder</p>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:rgba(255,255,255,.05);border-radius:12px">
+              <div style="display:flex;align-items:center;gap:10px">
+                <i data-lucide="message-circle" style="width:15px;height:15px;color:rgba(255,255,255,.5);stroke-width:2"></i>
+                <span style="font-size:13px;color:rgba(255,255,255,.7)">Patient Message</span>
+              </div>
+              <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:100px;background:rgba(127,232,240,.12);color:#7FE8F0">1</span>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- Secondary 4-up -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px" class="grid md:grid-cols-2 lg:grid-cols-4">
-      <div class="feat-card reveal">
-        <div style="width:44px;height:44px;border-radius:14px;background:#ede9fe;display:flex;align-items:center;justify-content:center;margin-bottom:20px">
-          <i data-lucide="message-circle" style="width:20px;height:20px;color:#7C3AED;stroke-width:2"></i>
-        </div>
-        <h3 style="font-weight:700;font-size:15px;color:#0f1923;margin-bottom:8px">Doctor Consultations</h3>
-        <p style="color:#9AA3AE;font-size:13px;line-height:1.65">Chat with verified doctors in real time. Share records directly from your vault during consultations.</p>
-      </div>
-      <div class="feat-card reveal d1">
-        <div style="width:44px;height:44px;border-radius:14px;background:#fef3c7;display:flex;align-items:center;justify-content:center;margin-bottom:20px">
-          <i data-lucide="calendar-check" style="width:20px;height:20px;color:#D97706;stroke-width:2"></i>
-        </div>
-        <h3 style="font-weight:700;font-size:15px;color:#0f1923;margin-bottom:8px">Appointment Booking</h3>
-        <p style="color:#9AA3AE;font-size:13px;line-height:1.65">Book clinic and virtual appointments with any verified doctor in seconds.</p>
-      </div>
-      <div class="feat-card reveal d2">
-        <div style="width:44px;height:44px;border-radius:14px;background:#fee2e2;display:flex;align-items:center;justify-content:center;margin-bottom:20px">
-          <i data-lucide="phone-call" style="width:20px;height:20px;color:#DC2626;stroke-width:2"></i>
-        </div>
-        <h3 style="font-weight:700;font-size:15px;color:#0f1923;margin-bottom:8px">Emergency Response</h3>
-        <p style="color:#9AA3AE;font-size:13px;line-height:1.65">One-tap SOS with location. Emergency contacts alerted instantly, with your medical history ready.</p>
-      </div>
-      <div class="feat-card reveal d3">
-        <div style="width:44px;height:44px;border-radius:14px;background:#e0f2fe;display:flex;align-items:center;justify-content:center;margin-bottom:20px">
-          <i data-lucide="brain-circuit" style="width:20px;height:20px;color:#0284C7;stroke-width:2"></i>
-        </div>
-        <h3 style="font-weight:700;font-size:15px;color:#0f1923;margin-bottom:8px">AI Health Assistant</h3>
-        <p style="color:#9AA3AE;font-size:13px;line-height:1.65">Ask health questions and check symptoms — powered by AI, entirely private.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════
-     HOW IT WORKS
-═══════════════════════════════ -->
-<section id="how-it-works" style="padding:112px 0;background:#fff">
-  <div class="max-w-7xl mx-auto px-6 lg:px-10">
-    <div style="text-align:center;max-width:500px;margin:0 auto 80px">
-      <div class="section-label reveal" style="display:inline-flex;margin-bottom:20px">
-        <i data-lucide="zap" style="width:11px;height:11px;stroke-width:2.5"></i>
-        How the EMR Works
-      </div>
-      <h2 class="reveal d1" style="font-size:42px;font-weight:900;letter-spacing:-.025em;line-height:1.1;margin-bottom:16px">
-        Organised in<br/>under 3 minutes
-      </h2>
-      <p class="reveal d2" style="font-size:16px;color:#9AA3AE;line-height:1.7">From signup to a fully organised medical records vault — completely on your phone.</p>
-    </div>
-
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:40px" class="grid md:grid-cols-3">
-      <div class="reveal">
-        <div style="position:relative;display:inline-block;margin-bottom:24px">
-          <div style="width:56px;height:56px;border-radius:18px;background:linear-gradient(135deg,#0B7E8A,#0ca8b9);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(11,126,138,.22)">
-            <i data-lucide="shield-plus" style="width:24px;height:24px;color:white;stroke-width:2"></i>
+<!-- ════════════════════════════
+     FOR HOSPITALS
+════════════════════════════ -->
+<section class="for-hospitals" id="hospitals">
+  <div class="container">
+    <div class="for-grid">
+      <div>
+        <div class="label reveal" style="display:inline-flex;margin-bottom:20px">
+          <i data-lucide="building-2" style="width:11px;height:11px;stroke-width:2.5"></i>
+          For Hospitals
+        </div>
+        <h2 class="reveal d1" style="font-size:38px;font-weight:700;line-height:1.1;letter-spacing:-.025em;color:var(--ink);margin-bottom:16px">
+          Take your hospital<br/><span style="color:var(--teal)">fully digital.</span>
+        </h2>
+        <p class="reveal d2" style="font-size:15px;color:var(--muted);line-height:1.8;margin-bottom:28px">
+          Partner with Hbridge to give your patients a better experience and your team a smarter way to manage records, share documents, and handle referrals.
+        </p>
+        <div class="benefit-list reveal d3">
+          <div class="benefit-item">
+            <div style="width:40px;height:40px;border-radius:11px;flex-shrink:0;background:var(--teal-lt);display:flex;align-items:center;justify-content:center;margin-top:2px">
+              <i data-lucide="folder-sync" style="width:16px;height:16px;color:var(--teal);stroke-width:2"></i>
+            </div>
+            <div>
+              <p style="font-weight:700;color:var(--ink);font-size:14px;margin-bottom:3px">Digital record management</p>
+              <p style="color:var(--muted);font-size:13px;line-height:1.6">Send patient records directly through Hbridge — no paperwork, no scanning.</p>
+            </div>
           </div>
-          <div style="position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:#0B7E8A;display:flex;align-items:center;justify-content:center">
-            <span style="color:#fff;font-size:10px;font-weight:900">1</span>
+          <div class="benefit-item">
+            <div style="width:40px;height:40px;border-radius:11px;flex-shrink:0;background:var(--teal-lt);display:flex;align-items:center;justify-content:center;margin-top:2px">
+              <i data-lucide="users" style="width:16px;height:16px;color:var(--teal);stroke-width:2"></i>
+            </div>
+            <div>
+              <p style="font-weight:700;color:var(--ink);font-size:14px;margin-bottom:3px">Patient discovery</p>
+              <p style="color:var(--muted);font-size:13px;line-height:1.6">Patients near you can find your hospital, book, and share records instantly.</p>
+            </div>
+          </div>
+          <div class="benefit-item">
+            <div style="width:40px;height:40px;border-radius:11px;flex-shrink:0;background:var(--teal-lt);display:flex;align-items:center;justify-content:center;margin-top:2px">
+              <i data-lucide="arrow-left-right" style="width:16px;height:16px;color:var(--teal);stroke-width:2"></i>
+            </div>
+            <div>
+              <p style="font-weight:700;color:var(--ink);font-size:14px;margin-bottom:3px">Referral management</p>
+              <p style="color:var(--muted);font-size:13px;line-height:1.6">Receive and transfer patient records between facilities digitally.</p>
+            </div>
           </div>
         </div>
-        <h3 style="font-size:20px;font-weight:800;color:#0f1923;margin-bottom:12px">Create your secure vault</h3>
-        <p style="color:#9AA3AE;font-size:14px;line-height:1.75">Sign up and set a private PIN. No one — not even Hbridge — can access your records without your PIN.</p>
+        <div class="reveal d4" style="margin-top:36px">
+          <a href="/waitlist" class="btn btn-teal" data-nav="/waitlist">
+            Register Your Hospital
+            <i data-lucide="arrow-right" style="width:14px;height:14px;stroke-width:2.5"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Hospital card -->
+      <div class="reveal d2">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:24px;padding:28px;box-shadow:0 8px 40px rgba(8,50,54,.06)">
+          <div style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--paper);border-radius:14px;margin-bottom:16px">
+            <div style="width:44px;height:44px;border-radius:12px;background:var(--teal-lt);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <i data-lucide="building-2" style="width:20px;height:20px;color:var(--teal);stroke-width:2"></i>
+            </div>
+            <div>
+              <p style="font-weight:700;color:var(--ink);font-size:14px">Hospital Dashboard</p>
+              <p style="color:var(--muted);font-size:12px">Command Center</p>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+            <div style="padding:14px;background:var(--paper);border-radius:12px;text-align:center">
+              <p style="font-size:24px;font-weight:700;color:var(--ink)">—</p>
+              <p style="font-size:11px;color:var(--muted)">Records today</p>
+            </div>
+            <div style="padding:14px;background:var(--teal-lt);border-radius:12px;text-align:center">
+              <p style="font-size:24px;font-weight:700;color:var(--teal)">—</p>
+              <p style="font-size:11px;color:var(--teal)">Pending records</p>
+            </div>
+          </div>
+          <div style="padding:14px;background:var(--paper);border-radius:12px;display:flex;align-items:center;gap:10px">
+            <i data-lucide="inbox" style="width:16px;height:16px;color:var(--teal);stroke-width:2;flex-shrink:0"></i>
+            <span style="font-size:13px;color:var(--muted)">Incoming patient records</span>
+            <span style="margin-left:auto;font-size:11px;font-weight:700;padding:3px 10px;border-radius:100px;background:var(--teal-lt);color:var(--teal)">Live</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════
+     HOW IT WORKS
+════════════════════════════ -->
+<section class="how" id="how-it-works">
+  <div class="container">
+    <div class="section-heading">
+      <div class="label reveal" style="display:inline-flex;margin-bottom:12px">
+        <i data-lucide="zap" style="width:11px;height:11px;stroke-width:2.5"></i>
+        How It Works
+      </div>
+      <h2 class="reveal d1">Set up in under<br/><span style="color:var(--teal)">3 minutes</span></h2>
+      <p class="reveal d2">From signup to a fully organised health profile — completely on your phone.</p>
+    </div>
+
+    <div class="steps">
+      <div class="reveal">
+        <div class="step-num">
+          <i data-lucide="shield-plus" style="width:24px;height:24px;color:var(--teal);stroke-width:2"></i>
+          <span class="step-badge">1</span>
+        </div>
+        <h3 style="font-size:19px;font-weight:700;color:var(--ink);margin-bottom:10px">Create your account</h3>
+        <p style="color:var(--muted);font-size:14px;line-height:1.75">Sign up as a patient, doctor, or hospital. Set your private PIN — no one else can access your records without it.</p>
       </div>
       <div class="reveal d1">
-        <div style="position:relative;display:inline-block;margin-bottom:24px">
-          <div style="width:56px;height:56px;border-radius:18px;background:linear-gradient(135deg,#0B7E8A,#0ca8b9);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(11,126,138,.22)">
-            <i data-lucide="upload-cloud" style="width:24px;height:24px;color:white;stroke-width:2"></i>
-          </div>
-          <div style="position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:#0B7E8A;display:flex;align-items:center;justify-content:center">
-            <span style="color:#fff;font-size:10px;font-weight:900">2</span>
-          </div>
+        <div class="step-num">
+          <i data-lucide="clipboard" style="width:24px;height:24px;color:var(--teal);stroke-width:2"></i>
+          <span class="step-badge">2</span>
         </div>
-        <h3 style="font-size:20px;font-weight:800;color:#0f1923;margin-bottom:12px">Upload and organise</h3>
-        <p style="color:#9AA3AE;font-size:14px;line-height:1.75">Create folders per hospital or doctor. Upload lab results, prescriptions, imaging, and clinical notes — all in one place.</p>
+        <h3 style="font-size:19px;font-weight:700;color:var(--ink);margin-bottom:10px">Build your health profile</h3>
+        <p style="color:var(--muted);font-size:14px;line-height:1.75">Upload lab results, prescriptions, and clinical notes. Organise by hospital or doctor. Your complete history, one place.</p>
       </div>
       <div class="reveal d2">
-        <div style="position:relative;display:inline-block;margin-bottom:24px">
-          <div style="width:56px;height:56px;border-radius:18px;background:linear-gradient(135deg,#0B7E8A,#0ca8b9);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(11,126,138,.22)">
-            <i data-lucide="send" style="width:24px;height:24px;color:white;stroke-width:2"></i>
-          </div>
-          <div style="position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:#0B7E8A;display:flex;align-items:center;justify-content:center">
-            <span style="color:#fff;font-size:10px;font-weight:900">3</span>
-          </div>
+        <div class="step-num">
+          <i data-lucide="share-2" style="width:24px;height:24px;color:var(--teal);stroke-width:2"></i>
+          <span class="step-badge">3</span>
         </div>
-        <h3 style="font-size:20px;font-weight:800;color:#0f1923;margin-bottom:12px">Share with any doctor</h3>
-        <p style="color:#9AA3AE;font-size:14px;line-height:1.75">When you see a doctor, share your exact records with one tap. You control what they see and for how long — revoke access any time.</p>
+        <h3 style="font-size:19px;font-weight:700;color:var(--ink);margin-bottom:10px">Connect &amp; share</h3>
+        <p style="color:var(--muted);font-size:14px;line-height:1.75">Book a doctor, share your records in one tap, get AI guidance, or trigger an emergency alert. You're in full control.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════
-     EARLY ACCESS
-═══════════════════════════════ -->
-<section id="early-access" style="padding:112px 0;background:#f8fafb">
-  <div style="max-width:460px;margin:0 auto;padding:0 24px;text-align:center">
-    <div class="section-label reveal" style="display:inline-flex;margin-bottom:24px">
-      <span class="pulse" style="width:6px;height:6px;border-radius:50%;background:#0B7E8A;display:inline-block"></span>
-      Waitlist Open
+<!-- ════════════════════════════
+     WAITLIST
+════════════════════════════ -->
+<section class="waitlist-section" id="waitlist">
+  <div class="container">
+    <div class="section-heading">
+      <div class="label reveal" style="display:inline-flex;margin-bottom:12px">
+        <span class="hero-badge-dot" style="background:var(--teal)"></span>
+        Waitlist Open
+      </div>
+      <h2 class="reveal d1">Be among the first<br/><span style="color:var(--teal)">to use Hbridge</span></h2>
+      <p class="reveal d2">Join the waitlist and get priority access when we launch. Choose your role below.</p>
     </div>
-    <h2 class="reveal d1" style="font-size:40px;font-weight:900;letter-spacing:-.025em;line-height:1.1;margin-bottom:16px">
-      Be first to access<br/><span style="color:#0B7E8A">Hbridge EMR</span>
-    </h2>
-    <p class="reveal d2" style="font-size:15px;line-height:1.75;color:#9AA3AE;margin-bottom:40px">
-      Register now for priority early access when we launch, launch-day pricing, and to help shape the product as a beta tester.
-    </p>
-    <form id="wl-form" class="reveal d3" style="display:flex;flex-direction:column;gap:12px;text-align:left">
-      <input type="text"  id="wl-name"  placeholder="Full name"               class="form-input" />
-      <input type="email" id="wl-email" placeholder="Email address" required   class="form-input" />
-      <input type="tel"   id="wl-phone" placeholder="Phone number (optional)"  class="form-input" />
-      <button type="submit" id="wl-btn" class="btn-teal">
-        Get Early Access
-        <i data-lucide="arrow-right" style="width:16px;height:16px;stroke-width:2.5"></i>
-      </button>
-      <p id="wl-msg" class="hidden" style="font-size:13px;text-align:center;margin-top:4px"></p>
-    </form>
-    <p class="reveal" style="font-size:12px;color:#C9D0D9;margin-top:20px">No spam. Unsubscribe any time. Your spot is free.</p>
+
+    <!-- Live metrics -->
+    <div class="waitlist-metrics reveal">
+      <div class="metric-pill">
+        <span class="metric-dot" style="background:var(--teal)"></span>
+        <span id="m-patients" style="font-size:14px;font-weight:700;color:var(--ink)">—</span>
+        <span style="font-size:13px;color:var(--muted)">patients</span>
+      </div>
+      <div class="metric-pill">
+        <span class="metric-dot" style="background:#7C3AED"></span>
+        <span id="m-doctors" style="font-size:14px;font-weight:700;color:var(--ink)">—</span>
+        <span style="font-size:13px;color:var(--muted)">doctors</span>
+      </div>
+      <div class="metric-pill">
+        <span class="metric-dot" style="background:#16A34A"></span>
+        <span id="m-hospitals" style="font-size:14px;font-weight:700;color:var(--ink)">—</span>
+        <span style="font-size:13px;color:var(--muted)">hospitals</span>
+      </div>
+    </div>
+
+    <div class="waitlist-card reveal d1">
+      <h3 style="font-size:20px;font-weight:700;color:var(--ink);margin-bottom:6px">Join the Waitlist</h3>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:24px">Free. No credit card. Early access when we launch.</p>
+
+      <!-- Role selector -->
+      <div class="role-tabs">
+        <button class="role-tab active" data-role="patient">
+          <i data-lucide="user" style="width:14px;height:14px;stroke-width:2;display:inline-block;vertical-align:middle;margin-right:4px"></i>
+          Patient
+        </button>
+        <button class="role-tab" data-role="doctor">
+          <i data-lucide="stethoscope" style="width:14px;height:14px;stroke-width:2;display:inline-block;vertical-align:middle;margin-right:4px"></i>
+          Doctor
+        </button>
+        <button class="role-tab" data-role="hospital">
+          <i data-lucide="building-2" style="width:14px;height:14px;stroke-width:2;display:inline-block;vertical-align:middle;margin-right:4px"></i>
+          Hospital
+        </button>
+      </div>
+
+      <form id="wl-form">
+        <div class="form-group">
+          <input type="text"  id="wl-name"     class="form-input" placeholder="Full name" />
+          <input type="email" id="wl-email"    class="form-input" placeholder="Email address" required />
+          <input type="tel"   id="wl-phone"    class="form-input" placeholder="Phone number (optional)" />
+
+          <!-- Doctor-only -->
+          <select id="wl-specialty" class="form-select field-hidden">
+            <option value="">Select your specialty</option>
+            <option>General Practitioner</option>
+            <option>Cardiologist</option>
+            <option>Dermatologist</option>
+            <option>Gynaecologist</option>
+            <option>Neurologist</option>
+            <option>Oncologist</option>
+            <option>Ophthalmologist</option>
+            <option>Orthopaedic Surgeon</option>
+            <option>Paediatrician</option>
+            <option>Psychiatrist</option>
+            <option>Radiologist</option>
+            <option>Surgeon</option>
+            <option>Urologist</option>
+            <option>Other</option>
+          </select>
+
+          <!-- Hospital-only -->
+          <input type="text" id="wl-hospital-name" class="form-input field-hidden" placeholder="Hospital / clinic name" />
+          <input type="text" id="wl-hospital-state" class="form-input field-hidden" placeholder="State (e.g. Lagos, Abuja)" />
+
+          <button type="submit" id="wl-btn" class="btn btn-teal btn-full" style="margin-top:4px">
+            Join Waitlist
+            <i data-lucide="arrow-right" style="width:15px;height:15px;stroke-width:2.5"></i>
+          </button>
+          <p id="wl-msg" class="wl-msg"></p>
+        </div>
+      </form>
+
+      <p style="font-size:11px;color:#C9D0D9;text-align:center;margin-top:16px">No spam. Unsubscribe any time.</p>
+    </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════
+<!-- ════════════════════════════
      FOOTER
-═══════════════════════════════ -->
-<footer style="background:#042f35;padding:64px 0 40px">
-  <div class="max-w-7xl mx-auto px-6 lg:px-10">
-    <div style="display:flex;flex-direction:column;gap:48px;margin-bottom:48px">
-      <div style="display:flex;flex-direction:row;justify-content:space-between;gap:48px;flex-wrap:wrap">
-        <div style="max-width:260px">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
-            <div style="width:36px;height:36px;border-radius:50%;overflow:hidden;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-              <img src="logo.png" alt="Hbridge" style="width:26px;height:26px;object-fit:contain" />
-            </div>
-            <span style="color:#fff;font-size:17px;font-weight:900;letter-spacing:-.02em">Hbridge</span>
+════════════════════════════ -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="footer-logo">
+          <div class="footer-logo-img">
+            <img src="logo.png" alt="Hbridge" />
           </div>
-          <p style="color:rgba(255,255,255,.35);font-size:13px;line-height:1.75">Electronic Medical Records for Nigeria — putting your health history in your pocket.</p>
+          <span style="color:#fff;font-size:18px;font-weight:700;letter-spacing:-.02em">Hbridge</span>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(3,auto);gap:48px">
-          <div>
-            <p style="color:#fff;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px">Product</p>
-            <ul style="display:flex;flex-direction:column;gap:10px;list-style:none;padding:0;margin:0">
-              <li><a href="#features"     class="footer-link">EMR Vault</a></li>
-              <li><a href="#features"     class="footer-link">Consultations</a></li>
-              <li><a href="#how-it-works" class="footer-link">How It Works</a></li>
-              <li><a href="#early-access" class="footer-link">Early Access</a></li>
-            </ul>
-          </div>
-          <div>
-            <p style="color:#fff;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px">Company</p>
-            <ul style="display:flex;flex-direction:column;gap:10px;list-style:none;padding:0;margin:0">
-              <li><a href="#about"        class="footer-link">About Hbridge</a></li>
-              <li><a href="#about"        class="footer-link">Our Mission</a></li>
-              <li><a href="#early-access" class="footer-link">Join the Team</a></li>
-            </ul>
-          </div>
-          <div>
-            <p style="color:#fff;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px">Contact</p>
-            <ul style="display:flex;flex-direction:column;gap:10px;list-style:none;padding:0;margin:0">
-              <li><a href="mailto:hbridgenigeria@gmail.com" class="footer-link" style="word-break:break-all">hbridgenigeria@gmail.com</a></li>
-              <li><a href="#early-access" class="footer-link">Support</a></li>
-            </ul>
-          </div>
+        <p style="color:rgba(255,255,255,.35);font-size:13px;line-height:1.75;margin-bottom:20px">
+          Nigeria's complete healthcare platform — connecting patients, doctors, and hospitals on one secure platform.
+        </p>
+        <p style="font-size:12px;color:rgba(255,255,255,.2)">Built in Nigeria, for Nigerians.</p>
+      </div>
+
+      <div class="footer-links-grid">
+        <div>
+          <p class="footer-col-title">Platform</p>
+          <a href="/features"    class="footer-link" data-nav="/features">EMR Vault</a>
+          <a href="/features"    class="footer-link" data-nav="/features">Consultations</a>
+          <a href="/features"    class="footer-link" data-nav="/features">Appointments</a>
+          <a href="/features"    class="footer-link" data-nav="/features">Emergency</a>
+          <a href="/features"    class="footer-link" data-nav="/features">AI Assistant</a>
+        </div>
+        <div>
+          <p class="footer-col-title">For</p>
+          <a href="/for-doctors" class="footer-link" data-nav="/for-doctors">Doctors</a>
+          <a href="/hospitals"   class="footer-link" data-nav="/hospitals">Hospitals</a>
+          <a href="/waitlist"    class="footer-link" data-nav="/waitlist">Patients</a>
+          <a href="/how-it-works" class="footer-link" data-nav="/how-it-works">How It Works</a>
+        </div>
+        <div>
+          <p class="footer-col-title">Company</p>
+          <a href="/about"  class="footer-link" data-nav="/about">About Hbridge</a>
+          <a href="/waitlist" class="footer-link" data-nav="/waitlist">Join Waitlist</a>
+          <a href="mailto:hbridgenigeria@gmail.com" class="footer-link">Contact Us</a>
+          <a href="mailto:hbridgenigeria@gmail.com" class="footer-link">Support</a>
         </div>
       </div>
     </div>
-    <div style="border-top:1px solid rgba(255,255,255,.08);padding-top:32px;display:flex;flex-direction:row;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
-      <p style="color:rgba(255,255,255,.18);font-size:12px">&copy; 2026 Hbridge Technologies Ltd. All rights reserved.</p>
-      <p style="color:rgba(255,255,255,.18);font-size:12px">Built in Nigeria for Nigerians</p>
+
+    <div class="footer-bottom">
+      <p style="color:rgba(255,255,255,.18);font-size:12px">&copy; 2026 Hbridge Nigeria. All rights reserved.</p>
+      <p style="color:rgba(255,255,255,.18);font-size:12px">hbridgenigeria@gmail.com</p>
     </div>
   </div>
 </footer>
 
-<!-- ═══════════════════════════════
+<!-- ════════════════════════════
      SCRIPTS
-═══════════════════════════════ -->
+════════════════════════════ -->
 <script>
-  // Mark body ready so reveal animations activate (text shows even if this errors)
-  document.body.classList.add('js-ready');
+  // Supabase config
+  const SB_URL  = 'https://vapoyosssxnprxznnfgb.supabase.co';
+  const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhcG95b3Nzc3hucHJ4em5uZmdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzNTM3MDgsImV4cCI6MjA4MTkyOTcwOH0.kM-qHB-K4xU0pFsh2_Eb2MlZf9gG9diD-0TGNxIaceM';
 
-  // Init Lucide icons
-  if (typeof lucide !== 'undefined') lucide.createIcons();
+  // ── Init Lucide icons ──────────────────────
+  lucide.createIcons();
 
-  // Mobile menu
-  document.getElementById('menu-btn').addEventListener('click', () => {
-    document.getElementById('mobile-menu').classList.toggle('hidden');
-  });
-  function closeMobileMenu() {
-    document.getElementById('mobile-menu').classList.add('hidden');
-  }
-
-  // Navbar scroll
-  const nav       = document.getElementById('nav');
-  const logoText  = document.getElementById('logo-text');
-  const logoRing  = document.getElementById('nav-logo-ring');
-  const updateNav = () => {
-    const s = window.scrollY > 48;
-    nav.classList.toggle('scrolled', s);
-    if (!s) logoText.style.color = '#ffffff';
-    logoRing.style.background   = s ? '#0B7E8A' : 'rgba(255,255,255,.14)';
-    logoRing.style.borderColor  = s ? '#0B7E8A' : 'rgba(255,255,255,.22)';
-  };
+  // ── Navbar scroll ──────────────────────────
+  const nav = document.getElementById('nav');
+  const updateNav = () => nav.classList.toggle('scrolled', window.scrollY > 48);
   window.addEventListener('scroll', updateNav, { passive: true });
   updateNav();
 
-  // Scroll reveal
-  const ro = new IntersectionObserver(entries =>
-    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); })
-  , { threshold: 0.08 });
+  // ── Mobile menu ────────────────────────────
+  document.getElementById('menu-btn').addEventListener('click', () => {
+    document.getElementById('mobile-menu').classList.toggle('open');
+  });
+
+  // ── Clean URL routing (no # in URLs) ───────
+  const SECTION_MAP = {
+    '/':           'home',
+    '/about':      'about',
+    '/features':   'features',
+    '/for-doctors':'for-doctors',
+    '/hospitals':  'hospitals',
+    '/how-it-works':'how-it-works',
+    '/waitlist':   'waitlist',
+  };
+
+  function navigateTo(path, push) {
+    const sectionId = SECTION_MAP[path] || 'home';
+    const el = document.getElementById(sectionId);
+    if (el) {
+      const top = el.getBoundingClientRect().top + window.scrollY - 72;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      if (push !== false) {
+        try { history.pushState({ path }, '', path); } catch(_) {}
+      }
+    }
+    document.getElementById('mobile-menu').classList.remove('open');
+  }
+
+  // Intercept all [data-nav] link clicks
+  document.querySelectorAll('[data-nav]').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      navigateTo(this.getAttribute('data-nav'));
+    });
+  });
+
+  // Handle browser back/forward
+  window.addEventListener('popstate', function(e) {
+    if (e.state && e.state.path) navigateTo(e.state.path, false);
+  });
+
+  // On load — scroll to section based on URL path
+  (function() {
+    var path = window.location.pathname;
+    if (path && path !== '/') {
+      setTimeout(function() { navigateTo(path, false); }, 150);
+    }
+  })();
+
+  // ── Scroll reveal ──────────────────────────
+  const ro = new IntersectionObserver(
+    entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); }),
+    { threshold: 0.08 }
+  );
   document.querySelectorAll('.reveal').forEach(el => ro.observe(el));
 
-  // Active nav indicator
-  const secs    = ['about','features','how-it-works','early-access'];
-  const navLinks = document.querySelectorAll('.nav-link[data-s]');
-  const setAct   = id => navLinks.forEach(a => a.classList.toggle('active', a.dataset.s === id));
-  const so = new IntersectionObserver(entries =>
-    entries.forEach(e => { if (e.isIntersecting) setAct(e.target.id); })
-  , { threshold: 0.4, rootMargin: '-80px 0px -35% 0px' });
-  secs.forEach(id => { const el = document.getElementById(id); if (el) so.observe(el); });
+  // ── Live waitlist metrics ──────────────────
+  async function countRole(role) {
+    try {
+      const res = await fetch(
+        `${SB_URL}/rest/v1/waitlist?role=eq.${role}&select=id`,
+        { headers: { 'apikey': SB_ANON, 'Authorization': 'Bearer ' + SB_ANON, 'Prefer': 'count=exact' } }
+      );
+      if (!res.ok) return 0;
+      const range = res.headers.get('Content-Range');
+      if (range && range.includes('/')) return parseInt(range.split('/')[1]) || 0;
+      // fallback: count returned rows
+      try { const rows = await res.json(); return Array.isArray(rows) ? rows.length : 0; } catch { return 0; }
+    } catch { return 0; }
+  }
 
-  // Waitlist form
-  const SUPABASE_URL  = 'https://vapoyosssxnprxznnfgb.supabase.co';
-  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhcG95b3Nzc3hucHJ4em5uZmdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzNTM3MDgsImV4cCI6MjA4MTkyOTcwOH0.kM-qHB-K4xU0pFsh2_Eb2MlZf9gG9diD-0TGNxIaceM';
+  async function loadMetrics() {
+    try {
+      const [p, d, h] = await Promise.all([
+        countRole('patient'), countRole('doctor'), countRole('hospital')
+      ]);
+      const fmt = function(n) { return n > 0 ? n.toLocaleString() : '0'; };
+      document.getElementById('stat-patients').textContent  = fmt(p);
+      document.getElementById('stat-doctors').textContent   = fmt(d);
+      document.getElementById('stat-hospitals').textContent = fmt(h);
+      document.getElementById('m-patients').textContent  = fmt(p);
+      document.getElementById('m-doctors').textContent   = fmt(d);
+      document.getElementById('m-hospitals').textContent = fmt(h);
+    } catch(e) { /* metrics fail silently */ }
+  }
+  loadMetrics();
 
+  // ── Role tabs ──────────────────────────────
+  let currentRole = 'patient';
+  const roleTabs = document.querySelectorAll('.role-tab');
+  const specialtyField    = document.getElementById('wl-specialty');
+  const hospitalNameField = document.getElementById('wl-hospital-name');
+  const hospitalStateField = document.getElementById('wl-hospital-state');
+
+  function switchRole(role) {
+    currentRole = role;
+    roleTabs.forEach(t => t.classList.toggle('active', t.dataset.role === role));
+    specialtyField.classList.toggle('field-hidden', role !== 'doctor');
+    hospitalNameField.classList.toggle('field-hidden', role !== 'hospital');
+    hospitalStateField.classList.toggle('field-hidden', role !== 'hospital');
+    lucide.createIcons();
+  }
+
+  roleTabs.forEach(tab => {
+    tab.addEventListener('click', () => switchRole(tab.dataset.role));
+  });
+
+  // ── Waitlist form ──────────────────────────
   document.getElementById('wl-form').addEventListener('submit', async e => {
     e.preventDefault();
     const btn   = document.getElementById('wl-btn');
@@ -864,37 +1423,65 @@
     const email = document.getElementById('wl-email').value.trim();
     const name  = document.getElementById('wl-name').value.trim();
     const phone = document.getElementById('wl-phone').value.trim();
+    const specialty    = currentRole === 'doctor'   ? specialtyField.value : null;
+    const hospitalName = currentRole === 'hospital' ? hospitalNameField.value.trim() : null;
+    const hospitalState = currentRole === 'hospital' ? hospitalStateField.value.trim() : null;
+
     if (!email) return;
     btn.disabled = true;
-    btn.innerHTML = 'Registering&hellip;';
+    btn.textContent = 'Joining…';
+
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/waitlist`, {
+      const payload = {
+        email,
+        name: name || null,
+        phone: phone || null,
+        role: currentRole,
+        specialty: specialty || null,
+        hospital_name: hospitalName || null,
+        hospital_state: hospitalState || null,
+      };
+
+      const res = await fetch(`${SB_URL}/rest/v1/waitlist`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': SUPABASE_ANON,
-          'Authorization': 'Bearer ' + SUPABASE_ANON,
+          'apikey': SB_ANON,
+          'Authorization': 'Bearer ' + SB_ANON,
           'Prefer': 'return=minimal'
         },
-        body: JSON.stringify({ email, name: name || null, phone: phone || null })
+        body: JSON.stringify(payload)
       });
+
       if (res.status === 201 || res.status === 200) {
-        msg.textContent = "You're registered. We'll reach out before launch.";
-        msg.style.color = '#0B7E8A'; msg.style.fontWeight = '500';
+        msg.textContent = "You're on the list! We'll reach out before launch.";
+        msg.style.color = '#0B7E8A';
         document.getElementById('wl-form').reset();
+        switchRole('patient');
+        loadMetrics(); // refresh counts
       } else if (res.status === 409) {
         msg.textContent = "You're already on the list.";
         msg.style.color = '#D97706';
-      } else throw new Error();
+      } else {
+        throw new Error();
+      }
     } catch {
       msg.textContent = 'Something went wrong. Please try again.';
       msg.style.color = '#DC2626';
     } finally {
-      msg.classList.remove('hidden');
       btn.disabled = false;
-      btn.innerHTML = 'Get Early Access <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline-block;vertical-align:middle"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+      btn.innerHTML = 'Join Waitlist <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline-block;vertical-align:middle"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
     }
   });
+
+  // ── Responsive about grid ──────────────────
+  function fixAboutGrid() {
+    const grid = document.querySelector('.rg-about');
+    if (!grid) return;
+    grid.style.gridTemplateColumns = window.innerWidth < 768 ? '1fr' : '1fr 1fr';
+  }
+  fixAboutGrid();
+  window.addEventListener('resize', fixAboutGrid);
 </script>
 
 </body>
