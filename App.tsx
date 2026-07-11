@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { Text, View, Animated, Image, Easing } from 'react-native';
+import { Text, View, Animated, Image, Easing, TouchableOpacity, AppState, Modal, StyleSheet, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { Linking } from 'react-native';
+import * as LocalAuthentication from 'expo-local-authentication';
 import { supabase } from './src/lib/supabase';
 import { ToastProvider, useToast } from './src/components/ToastProvider';
 import { ChatBadgeProvider, useChatBadge } from './src/context/ChatBadgeContext';
@@ -64,6 +66,7 @@ import MessagesScreen from './src/screens/MessagesScreen';
 import ConversationScreen from './src/screens/ConversationScreen';
 import AIChatScreen from './src/screens/AIChatScreen';
 import FloatingAIChat from './src/components/FloatingAIChat';
+import OnboardingScreen from './src/screens/OnboardingScreen';
 
 import { DEV_SCREENS, isDevelopment } from './src/utils/devScreens';
 
@@ -82,29 +85,96 @@ type UserType = 'patient' | 'doctor' | 'hospital_admin';
 import { ErrorHandler } from './src/utils/errorHandler';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 
+// Prevents TabNavigator from re-navigating to Onboarding during the same app process session
+let _obAlreadyNavigated = false;
+
+function BiometricLockScreen({ onUnlock }: { onUnlock: () => void }) {
+  const [checking, setChecking] = React.useState(false);
+
+  const tryUnlock = async () => {
+    setChecking(true);
+    try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled  = await LocalAuthentication.isEnrolledAsync();
+      if (hasHardware && isEnrolled) {
+        const result = await LocalAuthentication.authenticateAsync({
+          promptMessage: 'Verify your identity to continue',
+          fallbackLabel: 'Use PIN',
+          cancelLabel: 'Cancel',
+          disableDeviceFallback: false,
+        });
+        if (result.success) { onUnlock(); return; }
+      } else {
+        // No biometric enrolled — unlock directly
+        onUnlock();
+      }
+    } catch { /* ignore */ }
+    setChecking(false);
+  };
+
+  React.useEffect(() => { tryUnlock(); }, []);
+
+  return (
+    <View style={lockStyles.overlay}>
+      <View style={lockStyles.card}>
+        <View style={lockStyles.iconWrap}>
+          <Ionicons name="lock-closed" size={36} color="#0B7E8A" />
+        </View>
+        <Text style={lockStyles.title}>App Locked</Text>
+        <Text style={lockStyles.sub}>You were away for a while.{'\n'}Verify your identity to continue.</Text>
+        <TouchableOpacity style={lockStyles.btn} onPress={tryUnlock} disabled={checking}>
+          <Ionicons name="finger-print" size={20} color="#fff" />
+          <Text style={lockStyles.btnText}>{checking ? 'Verifying…' : 'Unlock'}</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+const lockStyles = StyleSheet.create({
+  overlay:  { ...StyleSheet.absoluteFillObject, backgroundColor: '#083236', alignItems: 'center', justifyContent: 'center', zIndex: 9999 },
+  card:     { backgroundColor: '#F5F3EE', borderRadius: 28, padding: 36, alignItems: 'center', width: '80%', gap: 12 },
+  iconWrap: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(11,126,138,0.10)', alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  title:    { fontSize: 22, fontFamily: 'Montserrat_700Bold', color: '#0C2E30' },
+  sub:      { fontSize: 13, fontFamily: 'SpaceGrotesk_400Regular', color: '#6B7E7F', textAlign: 'center', lineHeight: 20 },
+  btn:      { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#0B7E8A', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 28, marginTop: 8 },
+  btnText:  { fontSize: 15, fontFamily: 'Montserrat_700Bold', color: '#fff' },
+});
+
 function SpinningLogo() {
-  const scale = React.useRef(new Animated.Value(1)).current;
+  const ring1   = React.useRef(new Animated.Value(0.85)).current;
+  const ring1Op = React.useRef(new Animated.Value(0.6)).current;
+  const logoS   = React.useRef(new Animated.Value(0.92)).current;
   React.useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(scale, { toValue: 1.1, duration: 500, easing: Easing.out(Easing.ease), useNativeDriver: true }),
-        Animated.timing(scale, { toValue: 1,   duration: 500, easing: Easing.in(Easing.ease),  useNativeDriver: true }),
+        Animated.parallel([
+          Animated.timing(ring1,   { toValue: 1.12, duration: 900, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+          Animated.timing(ring1Op, { toValue: 0,    duration: 900, easing: Easing.in(Easing.cubic),  useNativeDriver: true }),
+          Animated.timing(logoS,   { toValue: 1.04, duration: 900, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        ]),
+        Animated.parallel([
+          Animated.timing(ring1,   { toValue: 0.85, duration: 0,   useNativeDriver: true }),
+          Animated.timing(ring1Op, { toValue: 0.6,  duration: 0,   useNativeDriver: true }),
+          Animated.timing(logoS,   { toValue: 0.92, duration: 600, easing: Easing.in(Easing.cubic),  useNativeDriver: true }),
+        ]),
       ])
     ).start();
   }, []);
   return (
-    <Animated.Image
-      source={require('./assets/hbridge3.png')}
-      style={{
-        width: 140,
-        height: 140,
-        borderRadius: 70,
-        borderWidth: 3,
-        borderColor: '#0B7E8A',
-        transform: [{ scale }],
-      }}
-      resizeMode="cover"
-    />
+    <View style={{ width: 140, height: 140, alignItems: 'center', justifyContent: 'center' }}>
+      <Animated.View style={{
+        position: 'absolute', width: 140, height: 140, borderRadius: 70,
+        borderWidth: 1.5, borderColor: 'rgba(11,126,138,0.5)',
+        backgroundColor: 'rgba(11,126,138,0.07)',
+        transform: [{ scale: ring1 }], opacity: ring1Op,
+      }} />
+      <Animated.Image
+        source={require('./assets/hbridge3.png')}
+        style={{ width: 92, height: 92, borderRadius: 46, borderWidth: 2, borderColor: 'rgba(255,255,255,0.15)', transform: [{ scale: logoS }] }}
+        resizeMode="cover"
+      />
+    </View>
   );
 }
 
@@ -116,17 +186,38 @@ export default function App() {
   const [appReady, setAppReady] = useState(false);
   const [lastRoute, setLastRoute] = useState<string>('Main');
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  const [locked, setLocked] = useState(false);
   const navigationRef = React.useRef<any>(null);
+  const bgTimestampRef = useRef<number | null>(null);
+  const LOCK_THRESHOLD_MS = 5 * 60 * 1000; // lock after 5 minutes in background
 
   useEffect(() => {
     // Initialize app immediately - skip heavy validation tests
     initializeTracking();
     loadLastRoute();
     initializeApp();
-    
+
     // Run non-blocking update check in background
     initializeUpdates();
   }, []);
+
+  // Biometric lock: trigger after 5+ minutes in background
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'background' || state === 'inactive') {
+        bgTimestampRef.current = Date.now();
+      } else if (state === 'active') {
+        if (bgTimestampRef.current !== null && session) {
+          const elapsed = Date.now() - bgTimestampRef.current;
+          if (elapsed >= LOCK_THRESHOLD_MS) {
+            setLocked(true);
+          }
+        }
+        bgTimestampRef.current = null;
+      }
+    });
+    return () => sub.remove();
+  }, [session]);
 
   const initializeUpdates = async () => {
     // skipped in dev to avoid slow startup
@@ -202,8 +293,8 @@ export default function App() {
   if (loading) {
     return (
       <SafeAreaProvider>
-        <StatusBar style="dark" backgroundColor="#FFFFFF" />
-        <View style={{ flex: 1, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}>
+        <StatusBar style="light" backgroundColor="#083236" />
+        <View style={{ flex: 1, backgroundColor: '#083236', alignItems: 'center', justifyContent: 'center' }}>
           <SpinningLogo />
         </View>
       </SafeAreaProvider>
@@ -242,8 +333,10 @@ export default function App() {
     const { newRecordsCount } = useRecordsBadge();
     const navigation = useNavigation();
     const [userType, setUserType] = useState<UserType | null>(null);
+    const [userId, setUserId] = useState<string | undefined>(undefined);
     const [showTutorial, setShowTutorial] = useState(false);
     const [profileImage, setProfileImage] = useState<string | null>(null);
+    const cameFromOnboarding = React.useRef(false);
 
     // Keep profile image in tab bar in sync with profile updates
     useEffect(() => {
@@ -266,13 +359,14 @@ export default function App() {
         try {
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) { setUserType('patient'); return; }
+          setUserId(user.id);
 
           // Try up to 3 times — profile may not be written yet on fresh signup
           let profile: any = null;
           for (let attempt = 0; attempt < 3; attempt++) {
             const { data, error } = await supabase
               .from('profiles')
-              .select('user_type, profile_image')
+              .select('user_type, profile_image, onboarding_complete')
               .eq('id', user.id)
               .maybeSingle();
 
@@ -281,10 +375,30 @@ export default function App() {
           }
 
           const type = (profile?.user_type as UserType) || 'patient';
-          console.log('[TabNav] user_type from DB:', type);
           setUserType(type);
           setProfileImage(profile?.profile_image || null);
-          setShowTutorial(true);
+
+          // New users go through onboarding first; tutorial shows when they return
+          // _obAlreadyNavigated prevents re-sending if TabNavigator somehow remounts
+          if (profile?.onboarding_complete === false && !_obAlreadyNavigated) {
+            _obAlreadyNavigated = true;
+            cameFromOnboarding.current = true;
+            // Clear any stale tour flag so it doesn't fire while onboarding is still showing
+            await AsyncStorage.removeItem('spotlight_pending');
+            (navigation as any).navigate('Onboarding');
+            return;
+          }
+
+          // Only show tutorial once — check if this user has already seen it
+          const tutorialKey = `tutorial_seen_${user.id}`;
+          const alreadySeen = await AsyncStorage.getItem(tutorialKey);
+          if (!alreadySeen) {
+            await AsyncStorage.setItem(tutorialKey, 'true');
+            if (type === 'patient') {
+              await AsyncStorage.setItem('spotlight_pending', 'true');
+            }
+            setShowTutorial(true);
+          }
         } catch (error) {
           console.error('Error getting user type:', ErrorHandler.sanitizeError(error));
           setUserType('patient');
@@ -293,34 +407,47 @@ export default function App() {
       getUserType();
     }, []);
 
+    // Show tutorial after returning from onboarding
+    useEffect(() => {
+      const unsubscribe = (navigation as any).addListener('focus', () => {
+        if (cameFromOnboarding.current) {
+          cameFromOnboarding.current = false;
+          setShowTutorial(true);
+        }
+      });
+      return unsubscribe;
+    }, [navigation]);
+
     // Show loading until user type is determined
     if (userType === null) {
       return (
-        <View style={{ flex: 1, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ flex: 1, backgroundColor: '#083236', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
           <SpinningLogo />
+          <ActivityIndicator size="small" color="rgba(255,255,255,0.55)" />
         </View>
       );
     }
 
     const PATIENT_TABS = [
-      { name: 'Home',    activeIcon: 'home',               inactiveIcon: 'home-outline' },
-      { name: 'Explore', activeIcon: 'location',           inactiveIcon: 'location-outline' },
-      { name: 'Chat',   activeIcon: 'chatbubble-ellipses', inactiveIcon: 'chatbubble-ellipses-outline' },
-      { name: 'Records', activeIcon: 'documents',          inactiveIcon: 'documents-outline' },
-      { name: 'Profile', activeIcon: 'person',             inactiveIcon: 'person-outline' },
+      { name: 'Home',    label: 'Home',    activeIcon: 'home',               inactiveIcon: 'home-outline' },
+      { name: 'Explore', label: 'Explore', activeIcon: 'location',           inactiveIcon: 'location-outline' },
+      { name: 'Records', label: 'Records', activeIcon: 'folder-open',        inactiveIcon: 'folder-open-outline' },
+      { name: 'Chat',    label: 'Chat',    activeIcon: 'chatbubble-ellipses', inactiveIcon: 'chatbubble-ellipses-outline' },
+      { name: 'Profile', label: 'Profile', activeIcon: 'person',             inactiveIcon: 'person-outline' },
     ];
 
     const DOCTOR_TABS = [
-      { name: 'DoctorHome',    activeIcon: 'home',               inactiveIcon: 'home-outline' },
-      { name: 'Search',        activeIcon: 'business',           inactiveIcon: 'business-outline' },
-      { name: 'DoctorMessages', activeIcon: 'chatbubble-ellipses', inactiveIcon: 'chatbubble-ellipses-outline' },
-      { name: 'Patients',      activeIcon: 'people',             inactiveIcon: 'people-outline' },
-      { name: 'Profile',       activeIcon: 'person',             inactiveIcon: 'person-outline' },
+      { name: 'DoctorHome',      label: 'Home',     activeIcon: 'home',               inactiveIcon: 'home-outline' },
+      { name: 'Patients',        label: 'Patients', activeIcon: 'people',             inactiveIcon: 'people-outline' },
+      { name: 'DoctorCaseFiles', label: 'Records',  activeIcon: 'folder-open',        inactiveIcon: 'folder-open-outline' },
+      { name: 'DoctorMessages',  label: 'Messages', activeIcon: 'chatbubble-ellipses', inactiveIcon: 'chatbubble-ellipses-outline' },
+      { name: 'Profile',         label: 'Profile',  activeIcon: 'person',             inactiveIcon: 'person-outline' },
     ];
 
     const sharedTabOptions = {
       headerShown: false,
       tabBarShowLabel: false,
+      lazy: false,
     };
 
     // Patient Navigation
@@ -341,14 +468,12 @@ export default function App() {
             screenOptions={sharedTabOptions}
           >
             <Tab.Screen name="Home">{() => <HomeScreen navigation={navigation} />}</Tab.Screen>
-            <Tab.Screen name="Explore">{() => <SearchScreen navigation={navigation} />}</Tab.Screen>
-            <Tab.Screen name="Chat">{() => <ChatScreen navigation={navigation} />}</Tab.Screen>
+            <Tab.Screen name="Explore">{(props) => <SearchScreen navigation={navigation} route={props.route} />}</Tab.Screen>
             <Tab.Screen name="Records">{() => <MedicalRecordsScreen navigation={navigation} />}</Tab.Screen>
+            <Tab.Screen name="Chat">{() => <ChatScreen navigation={navigation} />}</Tab.Screen>
             <Tab.Screen name="Profile">{() => <ProfileScreen navigation={navigation} />}</Tab.Screen>
           </Tab.Navigator>
-          {showTutorial && (
-            <TutorialOverlay userType="patient" onComplete={() => setShowTutorial(false)} />
-          )}
+          {/* SpotlightTour for patients is rendered inside HomeScreen, triggered via AsyncStorage 'spotlight_pending' */}
         </>
       );
     }
@@ -365,37 +490,51 @@ export default function App() {
                 tabs={DOCTOR_TABS}
                 badges={{
                   DoctorMessages: unreadCount > 0 ? unreadCount : undefined,
-                  Patients: newRecordsCount > 0 ? 'gold' : undefined,
+                  DoctorCaseFiles: newRecordsCount > 0 ? newRecordsCount : undefined,
                 }}
               />
             )}
             screenOptions={sharedTabOptions}
           >
             <Tab.Screen name="DoctorHome">{() => <DoctorHomeScreen navigation={navigation} />}</Tab.Screen>
-            <Tab.Screen name="Search">{() => <SearchScreen navigation={navigation} />}</Tab.Screen>
-            <Tab.Screen name="DoctorMessages">{() => <MessagesScreen navigation={navigation} />}</Tab.Screen>
             <Tab.Screen name="Patients">{() => <DoctorPatientsScreen navigation={navigation} />}</Tab.Screen>
+            <Tab.Screen name="DoctorCaseFiles">{() => <DoctorCaseFilesScreen navigation={navigation} />}</Tab.Screen>
+            <Tab.Screen name="DoctorMessages">{() => <MessagesScreen navigation={navigation} />}</Tab.Screen>
             <Tab.Screen name="Profile">{() => <ProfileScreen navigation={navigation} />}</Tab.Screen>
           </Tab.Navigator>
           {showTutorial && (
-            <TutorialOverlay userType="doctor" onComplete={() => setShowTutorial(false)} />
+            <TutorialOverlay userType="doctor" userId={userId} onComplete={() => setShowTutorial(false)} />
           )}
         </>
       );
     }
 
-    // Hospital Admin - No tabs, direct to command center
+    // Hospital Admin - redirect to web dashboard
     if (userType === 'hospital_admin') {
       return (
-        <>
-          <HospitalCommandCenterScreen navigation={navigation} />
-          {showTutorial && (
-            <TutorialOverlay 
-              userType="hospital_admin" 
-              onComplete={() => setShowTutorial(false)} 
-            />
-          )}
-        </>
+        <View style={{ flex: 1, backgroundColor: '#083236', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+          <Image source={require('./assets/hbridge3.png')} style={{ width: 80, height: 80, borderRadius: 40, marginBottom: 28 }} resizeMode="cover" />
+          <Text style={{ fontSize: 22, fontFamily: 'Montserrat_700Bold', color: '#fff', textAlign: 'center', marginBottom: 10 }}>
+            Hospital Dashboard
+          </Text>
+          <Text style={{ fontSize: 14, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(255,255,255,0.65)', textAlign: 'center', lineHeight: 22, marginBottom: 36 }}>
+            The hospital admin dashboard is available on the web. Open the link below on your browser to manage your hospital.
+          </Text>
+          <View style={{ width: '100%', gap: 12 }}>
+            <TouchableOpacity
+              style={{ backgroundColor: '#0B7E8A', borderRadius: 14, paddingVertical: 16, alignItems: 'center' }}
+              onPress={() => Linking.openURL('https://hbridge.ng/hospital')}
+            >
+              <Text style={{ fontSize: 15, fontFamily: 'Montserrat_600SemiBold', color: '#fff' }}>Open Web Dashboard</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ borderRadius: 14, paddingVertical: 16, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.10)' }}
+              onPress={() => supabase.auth.signOut()}
+            >
+              <Text style={{ fontSize: 15, fontFamily: 'Montserrat_600SemiBold', color: 'rgba(255,255,255,0.75)' }}>Sign Out</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       );
     }
 
@@ -418,7 +557,8 @@ export default function App() {
   return (
     <ErrorBoundary>
       <SafeAreaProvider>
-        <StatusBar style="dark" backgroundColor="#FFFFFF" />
+        <StatusBar style="light" backgroundColor="transparent" translucent />
+        {locked && <BiometricLockScreen onUnlock={() => setLocked(false)} />}
         <ToastProvider>
           <ChatBadgeProvider>
             <RecordsBadgeProvider>
@@ -477,6 +617,7 @@ export default function App() {
             <Stack.Screen name="Conversation" component={ConversationScreen} />
             <Stack.Screen name="AIChat" component={AIChatScreen} />
             <Stack.Screen name="Emergency" component={EmergencyScreen} />
+            <Stack.Screen name="Onboarding" component={OnboardingScreen} options={{ gestureEnabled: false }} />
             
             {/* Development-only screens */}
             {isDevelopment && Object.entries(DEV_SCREENS).map(([name, component]) => (
@@ -485,8 +626,6 @@ export default function App() {
           </Stack.Navigator>
         </NavigationContainer>
         
-        {/* Floating AI Chat - Available throughout the app */}
-        <FloatingAIChat />
         </NotificationBadgeProvider>
         </RecordsBadgeProvider>
         </ChatBadgeProvider>
