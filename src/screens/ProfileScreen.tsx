@@ -705,7 +705,7 @@ export default function ProfileScreen({ navigation }: any) {
           <Text style={s.versionText}>Hbridge v{Constants.expoConfig?.version ?? '1.0.0'}</Text>
         </View>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: 100 }} />
         </View>{/* end paperCard */}
       </ScrollView>
     </SafeAreaView>

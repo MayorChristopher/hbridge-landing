@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
-import * as WebBrowser from 'expo-web-browser';
+import { WebView } from 'react-native-webview';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastProvider';
 
@@ -60,7 +60,7 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
   const [shareMode, setShareMode]       = useState<'doctor'|'hospital'|null>(null);
   const [shareTargets, setShareTargets] = useState<any[]>([]);
   const [shareSearch, setShareSearch]   = useState('');
-  const [sharing, setSharing]           = useState(false);
+  const [sharingId, setSharingId]       = useState<string|null>(null);
 
   useEffect(() => { loadRecords(); }, []);
 
@@ -76,16 +76,6 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
           .is('folder_id', null)
           .order('created_at', { ascending: false });
         setRecords(data || []);
-      } else if (folderType === 'doctor' && linkedId) {
-        // Doctor folder: show records shared via medical_record_access
-        const { data } = await supabase
-          .from('medical_record_access')
-          .select('id, granted_at, is_active, medical_records(id, title, record_type, created_at, file_url, attachment_url)')
-          .eq('patient_id', userId)
-          .eq('doctor_id', linkedId)
-          .eq('is_active', true)
-          .order('granted_at', { ascending: false });
-        setRecords((data || []).map((a: any) => ({ ...a.medical_records, access_id: a.id, granted_at: a.granted_at })));
       } else {
         // Hospital folder: records linked by folder_id
         const { data } = await supabase
@@ -147,7 +137,7 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
       }
       const { data: newRecord, error } = await supabase.from('medical_records').insert({
         user_id: userId,
-        folder_id: (!isPersonal && folderType !== 'doctor') ? folderId : null,
+        folder_id: isPersonal ? null : folderId,
         hospital_id: folderType === 'hospital' ? linkedId : null,
         title: uploadTitle.trim(),
         description: uploadDesc.trim() || null,
@@ -201,7 +191,7 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
   };
 
   const handleShare = async (target: any) => {
-    setSharing(true);
+    setSharingId(target.id);
     try {
       const { error } = await supabase.from('medical_record_access').insert({
         record_id: shareRecord.id,
@@ -218,7 +208,7 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
       const label = shareMode === 'doctor' ? `Dr. ${target.full_name ?? ''}` : (target.name ?? '');
       toast.showSuccess('Shared', `Record shared with ${label}.`);
     } catch(e:any) { toast.showError('Error', e.message); }
-    finally { setSharing(false); }
+    finally { setSharingId(null); }
   };
 
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -241,11 +231,7 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
   const openRecord = (item: any) => {
     const url = item.file_url || item.attachment_url;
     if (!url) return;
-    if (isImage(url)) {
-      setViewerRecord(item);
-    } else {
-      WebBrowser.openBrowserAsync(url);
-    }
+    setViewerRecord(item);
   };
 
   const renderRecord = ({ item }: any) => {
@@ -421,7 +407,7 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
             data={shareTargets} keyExtractor={t=>t.id}
             contentContainerStyle={{padding:16, paddingBottom:40}}
             renderItem={({item})=>(
-              <TouchableOpacity style={s.shareTarget} onPress={()=>handleShare(item)} disabled={sharing}>
+              <TouchableOpacity style={s.shareTarget} onPress={()=>handleShare(item)} disabled={sharingId !== null}>
                 <View style={s.shareTargetIcon}>
                   <Ionicons name={shareMode==='doctor'?'person':'business'} size={20} color={C.teal} />
                 </View>
@@ -433,7 +419,7 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
                     {shareMode==='doctor' ? (item.specialization ?? '') : `${item.city ?? ''}, ${item.state ?? ''}`}
                   </Text>
                 </View>
-                {sharing
+                {sharingId === item.id
                   ? <ActivityIndicator size="small" color={C.teal} />
                   : <Ionicons name="chevron-forward" size={18} color={C.muted} />}
               </TouchableOpacity>
@@ -493,31 +479,56 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
         </View>
       </Modal>
 
-      {/* In-app image viewer */}
-      <Modal visible={!!viewerRecord} animationType="fade" transparent onRequestClose={() => setViewerRecord(null)}>
-        <View style={{ flex:1, backgroundColor:'rgba(0,0,0,0.95)', justifyContent:'center', alignItems:'center' }}>
-          <TouchableOpacity
-            style={{ position:'absolute', top:56, right:20, zIndex:10, backgroundColor:'rgba(255,255,255,0.15)', borderRadius:20, padding:8 }}
-            onPress={() => setViewerRecord(null)}>
-            <Ionicons name="close" size={24} color="#fff" />
-          </TouchableOpacity>
-          {viewerRecord && (
-            <>
-              <Image
-                source={{ uri: viewerRecord.file_url || viewerRecord.attachment_url }}
-                style={{ width: SW, height: SW * 1.3 }}
-                resizeMode="contain"
-              />
-              <View style={{ position:'absolute', bottom:60, left:20, right:20 }}>
-                <Text style={{ color:'#fff', fontSize:16, fontFamily:'Montserrat_600SemiBold', marginBottom:4 }}>{viewerRecord.title}</Text>
-                {!!viewerRecord.description && (
-                  <Text style={{ color:'rgba(255,255,255,0.7)', fontSize:13, fontFamily:'SpaceGrotesk_400Regular', lineHeight:20 }}>{viewerRecord.description}</Text>
-                )}
-                <Text style={{ color:'rgba(255,255,255,0.5)', fontSize:12, marginTop:4 }}>{TYPE_LABELS[viewerRecord.record_type]} · {formatDate(viewerRecord.created_at)}</Text>
+      {/* In-app record viewer */}
+      <Modal visible={!!viewerRecord} animationType="slide" onRequestClose={() => setViewerRecord(null)}>
+        <SafeAreaView style={{ flex:1, backgroundColor:'#000' }} edges={['top']}>
+          {/* Viewer header */}
+          <View style={{ flexDirection:'row', alignItems:'center', paddingHorizontal:16, paddingVertical:12, backgroundColor:'#083236', gap:12 }}>
+            <TouchableOpacity onPress={() => setViewerRecord(null)}
+              style={{ width:36, height:36, borderRadius:18, backgroundColor:'rgba(255,255,255,0.15)', alignItems:'center', justifyContent:'center' }}>
+              <Ionicons name="arrow-back" size={20} color="#fff" />
+            </TouchableOpacity>
+            <View style={{ flex:1 }}>
+              <Text style={{ color:'#fff', fontSize:15, fontFamily:'Montserrat_600SemiBold' }} numberOfLines={1}>{viewerRecord?.title}</Text>
+              <Text style={{ color:'rgba(255,255,255,0.6)', fontSize:12 }}>{viewerRecord ? TYPE_LABELS[viewerRecord.record_type] : ''} · {viewerRecord ? formatDate(viewerRecord.created_at) : ''}</Text>
+            </View>
+          </View>
+
+          {viewerRecord && (() => {
+            const url = viewerRecord.file_url || viewerRecord.attachment_url;
+            if (!url) return (
+              <View style={{ flex:1, alignItems:'center', justifyContent:'center' }}>
+                <Ionicons name="document-outline" size={64} color="#555" />
+                <Text style={{ color:'#888', marginTop:12 }}>No file attached</Text>
               </View>
-            </>
+            );
+            if (isImage(url)) return (
+              <Image source={{ uri: url }} style={{ flex:1 }} resizeMode="contain" />
+            );
+            // PDF and all other types — render via WebView using Google Docs viewer
+            const viewerUrl = `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(url)}`;
+            return (
+              <WebView
+                source={{ uri: viewerUrl }}
+                style={{ flex:1, backgroundColor:'#f5f5f5' }}
+                startInLoadingState
+                renderLoading={() => (
+                  <View style={{ position:'absolute', top:0, left:0, right:0, bottom:0, alignItems:'center', justifyContent:'center', backgroundColor:'#f5f5f5' }}>
+                    <ActivityIndicator size="large" color="#0B7E8A" />
+                    <Text style={{ marginTop:12, color:'#7A8785', fontFamily:'SpaceGrotesk_400Regular' }}>Loading document...</Text>
+                  </View>
+                )}
+              />
+            );
+          })()}
+
+          {/* Description bar at bottom if available */}
+          {!!viewerRecord?.description && (
+            <View style={{ backgroundColor:'#083236', paddingHorizontal:20, paddingVertical:12 }}>
+              <Text style={{ color:'rgba(255,255,255,0.8)', fontSize:13, fontFamily:'SpaceGrotesk_400Regular', lineHeight:20 }}>{viewerRecord.description}</Text>
+            </View>
           )}
-        </View>
+        </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );
