@@ -156,7 +156,7 @@ export default function ProfileScreen({ navigation }: any) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       const profileData: any = {
-        full_name: editForm.full_name.trim(),
+        full_name: editForm.full_name.replace(/^(dr\.?|nurse\.?|prof\.?)\s+/i, '').trim(),
         phone: editForm.phone.trim() || null,
         date_of_birth: editForm.date_of_birth.trim() || null,
         gender: editForm.gender.trim() || null,
@@ -313,6 +313,9 @@ export default function ProfileScreen({ navigation }: any) {
           <ScrollView contentContainerStyle={s.editBody}>
             <Text style={s.fieldLbl}>FULL NAME *</Text>
             <TextInput style={s.fieldInput} value={editForm.full_name} onChangeText={v => setEditForm(f => ({ ...f, full_name: v }))} placeholder="Enter full name" placeholderTextColor={C.muted2} />
+            {profile?.user_type === 'doctor' && (
+              <Text style={s.fieldHint}>Enter your name only — your title will be added automatically</Text>
+            )}
 
             <Text style={s.fieldLbl}>PHONE NUMBER</Text>
             <TextInput style={s.fieldInput} value={editForm.phone} onChangeText={v => setEditForm(f => ({ ...f, phone: v }))} placeholder="e.g. +2348012345678" placeholderTextColor={C.muted2} keyboardType="phone-pad" />
@@ -881,6 +884,7 @@ const s = StyleSheet.create({
   editSave: { fontSize: 14, fontFamily: 'Montserrat_700Bold', color: C.teal },
   editBody: { padding: 20, gap: 6, paddingBottom: 60 },
   fieldLbl: { fontSize: 11, fontFamily: 'Montserrat_700Bold', color: C.muted, marginTop: 16, marginBottom: 5, letterSpacing: 0.8 },
+  fieldHint: { fontSize: 11, fontFamily: 'Montserrat_400Regular', color: C.muted, marginTop: 4, marginLeft: 2 },
   rangeHint: { fontSize: 10, fontFamily: 'SpaceGrotesk_400Regular', color: C.teal, marginTop: 16, marginBottom: 5 },
   fieldInput: {
     backgroundColor: C.card, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12,
