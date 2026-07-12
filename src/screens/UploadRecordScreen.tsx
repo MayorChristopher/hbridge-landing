@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, StatusBar } from 'react-native';
+﻿import React, { useState } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, StatusBar, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
@@ -8,12 +8,19 @@ import { MedicalRecordsService } from '../services/medicalRecordsService';
 import { colors, typography, spacing, components } from '../utils/design';
 import { Toast } from '../utils/toast';
 
+const C = {
+  paper: '#F5F3EE', ink: '#0C2E30', teal: '#0B7E8A', hero: '#083236',
+  gold: '#D4A843', muted: '#6B7E7F', card: '#FFFFFF', border: '#EAE5DA',
+};
+
 export default function UploadRecordScreen({ route, navigation }: any) {
   const { recordType, title } = route.params;
   const [recordTitle, setRecordTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selectedFile, setSelectedFile] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadedRecord, setUploadedRecord] = useState<{ id: string; title: string } | null>(null);
+  const [showSharePrompt, setShowSharePrompt] = useState(false);
 
   const pickDocument = async () => {
     try {
@@ -68,9 +75,9 @@ export default function UploadRecordScreen({ route, navigation }: any) {
         is_sensitive: true,
       });
 
-      if (result.success) {
-        Toast.showSuccess('Record uploaded successfully');
-        navigation.goBack();
+      if (result.success && result.record_id) {
+        setUploadedRecord({ id: result.record_id, title: recordTitle });
+        setShowSharePrompt(true);
       } else {
         Toast.showError(result.message);
       }
@@ -83,7 +90,7 @@ export default function UploadRecordScreen({ route, navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor="#0B7E8A" />
+      <StatusBar barStyle="light-content" backgroundColor="#083236" />
       {/* Teal Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
@@ -159,19 +166,63 @@ export default function UploadRecordScreen({ route, navigation }: any) {
         </TouchableOpacity>
       </ScrollView>
       </View>
+
+      {/* Share prompt after successful upload */}
+      <Modal visible={showSharePrompt} transparent animationType="fade">
+        <View style={shareStyles.overlay}>
+          <View style={shareStyles.card}>
+            <View style={shareStyles.iconCircle}>
+              <Ionicons name="checkmark-circle" size={40} color={C.teal} />
+            </View>
+            <Text style={shareStyles.title}>Record Saved!</Text>
+            <Text style={shareStyles.body}>
+              <Text style={shareStyles.bold}>{uploadedRecord?.title}</Text> has been added to your medical records.{'\n\n'}Would you like to share it with a doctor or hospital now?
+            </Text>
+            <TouchableOpacity
+              style={shareStyles.primaryBtn}
+              onPress={() => {
+                setShowSharePrompt(false);
+                navigation.replace('ShareRecord', { record: { id: uploadedRecord?.id, title: uploadedRecord?.title } });
+              }}
+            >
+              <Ionicons name="share-social-outline" size={18} color="#fff" />
+              <Text style={shareStyles.primaryText}>Share with a Health Worker</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={shareStyles.secondaryBtn}
+              onPress={() => { setShowSharePrompt(false); navigation.goBack(); }}
+            >
+              <Text style={shareStyles.secondaryText}>Not now</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
+const shareStyles = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(8,50,54,0.7)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  card: { backgroundColor: C.card, borderRadius: 24, padding: 28, width: '100%', alignItems: 'center' },
+  iconCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(11,126,138,0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  title: { fontSize: 20, fontFamily: 'Montserrat_700Bold', color: C.ink, marginBottom: 12, textAlign: 'center' },
+  body: { fontSize: 14, fontFamily: 'Montserrat_400Regular', color: C.muted, textAlign: 'center', lineHeight: 22, marginBottom: 24 },
+  bold: { fontFamily: 'Montserrat_600SemiBold', color: C.ink },
+  primaryBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.teal, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20, width: '100%', justifyContent: 'center', marginBottom: 10 },
+  primaryText: { fontSize: 14, fontFamily: 'Montserrat_600SemiBold', color: '#fff' },
+  secondaryBtn: { paddingVertical: 10 },
+  secondaryText: { fontSize: 14, fontFamily: 'Montserrat_500Medium', color: C.muted },
+});
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B7E8A' },
+  container: { flex: 1, backgroundColor: '#083236' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20, gap: 14 },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
   headerIconCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255,255,255,0.2)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)', alignItems: 'center', justifyContent: 'center' },
   headerCenter: { flex: 1 },
-  headerTitle: { fontSize: 26, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
-  headerSub: { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
-  whiteCard: { flex: 1, backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: 'hidden' },
+  headerTitle: { fontSize: 26, fontFamily: 'Montserrat_700Bold', color: '#fff', letterSpacing: -0.3 },
+  headerSub: { fontSize: 14, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+  whiteCard: { flex: 1, backgroundColor: '#F5F3EE', borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
   content: { flex: 1, padding: spacing.lg },
   section: { marginBottom: spacing.xl },
   label: { ...typography.label, color: colors.textPrimary, marginBottom: spacing.sm },
