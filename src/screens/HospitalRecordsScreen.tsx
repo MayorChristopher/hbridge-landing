@@ -1,16 +1,20 @@
 ﻿import React, { useState, useEffect } from 'react';
 import {
   StyleSheet, Text, View, FlatList, TouchableOpacity,
-  ActivityIndicator, RefreshControl, TextInput, Modal, ScrollView, Linking, StatusBar,
+  ActivityIndicator, RefreshControl, TextInput, Modal, ScrollView, StatusBar, Image, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
+import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastProvider';
 
-const C = { bg:'#F5F3EE', surface:'#EDE9E0', card:'#FFFFFF', text:'#0C2E30', muted:'#6B7E7F', border:'#EAE5DA', teal:'#0B7E8A', tealLight:'rgba(11,126,138,0.09)' };
+const { width: SW } = Dimensions.get('window');
+const C = { bg:'#F5F3EE', surface:'#EDE9E0', card:'#FFFFFF', text:'#0C2E30', muted:'#6B7E7F', border:'#EAE5DA', teal:'#0B7E8A', tealLight:'rgba(11,126,138,0.09)', ink:'#0C2E30' };
+
+const isImage = (url?: string) => !!url && /\.(jpg|jpeg|png|webp|gif)(\?|$)/i.test(url);
 
 const TYPE_ICONS: any = {
   lab_result:'flask-outline', imaging:'scan-outline', prescription:'medkit-outline',
@@ -38,11 +42,15 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
   const [searchVisible, setSearchVisible] = useState(false);
 
   // Upload
-  const [uploadVisible, setUploadVisible] = useState(false);
-  const [uploadTitle, setUploadTitle]     = useState('');
-  const [uploadType, setUploadType]       = useState('lab_result');
-  const [uploadFile, setUploadFile]       = useState<any>(null);
-  const [uploading, setUploading]         = useState(false);
+  const [uploadVisible, setUploadVisible]   = useState(false);
+  const [uploadTitle, setUploadTitle]       = useState('');
+  const [uploadDesc, setUploadDesc]         = useState('');
+  const [uploadType, setUploadType]         = useState('lab_result');
+  const [uploadFile, setUploadFile]         = useState<any>(null);
+  const [uploading, setUploading]           = useState(false);
+
+  // In-app viewer
+  const [viewerRecord, setViewerRecord]     = useState<any>(null);
 
   // Action menu
   const [actionItem, setActionItem]     = useState<any>(null);
@@ -142,6 +150,7 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
         folder_id: (!isPersonal && folderType !== 'doctor') ? folderId : null,
         hospital_id: folderType === 'hospital' ? linkedId : null,
         title: uploadTitle.trim(),
+        description: uploadDesc.trim() || null,
         record_type: uploadType,
         file_url: fileUrl,
         attachment_url: fileUrl,
@@ -166,7 +175,7 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
         if (shareError) throw shareError;
       }
 
-      setUploadVisible(false); setUploadTitle(''); setUploadType('lab_result'); setUploadFile(null);
+      setUploadVisible(false); setUploadTitle(''); setUploadDesc(''); setUploadType('lab_result'); setUploadFile(null);
       await loadRecords();
       toast.showSuccess('Uploaded', folderType === 'doctor' ? 'Record saved and shared with doctor.' : 'Record saved successfully.');
     } catch(e:any) { toast.showError('Upload Error', e.message || 'Something went wrong'); }
@@ -229,39 +238,61 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
     ? records.filter(r => r.title.toLowerCase().includes(search.toLowerCase()))
     : records;
 
-  const renderRecord = ({ item }: any) => (
-    <View style={s.card}>
-      <View style={s.cardTop}>
-        <View style={s.cardIcon}>
-          <Ionicons name={(TYPE_ICONS[item.record_type] || 'document-outline') as any} size={20} color={C.teal} />
-        </View>
-        <View style={{ flex:1 }}>
-          <Text style={s.cardTitle} numberOfLines={1}>{item.title}</Text>
-          <Text style={s.cardMeta}>{TYPE_LABELS[item.record_type] || item.record_type} · {formatDate(item.created_at)}</Text>
-          {!!item.doctors?.full_name && <Text style={s.cardDoctor}>Dr. {item.doctors.full_name}</Text>}
-        </View>
-        <TouchableOpacity onPress={() => setActionItem(item)}>
-          <Ionicons name="ellipsis-vertical" size={18} color={C.muted} />
-        </TouchableOpacity>
-      </View>
-      <View style={s.cardActions}>
-        <TouchableOpacity style={s.actionBtn} onPress={()=>openShare(item,'doctor')}>
-          <Ionicons name="person-outline" size={13} color={C.text} />
-          <Text style={s.actionBtnText}>Share to Doctor</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={s.actionBtn} onPress={()=>openShare(item,'hospital')}>
-          <Ionicons name="business-outline" size={13} color={C.text} />
-          <Text style={s.actionBtnText}>Transfer</Text>
-        </TouchableOpacity>
-        {!!item.file_url && (
-          <TouchableOpacity style={[s.actionBtn, s.actionBtnTEAL]} onPress={()=>Linking.openURL(item.file_url)}>
-            <Ionicons name="eye-outline" size={13} color={C.teal} />
-            <Text style={[s.actionBtnText,{color:C.teal}]}>View</Text>
+  const openRecord = (item: any) => {
+    const url = item.file_url || item.attachment_url;
+    if (!url) return;
+    if (isImage(url)) {
+      setViewerRecord(item);
+    } else {
+      WebBrowser.openBrowserAsync(url);
+    }
+  };
+
+  const renderRecord = ({ item }: any) => {
+    const fileUrl = item.file_url || item.attachment_url;
+    const hasImage = isImage(fileUrl);
+    return (
+      <View style={s.card}>
+        {/* Image preview thumbnail */}
+        {hasImage && (
+          <TouchableOpacity onPress={() => openRecord(item)} activeOpacity={0.85}>
+            <Image source={{ uri: fileUrl }} style={s.cardPreview} resizeMode="cover" />
           </TouchableOpacity>
         )}
+        <View style={s.cardTop}>
+          {!hasImage && (
+            <View style={s.cardIcon}>
+              <Ionicons name={(TYPE_ICONS[item.record_type] || 'document-outline') as any} size={20} color={C.teal} />
+            </View>
+          )}
+          <View style={{ flex:1 }}>
+            <Text style={s.cardTitle} numberOfLines={1}>{item.title}</Text>
+            <Text style={s.cardMeta}>{TYPE_LABELS[item.record_type] || item.record_type} · {formatDate(item.created_at)}</Text>
+            {!!item.description && <Text style={s.cardDesc} numberOfLines={2}>{item.description}</Text>}
+          </View>
+          <TouchableOpacity onPress={() => setActionItem(item)}>
+            <Ionicons name="ellipsis-vertical" size={18} color={C.muted} />
+          </TouchableOpacity>
+        </View>
+        <View style={s.cardActions}>
+          <TouchableOpacity style={s.actionBtn} onPress={()=>openShare(item,'doctor')}>
+            <Ionicons name="person-outline" size={13} color={C.text} />
+            <Text style={s.actionBtnText}>Share</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.actionBtn} onPress={()=>openShare(item,'hospital')}>
+            <Ionicons name="business-outline" size={13} color={C.text} />
+            <Text style={s.actionBtnText}>Transfer</Text>
+          </TouchableOpacity>
+          {!!fileUrl && (
+            <TouchableOpacity style={[s.actionBtn, s.actionBtnTEAL]} onPress={() => openRecord(item)}>
+              <Ionicons name="eye-outline" size={13} color={C.teal} />
+              <Text style={[s.actionBtnText,{color:C.teal}]}>View</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   const sharePlaceholder = shareMode === 'doctor' ? 'Search doctors...' : 'Search hospitals...';
   const shareTitle = shareMode === 'doctor' ? 'Share with Doctor' : shareMode === 'hospital' ? 'Transfer to Hospital' : '';
@@ -317,7 +348,7 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
       <Modal visible={uploadVisible} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={s.modalContainer} edges={['top']}>
           <View style={s.modalHeader}>
-            <TouchableOpacity onPress={()=>{setUploadVisible(false);setUploadFile(null);}}>
+            <TouchableOpacity onPress={()=>{setUploadVisible(false);setUploadFile(null);setUploadTitle('');setUploadDesc('');}}>
               <Text style={s.modalCancel}>Cancel</Text>
             </TouchableOpacity>
             <Text style={s.modalTitle}>Add Record</Text>
@@ -337,6 +368,13 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
             <Text style={s.fieldLabel}>TITLE *</Text>
             <TextInput style={s.fieldInput} value={uploadTitle} onChangeText={setUploadTitle}
               placeholder="e.g. Blood Test Results" placeholderTextColor={C.muted} />
+            <Text style={s.fieldLabel}>DESCRIPTION / NOTES</Text>
+            <TextInput style={[s.fieldInput, { height: 80, textAlignVertical: 'top' }]}
+              value={uploadDesc} onChangeText={setUploadDesc} multiline
+              placeholder={folderType === 'doctor'
+                ? "e.g. Results from clinic visit on Monday, referred by Dr. Okonkwo..."
+                : "e.g. Personal copy of lab results from General Hospital..."}
+              placeholderTextColor={C.muted} />
             <Text style={s.fieldLabel}>ATTACH FILE (PDF / IMAGE)</Text>
             <View style={s.fileRow}>
               <TouchableOpacity style={s.fileBtn} onPress={pickFile}>
@@ -454,6 +492,33 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
           </View>
         </View>
       </Modal>
+
+      {/* In-app image viewer */}
+      <Modal visible={!!viewerRecord} animationType="fade" transparent onRequestClose={() => setViewerRecord(null)}>
+        <View style={{ flex:1, backgroundColor:'rgba(0,0,0,0.95)', justifyContent:'center', alignItems:'center' }}>
+          <TouchableOpacity
+            style={{ position:'absolute', top:56, right:20, zIndex:10, backgroundColor:'rgba(255,255,255,0.15)', borderRadius:20, padding:8 }}
+            onPress={() => setViewerRecord(null)}>
+            <Ionicons name="close" size={24} color="#fff" />
+          </TouchableOpacity>
+          {viewerRecord && (
+            <>
+              <Image
+                source={{ uri: viewerRecord.file_url || viewerRecord.attachment_url }}
+                style={{ width: SW, height: SW * 1.3 }}
+                resizeMode="contain"
+              />
+              <View style={{ position:'absolute', bottom:60, left:20, right:20 }}>
+                <Text style={{ color:'#fff', fontSize:16, fontFamily:'Montserrat_600SemiBold', marginBottom:4 }}>{viewerRecord.title}</Text>
+                {!!viewerRecord.description && (
+                  <Text style={{ color:'rgba(255,255,255,0.7)', fontSize:13, fontFamily:'SpaceGrotesk_400Regular', lineHeight:20 }}>{viewerRecord.description}</Text>
+                )}
+                <Text style={{ color:'rgba(255,255,255,0.5)', fontSize:12, marginTop:4 }}>{TYPE_LABELS[viewerRecord.record_type]} · {formatDate(viewerRecord.created_at)}</Text>
+              </View>
+            </>
+          )}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -473,8 +538,10 @@ const s = StyleSheet.create({
   card:{backgroundColor:C.bg,borderRadius:14,borderWidth:1,borderColor:C.border,padding:14,marginBottom:12},
   cardTop:{flexDirection:'row',alignItems:'flex-start',gap:12},
   cardIcon:{width:40,height:40,borderRadius:10,backgroundColor:'#E6F5F5',alignItems:'center',justifyContent:'center'},
+  cardPreview:{ width:'100%', height:180, borderRadius:10, marginBottom:10, backgroundColor:C.surface },
   cardTitle:{fontSize:15,fontWeight:'700',color:C.text},
   cardMeta:{fontSize:12,color:C.muted,marginTop:2},
+  cardDesc:{fontSize:12,color:C.muted,marginTop:4,lineHeight:17},
   cardDoctor:{fontSize:11,color:C.teal,marginTop:2},
   cardActions:{flexDirection:'row',gap:8,marginTop:10},
   actionBtn:{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:4,borderWidth:1,borderColor:C.border,borderRadius:8,paddingVertical:7},
