@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
-  StyleSheet, Text, View, FlatList, TouchableOpacity, Alert,
+  StyleSheet, Text, View, FlatList, TouchableOpacity,
   ActivityIndicator, RefreshControl, TextInput, Modal, ScrollView, Linking, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,8 +8,9 @@ import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../lib/supabase';
+import { useToast } from '../components/ToastProvider';
 
-const C = { bg:'#FFFFFF', surface:'#F5F5F5', text:'#171717', muted:'#737373', border:'#E5E5E5', teal:'#0B7E8A' };
+const C = { bg:'#F5F3EE', surface:'#EDE9E0', card:'#FFFFFF', text:'#0C2E30', muted:'#6B7E7F', border:'#EAE5DA', teal:'#0B7E8A', tealLight:'rgba(11,126,138,0.09)' };
 
 const TYPE_ICONS: any = {
   lab_result:'flask-outline', imaging:'scan-outline', prescription:'medkit-outline',
@@ -26,6 +27,7 @@ function formatDate(iso: string) {
 }
 
 export default function HospitalRecordsScreen({ route, navigation }: any) {
+  const toast = useToast();
   const { folderId, folderName, userId, linkedId, folderType } = route.params;
   const isPersonal = folderId === 'personal';
 
@@ -42,6 +44,9 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
   const [uploadFile, setUploadFile]       = useState<any>(null);
   const [uploading, setUploading]         = useState(false);
 
+  // Action menu
+  const [actionItem, setActionItem]     = useState<any>(null);
+
   // Share/Transfer
   const [shareRecord, setShareRecord]   = useState<any>(null);
   const [shareMode, setShareMode]       = useState<'doctor'|'hospital'|null>(null);
@@ -54,15 +59,35 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
   const loadRecords = async () => {
     setLoading(true);
     try {
-      let q = supabase
-        .from('medical_records')
-        .select('id, title, record_type, created_at, file_url, attachment_url, doctor_id, hospital_id, folder_id, doctors(full_name)')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-      if (isPersonal) q = q.is('folder_id', null);
-      else q = q.eq('folder_id', folderId);
-      const { data } = await q;
-      setRecords(data || []);
+      if (isPersonal) {
+        // Personal folder: records with no folder_id
+        const { data } = await supabase
+          .from('medical_records')
+          .select('id, title, record_type, created_at, file_url, attachment_url')
+          .eq('user_id', userId)
+          .is('folder_id', null)
+          .order('created_at', { ascending: false });
+        setRecords(data || []);
+      } else if (folderType === 'doctor' && linkedId) {
+        // Doctor folder: show records shared via medical_record_access
+        const { data } = await supabase
+          .from('medical_record_access')
+          .select('id, granted_at, is_active, medical_records(id, title, record_type, created_at, file_url, attachment_url)')
+          .eq('patient_id', userId)
+          .eq('doctor_id', linkedId)
+          .eq('is_active', true)
+          .order('granted_at', { ascending: false });
+        setRecords((data || []).map((a: any) => ({ ...a.medical_records, access_id: a.id, granted_at: a.granted_at })));
+      } else {
+        // Hospital folder: records linked by folder_id
+        const { data } = await supabase
+          .from('medical_records')
+          .select('id, title, record_type, created_at, file_url, attachment_url')
+          .eq('user_id', userId)
+          .eq('folder_id', folderId)
+          .order('created_at', { ascending: false });
+        setRecords(data || []);
+      }
     } catch(e) { console.error(e); }
     finally { setLoading(false); }
   };
@@ -77,13 +102,13 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') { Alert.alert('Permission needed','Allow photo access'); return; }
+    if (status !== 'granted') { toast.showWarning('Permission needed', 'Allow photo access'); return; }
     const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality:0.8 });
     if (!r.canceled && r.assets?.[0]) setUploadFile({ uri:r.assets[0].uri, name:'image.jpg', mimeType:'image/jpeg' });
   };
 
   const handleUpload = async () => {
-    if (!uploadTitle.trim()) { Alert.alert('Required','Please enter a title'); return; }
+    if (!uploadTitle.trim()) { toast.showWarning('Required', 'Please enter a title'); return; }
     setUploading(true);
     try {
       let fileUrl: string|null = null;
@@ -112,9 +137,9 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
         const { data: { publicUrl } } = supabase.storage.from('medical-records').getPublicUrl(path);
         fileUrl = publicUrl;
       }
-      const { error } = await supabase.from('medical_records').insert({
+      const { data: newRecord, error } = await supabase.from('medical_records').insert({
         user_id: userId,
-        folder_id: isPersonal ? null : folderId,
+        folder_id: (!isPersonal && folderType !== 'doctor') ? folderId : null,
         hospital_id: folderType === 'hospital' ? linkedId : null,
         title: uploadTitle.trim(),
         record_type: uploadType,
@@ -124,12 +149,27 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
         is_sensitive: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      });
+      }).select('id').single();
       if (error) throw error;
+
+      // If this is a doctor folder, share the record with the doctor immediately
+      if (folderType === 'doctor' && linkedId && newRecord?.id) {
+        const { error: shareError } = await supabase.from('medical_record_access').insert({
+          record_id: newRecord.id,
+          patient_id: userId,
+          doctor_id: linkedId,
+          access_type: 'view',
+          granted_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          is_active: true,
+        });
+        if (shareError) throw shareError;
+      }
+
       setUploadVisible(false); setUploadTitle(''); setUploadType('lab_result'); setUploadFile(null);
       await loadRecords();
-      Alert.alert('Uploaded', 'Record saved successfully');
-    } catch(e:any) { Alert.alert('Upload Error', e.message || 'Something went wrong'); }
+      toast.showSuccess('Uploaded', folderType === 'doctor' ? 'Record saved and shared with doctor.' : 'Record saved successfully.');
+    } catch(e:any) { toast.showError('Upload Error', e.message || 'Something went wrong'); }
     finally { setUploading(false); }
   };
 
@@ -167,19 +207,22 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
       if (error) throw error;
       setShareRecord(null); setShareMode(null);
       const label = shareMode === 'doctor' ? `Dr. ${target.full_name ?? ''}` : (target.name ?? '');
-      Alert.alert('Shared', `Record shared with ${label}`);
-    } catch(e:any) { Alert.alert('Error', e.message); }
+      toast.showSuccess('Shared', `Record shared with ${label}.`);
+    } catch(e:any) { toast.showError('Error', e.message); }
     finally { setSharing(false); }
   };
 
-  const deleteRecord = (id: string) => {
-    Alert.alert('Delete Record','This cannot be undone.',[
-      { text:'Cancel', style:'cancel' },
-      { text:'Delete', style:'destructive', onPress: async () => {
-        await supabase.from('medical_records').delete().eq('id', id);
-        setRecords(prev => prev.filter(r => r.id !== id));
-      }},
-    ]);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  const deleteRecord = (id: string) => setDeleteConfirmId(id);
+
+  const doDelete = async () => {
+    if (!deleteConfirmId) return;
+    const id = deleteConfirmId;
+    setDeleteConfirmId(null);
+    await supabase.from('medical_records').delete().eq('id', id);
+    setRecords(prev => prev.filter(r => r.id !== id));
+    toast.showSuccess('Deleted', 'Record removed.');
   };
 
   const filtered = search.trim()
@@ -197,13 +240,7 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
           <Text style={s.cardMeta}>{TYPE_LABELS[item.record_type] || item.record_type} · {formatDate(item.created_at)}</Text>
           {!!item.doctors?.full_name && <Text style={s.cardDoctor}>Dr. {item.doctors.full_name}</Text>}
         </View>
-        <TouchableOpacity onPress={() => Alert.alert(item.title, 'Choose action', [
-          { text:'Share with Doctor', onPress:()=>openShare(item,'doctor') },
-          { text:'Transfer to Hospital', onPress:()=>openShare(item,'hospital') },
-          ...(item.file_url ? [{ text:'Open File', onPress:()=>Linking.openURL(item.file_url) }] : []),
-          { text:'Delete', style:'destructive', onPress:()=>deleteRecord(item.id) },
-          { text:'Cancel', style:'cancel' },
-        ] as any)}>
+        <TouchableOpacity onPress={() => setActionItem(item)}>
           <Ionicons name="ellipsis-vertical" size={18} color={C.muted} />
         </TouchableOpacity>
       </View>
@@ -231,15 +268,12 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor="#0B7E8A" />
+      <StatusBar barStyle="light-content" backgroundColor="#083236" />
       {/* Teal Header */}
       <View style={s.header}>
         <TouchableOpacity style={s.backBtn} onPress={()=>navigation.goBack()}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
-        <View style={s.headerIconCircle}>
-          <Ionicons name="document-text" size={26} color="#fff" />
-        </View>
         <View style={s.headerCenter}>
           <Text style={s.headerTitle} numberOfLines={1}>{folderName}</Text>
           <Text style={s.headerSub}>
@@ -374,19 +408,65 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
           />
         </SafeAreaView>
       </Modal>
+
+      {/* Action Sheet */}
+      <Modal visible={!!actionItem} animationType="slide" transparent onRequestClose={() => setActionItem(null)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, paddingBottom: 36 }}>
+            <View style={{ width: 40, height: 4, backgroundColor: '#EAE5DA', borderRadius: 2, alignSelf: 'center', marginBottom: 16 }} />
+            <Text style={{ fontSize: 15, fontFamily: 'Montserrat_700Bold', color: '#0C2E30', marginBottom: 16 }} numberOfLines={1}>{actionItem?.title}</Text>
+            {[
+              { icon: 'person-outline', label: 'Share with Doctor', onPress: () => { setActionItem(null); openShare(actionItem, 'doctor'); } },
+              { icon: 'business-outline', label: 'Transfer to Hospital', onPress: () => { setActionItem(null); openShare(actionItem, 'hospital'); } },
+              ...(actionItem?.file_url ? [{ icon: 'open-outline', label: 'Open File', onPress: () => { setActionItem(null); Linking.openURL(actionItem.file_url); } }] : []),
+            ].map(a => (
+              <TouchableOpacity key={a.label} onPress={a.onPress} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#EAE5DA' }}>
+                <Ionicons name={a.icon as any} size={20} color="#0B7E8A" />
+                <Text style={{ fontSize: 14, fontFamily: 'Montserrat_600SemiBold', color: '#0C2E30' }}>{a.label}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity onPress={() => { const item = actionItem; setActionItem(null); deleteRecord(item.id); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#EAE5DA' }}>
+              <Ionicons name="trash-outline" size={20} color="#EF4444" />
+              <Text style={{ fontSize: 14, fontFamily: 'Montserrat_600SemiBold', color: '#EF4444' }}>Delete</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setActionItem(null)} style={{ marginTop: 8, padding: 14, borderRadius: 13, backgroundColor: '#EDE9E0', alignItems: 'center' }}>
+              <Text style={{ fontSize: 14, fontFamily: 'Montserrat_600SemiBold', color: '#7A8785' }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Delete Confirm Sheet */}
+      <Modal visible={!!deleteConfirmId} animationType="slide" transparent onRequestClose={() => setDeleteConfirmId(null)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40 }}>
+            <View style={{ width: 40, height: 4, backgroundColor: '#EAE5DA', borderRadius: 2, alignSelf: 'center', marginBottom: 20 }} />
+            <Text style={{ fontSize: 18, fontFamily: 'Montserrat_700Bold', color: '#0C2E30', marginBottom: 6 }}>Delete Record?</Text>
+            <Text style={{ fontSize: 13.5, fontFamily: 'SpaceGrotesk_400Regular', color: '#7A8785', marginBottom: 24, lineHeight: 20 }}>This cannot be undone.</Text>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <TouchableOpacity onPress={() => setDeleteConfirmId(null)} style={{ flex: 1, padding: 14, borderRadius: 13, backgroundColor: '#EDE9E0', alignItems: 'center' }}>
+                <Text style={{ fontSize: 14, fontFamily: 'Montserrat_600SemiBold', color: '#7A8785' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={doDelete} style={{ flex: 1, padding: 14, borderRadius: 13, backgroundColor: '#EF4444', alignItems: 'center' }}>
+                <Text style={{ fontSize: 14, fontFamily: 'Montserrat_700Bold', color: '#fff' }}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
-  container:{flex:1,backgroundColor:'#0B7E8A'},
+  container:{flex:1,backgroundColor:'#083236'},
   header:{flexDirection:'row',alignItems:'center',paddingHorizontal:20,paddingTop:12,paddingBottom:20,gap:14},
   backBtn:{width:40,height:40,borderRadius:20,backgroundColor:'rgba(255,255,255,0.2)',alignItems:'center',justifyContent:'center'},
   headerIconCircle:{width:56,height:56,borderRadius:28,backgroundColor:'rgba(255,255,255,0.2)',borderWidth:1,borderColor:'rgba(255,255,255,0.4)',alignItems:'center',justifyContent:'center'},
   headerCenter:{flex:1},
-  headerTitle:{fontSize:26,fontWeight:'700',color:'#fff',letterSpacing:-0.3},
-  headerSub:{fontSize:14,color:'rgba(255,255,255,0.75)',marginTop:2},
-  whiteCard:{flex:1,backgroundColor:'#ffffff',borderTopLeftRadius:28,borderTopRightRadius:28,overflow:'hidden'},
+  headerTitle:{fontSize:22,fontFamily:'Montserrat_700Bold',color:'#fff',letterSpacing:-0.3},
+  headerSub:{fontSize:12,fontFamily:'SpaceGrotesk_400Regular',color:'rgba(255,255,255,0.7)',marginTop:2},
+  whiteCard:{flex:1,backgroundColor:'#F5F3EE',borderTopLeftRadius:28,borderTopRightRadius:28,overflow:'hidden'},
   addBtn:{width:34,height:34,borderRadius:10,backgroundColor:'rgba(255,255,255,0.2)',alignItems:'center',justifyContent:'center'},
   searchBar:{flexDirection:'row',alignItems:'center',gap:8,marginHorizontal:16,marginVertical:8,backgroundColor:C.surface,borderRadius:10,paddingHorizontal:12,paddingVertical:10},
   searchInput:{flex:1,fontSize:14,color:C.text,paddingVertical:0},
