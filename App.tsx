@@ -21,6 +21,7 @@ import ErrorTrackingService from './src/services/errorTrackingService';
 import * as Updates from 'expo-updates';
 import { useCustomFonts } from './src/hooks/useCustomFonts';
 import AnimatedTabBar from './src/components/AnimatedTabBar';
+import { PaystackProvider } from 'react-native-paystack-webview';
 import { telegramTransition, springOpen, springClose } from './src/utils/transitions';
 import FadeScreen from './src/components/FadeScreen';
 
@@ -559,6 +560,7 @@ export default function App() {
       <SafeAreaProvider>
         <StatusBar style="light" backgroundColor="transparent" translucent />
         {locked && <BiometricLockScreen onUnlock={() => setLocked(false)} />}
+        <PaystackProvider publicKey="pk_live_bffbf95e5e25d5d56521b8619c35923e4553ac1f">
         <ToastProvider>
           <ChatBadgeProvider>
             <RecordsBadgeProvider>
@@ -630,6 +632,7 @@ export default function App() {
         </RecordsBadgeProvider>
         </ChatBadgeProvider>
       </ToastProvider>
+      </PaystackProvider>
     </SafeAreaProvider>
     </ErrorBoundary>
   );

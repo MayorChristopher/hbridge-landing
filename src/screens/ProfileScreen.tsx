@@ -200,7 +200,7 @@ export default function ProfileScreen({ navigation }: any) {
           consultation_fee: editForm.consultation_fee ? parseInt(editForm.consultation_fee) : 0,
           years_experience: editForm.years_experience ? parseInt(editForm.years_experience) : 0,
           bio: editForm.bio.trim() || null, profile_image: profile?.profile_image || null,
-          verification_status: 'verified', is_available: true, average_rating: 0, total_reviews: 0,
+          verification_status: 'verified', is_available: true,
           nma_number: editForm.nma_number.trim() || null,
           secondary_specialty: editForm.secondary_specialty.trim() || null,
           consultation_types: editForm.consultation_types.length > 0 ? editForm.consultation_types : null,
