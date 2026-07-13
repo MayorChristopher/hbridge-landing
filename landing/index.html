@@ -1186,8 +1186,8 @@
       </div>
       <div class="metric-pill">
         <span class="metric-dot" style="background:#7C3AED"></span>
-        <span id="m-doctors" style="font-size:14px;font-weight:700;color:var(--ink)">—</span>
-        <span style="font-size:13px;color:var(--muted)">doctors</span>
+        <span id="m-practitioners" style="font-size:14px;font-weight:700;color:var(--ink)">—</span>
+        <span style="font-size:13px;color:var(--muted)">practitioners</span>
       </div>
       <div class="metric-pill">
         <span class="metric-dot" style="background:#16A34A"></span>
@@ -1206,9 +1206,9 @@
           <i data-lucide="user" style="width:14px;height:14px;stroke-width:2;display:inline-block;vertical-align:middle;margin-right:4px"></i>
           Patient
         </button>
-        <button class="role-tab" data-role="doctor">
+        <button class="role-tab" data-role="practitioner">
           <i data-lucide="stethoscope" style="width:14px;height:14px;stroke-width:2;display:inline-block;vertical-align:middle;margin-right:4px"></i>
-          Doctor
+          Health Practitioner
         </button>
         <button class="role-tab" data-role="hospital">
           <i data-lucide="building-2" style="width:14px;height:14px;stroke-width:2;display:inline-block;vertical-align:middle;margin-right:4px"></i>
@@ -1222,22 +1222,36 @@
           <input type="email" id="wl-email"    class="form-input" placeholder="Email address" required />
           <input type="tel"   id="wl-phone"    class="form-input" placeholder="Phone number (optional)" />
 
-          <!-- Doctor-only -->
+          <!-- Practitioner-only -->
           <select id="wl-specialty" class="form-select field-hidden">
-            <option value="">Select your specialty</option>
-            <option>General Practitioner</option>
-            <option>Cardiologist</option>
-            <option>Dermatologist</option>
-            <option>Gynaecologist</option>
-            <option>Neurologist</option>
-            <option>Oncologist</option>
-            <option>Ophthalmologist</option>
-            <option>Orthopaedic Surgeon</option>
-            <option>Paediatrician</option>
-            <option>Psychiatrist</option>
-            <option>Radiologist</option>
-            <option>Surgeon</option>
-            <option>Urologist</option>
+            <option value="">Select your profession / specialty</option>
+            <optgroup label="Physicians">
+              <option>General Practitioner</option>
+              <option>Cardiologist</option>
+              <option>Dermatologist</option>
+              <option>Gynaecologist / Obstetrician</option>
+              <option>Neurologist</option>
+              <option>Oncologist</option>
+              <option>Ophthalmologist</option>
+              <option>Orthopaedic Surgeon</option>
+              <option>Paediatrician</option>
+              <option>Psychiatrist</option>
+              <option>Radiologist</option>
+              <option>Surgeon</option>
+              <option>Urologist</option>
+              <option>ENT Specialist</option>
+            </optgroup>
+            <optgroup label="Allied Health">
+              <option>Nurse / Midwife</option>
+              <option>Pharmacist</option>
+              <option>Physiotherapist</option>
+              <option>Dentist</option>
+              <option>Dietitian / Nutritionist</option>
+              <option>Medical Laboratory Scientist</option>
+              <option>Radiographer</option>
+              <option>Optometrist</option>
+              <option>Community Health Worker</option>
+            </optgroup>
             <option>Other</option>
           </select>
 
@@ -1401,16 +1415,16 @@
 
   async function loadMetrics() {
     try {
-      const [p, d, h] = await Promise.all([
-        countRole('patient'), countRole('doctor'), countRole('hospital')
+      const [p, d, pr, h] = await Promise.all([
+        countRole('patient'), countRole('doctor'), countRole('practitioner'), countRole('hospital')
       ]);
       const fmt = function(n) { return n > 0 ? n.toLocaleString() : '0'; };
       document.getElementById('stat-patients').textContent  = fmt(p);
-      document.getElementById('stat-doctors').textContent   = fmt(d);
+      document.getElementById('stat-doctors').textContent   = fmt(d + pr);
       document.getElementById('stat-hospitals').textContent = fmt(h);
-      document.getElementById('m-patients').textContent  = fmt(p);
-      document.getElementById('m-doctors').textContent   = fmt(d);
-      document.getElementById('m-hospitals').textContent = fmt(h);
+      document.getElementById('m-patients').textContent     = fmt(p);
+      document.getElementById('m-practitioners').textContent = fmt(d + pr);
+      document.getElementById('m-hospitals').textContent    = fmt(h);
     } catch(e) { /* metrics fail silently */ }
   }
   loadMetrics();
@@ -1425,7 +1439,7 @@
   function switchRole(role) {
     currentRole = role;
     roleTabs.forEach(t => t.classList.toggle('active', t.dataset.role === role));
-    specialtyField.classList.toggle('field-hidden', role !== 'doctor');
+    specialtyField.classList.toggle('field-hidden', role !== 'practitioner');
     hospitalNameField.classList.toggle('field-hidden', role !== 'hospital');
     hospitalStateField.classList.toggle('field-hidden', role !== 'hospital');
     lucide.createIcons();
@@ -1442,7 +1456,7 @@
     const email = document.getElementById('wl-email').value.trim();
     const name  = document.getElementById('wl-name').value.trim();
     const phone = document.getElementById('wl-phone').value.trim();
-    const specialty    = currentRole === 'doctor'   ? specialtyField.value : null;
+    const specialty    = currentRole === 'practitioner' ? specialtyField.value : null;
     const hospitalName = currentRole === 'hospital' ? hospitalNameField.value.trim() : null;
     const hospitalState = currentRole === 'hospital' ? hospitalStateField.value.trim() : null;
 
