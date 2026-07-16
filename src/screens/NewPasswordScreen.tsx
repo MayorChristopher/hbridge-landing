@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   StyleSheet, Text, View, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform, ScrollView, StatusBar, Image,
@@ -51,7 +51,7 @@ export default function NewPasswordScreen({ navigation }: any) {
   if (done) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor="#0B7E8A" />
+        <StatusBar barStyle="light-content" backgroundColor="#083236" />
         <View style={styles.successContainer}>
           <View style={styles.successIcon}>
             <Ionicons name="checkmark" size={48} color="#ffffff" />
@@ -67,7 +67,7 @@ export default function NewPasswordScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top','bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor="#0B7E8A" />
+      <StatusBar barStyle="light-content" backgroundColor="#083236" />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -152,8 +152,8 @@ export default function NewPasswordScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B7E8A' },
-  scrollContent: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 32, paddingTop: 48, backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
+  container: { flex: 1, backgroundColor: '#083236' },
+  scrollContent: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 32, paddingTop: 48, backgroundColor: '#F5F3EE', borderTopLeftRadius: 28, borderTopRightRadius: 28 },
   iconWrap: { alignItems: 'center', marginBottom: 24, paddingTop: 32, backgroundColor: '#0B7E8A' },
   headerLogo: { width: 72, height: 72, borderRadius: 36, borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)' },
   titleSection: { marginBottom: 40, alignItems: 'center' },

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Dimensions, Image } from 'react-native';
+﻿import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Dimensions, Image, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors, typography, spacing, borderRadius } from '../utils/design';
 import { Toast } from '../utils/toast';
 import { supabase } from '../lib/supabase';
@@ -70,6 +70,7 @@ export default function HospitalCommandCenterScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor="#083236" />
       {/* Emergency Alert */}
       {emergencyAlert && (
         <View style={styles.emergencyAlert}>
@@ -177,7 +178,7 @@ export default function HospitalCommandCenterScreen({ navigation }: any) {
                 <View key={doctor.id} style={styles.doctorCard}>
                   <View style={styles.doctorInfo}>
                     <View style={styles.doctorAvatar}>
-                      <Ionicons name="medical" size={24} color={colors.primary} />
+                      <MaterialCommunityIcons name="stethoscope" size={24} color={colors.primary} />
                     </View>
                     <View style={styles.doctorDetails}>
                       <Text style={styles.doctorName}>{doctor.name}</Text>
@@ -253,7 +254,7 @@ export default function HospitalCommandCenterScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B7E8A' },
+  container: { flex: 1, backgroundColor: '#083236' },
   emergencyAlert: {
     backgroundColor: '#FF5722',
     flexDirection: 'row',

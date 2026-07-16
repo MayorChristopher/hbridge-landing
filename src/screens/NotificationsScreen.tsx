@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   StyleSheet, Text, View, FlatList, TouchableOpacity,
   RefreshControl, ActivityIndicator, StatusBar,
@@ -6,9 +6,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 
-const C = { bg: '#FFFFFF', surface: '#F5F7FA', text: '#171717', muted: '#555F6D', border: '#E2E8EF', teal: '#0B7E8A', tealLight: '#E6F5F5' };
+const C = { bg: '#F5F3EE', surface: '#EDE9E0', card: '#FFFFFF', text: '#0C2E30', muted: '#6B7E7F', border: '#EAE5DA', teal: '#0B7E8A', tealLight: 'rgba(11,126,138,0.09)' };
 
 const TYPE_CONFIG: Record<string, { icon: string; color: string; bg: string; route?: string; params?: any }> = {
   booking:       { icon: 'calendar',          color: C.teal,    bg: C.tealLight, route: 'Appointments' },
@@ -30,10 +31,17 @@ export default function NotificationsScreen({ navigation }: any) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      const activeRole = await AsyncStorage.getItem(`active_role_${user.id}`);
       const { data } = await supabase
         .from('notifications').select('*').eq('user_id', user.id)
         .order('created_at', { ascending: false }).limit(60);
-      setNotifications(data || []);
+      // Filter out notifications tagged for a different role (multi-role accounts)
+      const filtered = (data || []).filter((n: any) => {
+        const nRole = n.data?.role;
+        if (!nRole) return true; // no role tag → show for all roles
+        return nRole === (activeRole || 'patient');
+      });
+      setNotifications(filtered);
       await supabase.from('notifications').update({ is_read: true })
         .eq('user_id', user.id).eq('is_read', false);
     } catch (e) { console.error(e); }
@@ -92,16 +100,13 @@ export default function NotificationsScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor="#0B7E8A" />
+      <StatusBar barStyle="light-content" backgroundColor="#083236" />
 
       {/* Teal Header */}
       <View style={s.header}>
         <TouchableOpacity style={s.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={22} color="#ffffff" />
         </TouchableOpacity>
-        <View style={s.headerIconWrap}>
-          <Ionicons name="notifications" size={26} color="#ffffff" />
-        </View>
         <View style={s.headerTitles}>
           <Text style={s.headerTitle}>Notifications</Text>
           <Text style={s.headerSubtitle}>Stay in the loop</Text>
@@ -136,7 +141,7 @@ export default function NotificationsScreen({ navigation }: any) {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B7E8A' },
+  container: { flex: 1, backgroundColor: '#083236' },
 
   // Header
   header:         { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 32 },
@@ -147,7 +152,7 @@ const s = StyleSheet.create({
   headerSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
 
   // White card
-  card: { flex: 1, backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: 'hidden' },
+  card: { flex: 1, backgroundColor: C.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
 
   // Section header
   sectionHeader: { fontSize: 12, fontWeight: '700', color: C.muted, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 8, textTransform: 'uppercase', letterSpacing: 0.8 },

@@ -1,20 +1,20 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
+import { Paystack } from 'react-native-paystack-webview';
 import { supabase } from '../lib/supabase';
 import { colors, typography, spacing, borderRadius } from '../utils/design';
 import { SUBSCRIPTION_PLANS } from '../config/subscriptions';
 import { Toast } from '../utils/toast';
 
-const TEAL = '#0B7E8A';
-
-// Temporarily disable Paystack until properly installed
-// import { Paystack } from 'react-native-paystack-webview';
+const PAYSTACK_KEY = Constants.expoConfig?.extra?.paystackPublicKey || '';
 
 export default function SubscriptionScreen({ route, navigation }: any) {
   const { userType } = route.params || { userType: 'patient' };
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [selectedAmount, setSelectedAmount] = useState(0);
   const [user, setUser] = useState<any>(null);
 
   React.useEffect(() => {
@@ -31,42 +31,46 @@ export default function SubscriptionScreen({ route, navigation }: any) {
 
   const plans = userType === 'patient' ? SUBSCRIPTION_PLANS.patient : SUBSCRIPTION_PLANS.doctor;
 
-  const handleSubscribe = async (planId: string) => {
-    Toast.showInfo('Payment Integration', 'Paystack integration will be enabled once properly configured.');
-    // setSelectedPlan(planId);
+  const handleSubscribe = (planId: string, price: number) => {
+    if (!user) { Toast.showError('Error', 'Please wait, loading your profile...'); return; }
+    setSelectedAmount(price);
+    setSelectedPlan(planId);
   };
 
   const handlePaymentSuccess = async (response: any) => {
+    const ref = response?.transactionRef?.reference || response?.data?.reference || `sub_${Date.now()}`;
+    setSelectedPlan(null);
     try {
-      const plan = selectedPlan === 'patient_premium' ? plans.premium : plans.pro;
-      
+      const plan = (plans as any)[selectedPlan?.replace(`${userType}_`, '') || ''];
       await supabase.from('subscriptions').insert({
         user_id: user.id,
         plan_id: selectedPlan,
         status: 'active',
-        amount: plan.price,
-        payment_reference: response.reference,
+        amount: selectedAmount,
+        payment_reference: ref,
         started_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       });
-
       await supabase.from('profiles').update({
         subscription_plan: selectedPlan,
-        subscription_status: 'active'
+        subscription_status: 'active',
       }).eq('id', user.id);
-
       Toast.showSuccess('Subscription Active', 'Your premium plan is now active!');
       navigation.goBack();
     } catch (error) {
       console.error('Subscription error:', error);
-      Toast.showError('Subscription Failed', 'Please contact support.');
+      Toast.showError('Subscription Failed', 'Payment received but setup failed. Contact support with ref: ' + ref);
     }
+  };
+
+  const handlePaymentCancel = () => {
     setSelectedPlan(null);
+    Toast.showInfo('Cancelled', 'No charge was made.');
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor={TEAL} />
+      <StatusBar barStyle="light-content" backgroundColor="#083236" />
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={22} color="#ffffff" />
@@ -112,9 +116,9 @@ export default function SubscriptionScreen({ route, navigation }: any) {
             </View>
 
             {plan.price > 0 ? (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.subscribeButton}
-                onPress={() => handleSubscribe(plan.id)}
+                onPress={() => handleSubscribe(plan.id, plan.price)}
               >
                 <Text style={styles.subscribeButtonText}>Subscribe Now</Text>
               </TouchableOpacity>
@@ -136,19 +140,18 @@ export default function SubscriptionScreen({ route, navigation }: any) {
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* Paystack component temporarily disabled */}
-      {/* {selectedPlan && user && (
+      {selectedPlan && user && PAYSTACK_KEY ? (
         <Paystack
-          paystackKey="pk_live_bffbf95e5e25d5d56521b8619c35923e4553ac1f"
-          amount={(selectedPlan === 'patient_premium' ? 5000 : 10000) * 100}
+          paystackKey={PAYSTACK_KEY}
+          amount={selectedAmount}
           billingEmail={user.email}
           billingName={user.full_name}
           channels={['card', 'bank', 'ussd', 'bank_transfer']}
-          onCancel={() => setSelectedPlan(null)}
+          onCancel={handlePaymentCancel}
           onSuccess={handlePaymentSuccess}
           autoStart={true}
         />
-      )} */}
+      ) : null}
       </View>
     </SafeAreaView>
   );
@@ -157,7 +160,7 @@ export default function SubscriptionScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: TEAL,
+    backgroundColor: '#083236',
   },
   header: {
     flexDirection: 'row',
@@ -167,12 +170,12 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 32,
   },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
   headerIconWrap: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255,255,255,0.2)', borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)', alignItems: 'center', justifyContent: 'center' },
   headerTitles: { flex: 1 },
-  headerTitle: { fontSize: 26, fontWeight: '700', color: '#ffffff', letterSpacing: -0.3 },
+  headerTitle: { fontSize: 26, fontFamily: 'Montserrat_700Bold', color: '#ffffff', letterSpacing: -0.3 },
   headerSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
-  card: { flex: 1, backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: 'hidden' },
+  card: { flex: 1, backgroundColor: '#F5F3EE', borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
   content: {
     flex: 1,
     paddingHorizontal: spacing.lg,

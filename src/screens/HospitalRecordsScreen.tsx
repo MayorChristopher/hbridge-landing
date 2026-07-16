@@ -1,15 +1,17 @@
 ﻿import React, { useState, useEffect } from 'react';
 import {
   StyleSheet, Text, View, FlatList, TouchableOpacity,
-  ActivityIndicator, RefreshControl, TextInput, Modal, ScrollView, StatusBar, Image, Dimensions,
+  ActivityIndicator, RefreshControl, TextInput, Modal, ScrollView, StatusBar, Image, Dimensions, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { WebView } from 'react-native-webview';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastProvider';
+import { drName } from '../utils/formatters';
 
 const { width: SW } = Dimensions.get('window');
 const C = { bg:'#F5F3EE', surface:'#EDE9E0', card:'#FFFFFF', text:'#0C2E30', muted:'#6B7E7F', border:'#EAE5DA', teal:'#0B7E8A', tealLight:'rgba(11,126,138,0.09)', ink:'#0C2E30' };
@@ -49,6 +51,15 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
   const [uploadFile, setUploadFile]         = useState<any>(null);
   const [uploading, setUploading]           = useState(false);
 
+  // Display mode
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+
+  // Type filter
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+
+  // Records the doctor sent to this patient
+  const [receivedRecords, setReceivedRecords] = useState<any[]>([]);
+
   // In-app viewer
   const [viewerRecord, setViewerRecord]     = useState<any>(null);
 
@@ -62,29 +73,49 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
   const [shareSearch, setShareSearch]   = useState('');
   const [sharingId, setSharingId]       = useState<string|null>(null);
 
-  useEffect(() => { loadRecords(); }, []);
+  useEffect(() => {
+    loadRecords();
+    // Mark this folder as seen — MedicalRecordsScreen reads this to clear the badge
+    if (folderId && folderId !== 'personal') {
+      AsyncStorage.setItem(`folder_seen_${folderId}`, new Date().toISOString()).catch(() => {});
+    }
+  }, []);
 
   const loadRecords = async () => {
     setLoading(true);
     try {
+      const cols = 'id, title, record_type, created_at, file_url, attachment_url, data';
       if (isPersonal) {
-        // Personal folder: records with no folder_id
         const { data } = await supabase
-          .from('medical_records')
-          .select('id, title, record_type, created_at, file_url, attachment_url')
-          .eq('user_id', userId)
-          .is('folder_id', null)
+          .from('medical_records').select(cols)
+          .eq('user_id', userId).is('folder_id', null)
           .order('created_at', { ascending: false });
         setRecords(data || []);
       } else {
-        // Hospital folder: records linked by folder_id
         const { data } = await supabase
-          .from('medical_records')
-          .select('id, title, record_type, created_at, file_url, attachment_url')
-          .eq('user_id', userId)
-          .eq('folder_id', folderId)
+          .from('medical_records').select(cols)
+          .eq('user_id', userId).eq('folder_id', folderId)
           .order('created_at', { ascending: false });
         setRecords(data || []);
+      }
+
+      // For doctor folders: fetch only records the doctor actively sent to this patient
+      // access_type='doctor_sent' distinguishes doctor-initiated shares from patient uploads
+      if (folderType === 'doctor' && linkedId) {
+        const { data: accessRows } = await supabase
+          .from('medical_record_access')
+          .select(`record_id, granted_at, medical_records(${cols})`)
+          .eq('patient_id', userId)
+          .eq('doctor_id', linkedId)
+          .eq('is_active', true)
+          .eq('access_type', 'doctor_sent')
+          .order('granted_at', { ascending: false });
+        const received = (accessRows || [])
+          .map((a: any) => a.medical_records ? { ...a.medical_records, _fromDoctor: true } : null)
+          .filter(Boolean);
+        setReceivedRecords(received);
+      } else {
+        setReceivedRecords([]);
       }
     } catch(e) { console.error(e); }
     finally { setLoading(false); }
@@ -114,46 +145,41 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
         const ext = (uploadFile.name?.split('.').pop() || 'pdf').toLowerCase();
         const mime = uploadFile.mimeType || (ext === 'pdf' ? 'application/pdf' : 'image/jpeg');
         const path = `records/${userId}/${Date.now()}.${ext}`;
-        // Use FormData — works on both iOS and Android
         const formData = new FormData();
         formData.append('file', { uri: uploadFile.uri, name: uploadFile.name || `file.${ext}`, type: mime } as any);
         const { data: session } = await supabase.auth.getSession();
         const token = session?.session?.access_token;
         const supabaseUrl = (supabase as any).supabaseUrl as string;
-        const uploadRes = await fetch(`${supabaseUrl}/storage/v1/object/medical-records/${path}`, {
+        const uploadRes = await fetch(`${supabaseUrl}/storage/v1/object/attachments/${path}`, {
           method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'x-upsert': 'true',
-          },
+          headers: { Authorization: `Bearer ${token}`, 'x-upsert': 'true' },
           body: formData,
         });
         if (!uploadRes.ok) {
           const errText = await uploadRes.text();
-          throw new Error(`Upload failed: ${errText}`);
+          throw new Error(`File upload failed: ${errText}`);
         }
-        const { data: { publicUrl } } = supabase.storage.from('medical-records').getPublicUrl(path);
+        const { data: { publicUrl } } = supabase.storage.from('attachments').getPublicUrl(path);
         fileUrl = publicUrl;
       }
+
       const { data: newRecord, error } = await supabase.from('medical_records').insert({
         user_id: userId,
         folder_id: isPersonal ? null : folderId,
-        hospital_id: folderType === 'hospital' ? linkedId : null,
         title: uploadTitle.trim(),
-        description: uploadDesc.trim() || null,
         record_type: uploadType,
         file_url: fileUrl,
         attachment_url: fileUrl,
-        data: { file_name: uploadFile?.name ?? null },
+        data: { file_name: uploadFile?.name ?? null, notes: uploadDesc.trim() || null },
         is_sensitive: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }).select('id').single();
       if (error) throw error;
 
-      // If this is a doctor folder, share the record with the doctor immediately
+      // If this is a doctor folder, grant the doctor access (non-fatal)
       if (folderType === 'doctor' && linkedId && newRecord?.id) {
-        const { error: shareError } = await supabase.from('medical_record_access').insert({
+        await supabase.from('medical_record_access').insert({
           record_id: newRecord.id,
           patient_id: userId,
           doctor_id: linkedId,
@@ -161,14 +187,19 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
           granted_at: new Date().toISOString(),
           expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           is_active: true,
+        }).then(({ error: shareError }) => {
+          if (shareError) console.warn('Access grant failed:', shareError.message);
         });
-        if (shareError) throw shareError;
       }
 
+      // Close modal first, then notify (so toast is visible above screen)
       setUploadVisible(false); setUploadTitle(''); setUploadDesc(''); setUploadType('lab_result'); setUploadFile(null);
       await loadRecords();
       toast.showSuccess('Uploaded', folderType === 'doctor' ? 'Record saved and shared with doctor.' : 'Record saved successfully.');
-    } catch(e:any) { toast.showError('Upload Error', e.message || 'Something went wrong'); }
+    } catch(e:any) {
+      // Alert shows on top of the pageSheet modal, toast does not
+      Alert.alert('Upload Failed', e.message || 'Something went wrong. Please try again.');
+    }
     finally { setUploading(false); }
   };
 
@@ -205,7 +236,7 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
       });
       if (error) throw error;
       setShareRecord(null); setShareMode(null);
-      const label = shareMode === 'doctor' ? `Dr. ${target.full_name ?? ''}` : (target.name ?? '');
+      const label = shareMode === 'doctor' ? drName(target.full_name, target.title) : (target.name ?? '');
       toast.showSuccess('Shared', `Record shared with ${label}.`);
     } catch(e:any) { toast.showError('Error', e.message); }
     finally { setSharingId(null); }
@@ -224,9 +255,15 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
     toast.showSuccess('Deleted', 'Record removed.');
   };
 
-  const filtered = search.trim()
-    ? records.filter(r => r.title.toLowerCase().includes(search.toLowerCase()))
-    : records;
+  const applyFilters = (list: any[]) => {
+    let result = search.trim()
+      ? list.filter(r => r.title.toLowerCase().includes(search.toLowerCase()))
+      : list;
+    if (typeFilter !== 'all') result = result.filter(r => r.record_type === typeFilter);
+    return result;
+  };
+  const filtered = applyFilters(records);
+  const filteredReceived = applyFilters(receivedRecords);
 
   const openRecord = (item: any) => {
     const url = item.file_url || item.attachment_url;
@@ -254,7 +291,7 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
           <View style={{ flex:1 }}>
             <Text style={s.cardTitle} numberOfLines={1}>{item.title}</Text>
             <Text style={s.cardMeta}>{TYPE_LABELS[item.record_type] || item.record_type} · {formatDate(item.created_at)}</Text>
-            {!!item.description && <Text style={s.cardDesc} numberOfLines={2}>{item.description}</Text>}
+            {!!item.data?.notes && <Text style={s.cardDesc} numberOfLines={2}>{item.data.notes}</Text>}
           </View>
           <TouchableOpacity onPress={() => setActionItem(item)}>
             <Ionicons name="ellipsis-vertical" size={18} color={C.muted} />
@@ -280,6 +317,32 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
     );
   };
 
+  const renderGrid = ({ item }: any) => {
+    const fileUrl = item.file_url || item.attachment_url;
+    const hasImage = isImage(fileUrl);
+    return (
+      <TouchableOpacity style={s.gridCard} onPress={() => openRecord(item)} activeOpacity={0.85} onLongPress={() => setActionItem(item)}>
+        {hasImage
+          ? <Image source={{ uri: fileUrl }} style={s.gridThumb} resizeMode="cover" />
+          : <View style={s.gridIconBox}>
+              <Ionicons name={(TYPE_ICONS[item.record_type] || 'document-outline') as any} size={22} color={C.teal} />
+            </View>}
+        <View style={s.gridMeta}>
+          <Text style={s.gridTitle} numberOfLines={2}>{item.title}</Text>
+          <View style={s.gridTypePill}>
+            <Text style={s.gridSub} numberOfLines={1}>{TYPE_LABELS[item.record_type] || item.record_type}</Text>
+          </View>
+          <Text style={s.gridDate}>{formatDate(item.created_at)}</Text>
+        </View>
+        {item._fromDoctor && (
+          <View style={s.fromDoctorBadge}>
+            <Ionicons name="medkit" size={9} color="#fff" />
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
   const sharePlaceholder = shareMode === 'doctor' ? 'Search doctors...' : 'Search hospitals...';
   const shareTitle = shareMode === 'doctor' ? 'Share with Doctor' : shareMode === 'hospital' ? 'Transfer to Hospital' : '';
 
@@ -294,9 +357,12 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
         <View style={s.headerCenter}>
           <Text style={s.headerTitle} numberOfLines={1}>{folderName}</Text>
           <Text style={s.headerSub}>
-            {isPersonal ? 'Personal folder' : folderType === 'doctor' ? 'Doctor folder' : 'Hospital folder'}
+            {isPersonal ? 'Personal folder' : folderType === 'doctor' ? 'Medical Practitioner folder' : 'Hospital folder'}
           </Text>
         </View>
+        <TouchableOpacity onPress={() => setViewMode(v => v === 'list' ? 'grid' : 'list')}>
+          <Ionicons name={viewMode === 'list' ? 'grid-outline' : 'list-outline'} size={20} color="rgba(255,255,255,0.85)" />
+        </TouchableOpacity>
         <TouchableOpacity onPress={()=>{setSearchVisible(v=>!v);setSearch('');}}>
           <Ionicons name="search" size={20} color={searchVisible ? 'rgba(255,255,255,1)' : 'rgba(255,255,255,0.7)'} />
         </TouchableOpacity>
@@ -315,18 +381,52 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
         </View>
       )}
 
+      {/* Type filter chips — wrapped in a View so height is hard-clamped */}
+      <View style={s.typeFilterWrap}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.typeFilterRow}>
+          {[{ key: 'all', label: 'All' }, ...RECORD_TYPES.map(t => ({ key: t, label: TYPE_LABELS[t] }))].map(f => (
+            <TouchableOpacity key={f.key} style={[s.typeChip2, typeFilter === f.key && s.typeChip2Active]} onPress={() => setTypeFilter(f.key)}>
+              <Text style={[s.typeChip2Text, typeFilter === f.key && s.typeChip2TextActive]}>{f.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
       {loading ? <ActivityIndicator color={C.teal} style={{flex:1}} /> : (
         <FlatList
-          data={filtered} keyExtractor={r=>r.id} renderItem={renderRecord}
-          contentContainerStyle={{padding:16, paddingBottom:40}}
+          style={{ flex: 1 }}
+          data={filtered}
+          keyExtractor={r=>r.id}
+          key={viewMode}
+          numColumns={viewMode === 'grid' ? 2 : 1}
+          renderItem={viewMode === 'grid' ? renderGrid : renderRecord}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 0, paddingBottom: 40 }}
+          columnWrapperStyle={viewMode === 'grid' ? { gap: 10, marginBottom: 10 } : undefined}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.teal} colors={[C.teal]} />}
-          ListEmptyComponent={
+          ListHeaderComponent={filteredReceived.length > 0 ? (
+            <View style={{ marginBottom: 16 }}>
+              <View style={s.sectionDivider}>
+                <Ionicons name="arrow-down-circle" size={14} color={C.teal} />
+                <Text style={s.sectionDividerText}>Shared by medical practitioner ({filteredReceived.length})</Text>
+              </View>
+              {filteredReceived.map(item => (
+                <View key={`r-${item.id}`} style={{ marginBottom: 10 }}>
+                  {viewMode === 'grid' ? renderGrid({ item }) : renderRecord({ item })}
+                </View>
+              ))}
+              <View style={s.sectionDivider}>
+                <Ionicons name="folder-open-outline" size={14} color={C.muted} />
+                <Text style={[s.sectionDividerText, { color: C.muted }]}>Your uploads ({filtered.length})</Text>
+              </View>
+            </View>
+          ) : null}
+          ListEmptyComponent={filteredReceived.length === 0 ? (
             <View style={s.empty}>
               <Ionicons name="document-outline" size={48} color={C.muted} />
               <Text style={s.emptyTitle}>No Records</Text>
               <Text style={s.emptySub}>Tap + to add a record to this folder</Text>
             </View>
-          }
+          ) : null}
         />
       )}
 
@@ -413,7 +513,7 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
                 </View>
                 <View style={{flex:1}}>
                   <Text style={s.shareTargetName}>
-                    {shareMode==='doctor' ? `Dr. ${item.full_name ?? ''}` : (item.name ?? '')}
+                    {shareMode==='doctor' ? drName(item.full_name, item.title) : (item.name ?? '')}
                   </Text>
                   <Text style={s.shareTargetSub}>
                     {shareMode==='doctor' ? (item.specialization ?? '') : `${item.city ?? ''}, ${item.state ?? ''}`}
@@ -523,9 +623,9 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
           })()}
 
           {/* Description bar at bottom if available */}
-          {!!viewerRecord?.description && (
+          {!!viewerRecord?.data?.notes && (
             <View style={{ backgroundColor:'#083236', paddingHorizontal:20, paddingVertical:12 }}>
-              <Text style={{ color:'rgba(255,255,255,0.8)', fontSize:13, fontFamily:'SpaceGrotesk_400Regular', lineHeight:20 }}>{viewerRecord.description}</Text>
+              <Text style={{ color:'rgba(255,255,255,0.8)', fontSize:13, fontFamily:'SpaceGrotesk_400Regular', lineHeight:20 }}>{viewerRecord.data.notes}</Text>
             </View>
           )}
         </SafeAreaView>
@@ -582,4 +682,28 @@ const s = StyleSheet.create({
   shareTargetIcon:{width:40,height:40,borderRadius:10,backgroundColor:'#E6F5F5',alignItems:'center',justifyContent:'center'},
   shareTargetName:{fontSize:15,fontWeight:'600',color:C.text},
   shareTargetSub:{fontSize:12,color:C.muted,marginTop:2},
+
+  // Type filter chips row — View wrapper hard-clamps the height
+  typeFilterWrap:{height:36,justifyContent:'center'},
+  typeFilterRow:{flexDirection:'row',gap:6,paddingHorizontal:16,alignItems:'center'},
+  typeChip2:{paddingHorizontal:11,paddingVertical:4,borderRadius:100,borderWidth:1,borderColor:C.border,backgroundColor:C.bg},
+  typeChip2Active:{backgroundColor:C.teal,borderColor:C.teal},
+  typeChip2Text:{fontSize:11,fontWeight:'500',color:C.muted},
+  typeChip2TextActive:{color:'#fff',fontWeight:'600'},
+
+  // Section divider
+  sectionDivider:{flexDirection:'row',alignItems:'center',gap:6,marginBottom:8,paddingHorizontal:2},
+  sectionDividerText:{fontSize:12,fontWeight:'600',color:C.teal,flex:1},
+
+  // Grid view — no overflow:hidden on card so badges aren't clipped; clip image/icon individually
+  gridCard:{flex:1,backgroundColor:C.card,borderRadius:14,borderWidth:1,borderColor:C.border,position:'relative'},
+  gridThumb:{width:'100%',height:70,borderTopLeftRadius:13,borderTopRightRadius:13},
+  gridIconBox:{width:'100%',height:65,backgroundColor:C.surface,alignItems:'center',justifyContent:'center',borderTopLeftRadius:13,borderTopRightRadius:13},
+  gridMeta:{padding:8},
+  gridTitle:{fontSize:12,fontWeight:'700',color:C.text,marginBottom:3},
+  gridTypePill:{backgroundColor:C.tealLight,borderRadius:6,paddingHorizontal:5,paddingVertical:2,alignSelf:'flex-start',marginBottom:3},
+  gridSub:{fontSize:10,color:C.teal,fontWeight:'600'},
+  gridDate:{fontSize:10,color:C.muted},
+  gridNotes:{fontSize:10,color:C.muted,marginTop:2,fontStyle:'italic'},
+  fromDoctorBadge:{position:'absolute',top:6,right:6,width:18,height:18,borderRadius:9,backgroundColor:C.teal,alignItems:'center',justifyContent:'center'},
 });

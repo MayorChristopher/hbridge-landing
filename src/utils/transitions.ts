@@ -1,43 +1,51 @@
 /**
- * Telegram-style spring transitions for @react-navigation/stack
+ * Smooth iOS-style slide transitions for @react-navigation/stack
  *
- * Incoming screen:  fades in (0→1) + scales up (0.96→1.0) + drifts up 8px
- * Outgoing screen:  dims slightly under a dark overlay (no movement)
- * Physics:          spring — overshoots microscopically, settles naturally
+ * Incoming screen:  slides from right + subtle scale-up + quick fade-in
+ * Outgoing screen:  slides left slightly + dims under a translucent overlay
+ * Physics:          spring — fast, natural settle with no overshoot
  */
 
-export function telegramTransition({ current, next }: any) {
-  const progress = current.progress;
+export function slideTransition({ current, next, layouts }: any) {
+  const screenW = layouts?.screen?.width ?? 420;
+
+  const translateX = current.progress.interpolate({
+    inputRange:  [0, 1],
+    outputRange: [screenW, 0],
+    extrapolate: 'clamp',
+  });
+
+  const scale = current.progress.interpolate({
+    inputRange:  [0, 1],
+    outputRange: [0.97, 1],
+    extrapolate: 'clamp',
+  });
+
+  const opacity = current.progress.interpolate({
+    inputRange:  [0, 0.15, 1],
+    outputRange: [0, 1, 1],
+    extrapolate: 'clamp',
+  });
+
+  // Previous screen shifts slightly left as next screen arrives
+  const prevTranslateX = next
+    ? next.progress.interpolate({
+        inputRange:  [0, 1],
+        outputRange: [0, -screenW * 0.22],
+        extrapolate: 'clamp',
+      })
+    : 0;
 
   return {
     cardStyle: {
-      opacity: progress.interpolate({
-        inputRange: [0, 0.4, 1],
-        outputRange: [0, 0.8, 1],
-        extrapolate: 'clamp',
-      }),
-      transform: [
-        {
-          scale: progress.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0.96, 1],
-            extrapolate: 'clamp',
-          }),
-        },
-        {
-          translateY: progress.interpolate({
-            inputRange: [0, 1],
-            outputRange: [10, 0],
-            extrapolate: 'clamp',
-          }),
-        },
-      ],
+      opacity,
+      transform: [{ translateX }, { scale }],
     },
     overlayStyle: {
       opacity: next
         ? next.progress.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0, 0.1],
+            inputRange:  [0, 1],
+            outputRange: [0, 0.12],
             extrapolate: 'clamp',
           })
         : 0,
@@ -45,26 +53,29 @@ export function telegramTransition({ current, next }: any) {
   };
 }
 
-// Open: fast settle, no overshoot
+// Alias kept for backward compat
+export const telegramTransition = slideTransition;
+
+// Open: crisp spring, no bounce
 export const springOpen = {
   animation: 'spring' as const,
   config: {
-    stiffness: 380,
-    damping: 38,
-    mass: 0.7,
+    stiffness: 420,
+    damping: 42,
+    mass: 0.72,
     overshootClamping: true,
     restDisplacementThreshold: 0.01,
     restSpeedThreshold: 0.01,
   },
 };
 
-// Close: instant snap back
+// Close: slightly snappier
 export const springClose = {
   animation: 'spring' as const,
   config: {
-    stiffness: 440,
-    damping: 42,
-    mass: 0.65,
+    stiffness: 500,
+    damping: 50,
+    mass: 0.68,
     overshootClamping: true,
     restDisplacementThreshold: 0.01,
     restSpeedThreshold: 0.01,

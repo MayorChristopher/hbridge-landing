@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 
-const C = { bg:'#FFFFFF', surface:'#F5F5F5', text:'#171717', muted:'#737373', border:'#E5E5E5', teal:'#0B7E8A' };
+const C = { bg:'#F5F3EE', surface:'#EDE9E0', card:'#FFFFFF', text:'#0C2E30', muted:'#6B7E7F', border:'#EAE5DA', teal:'#0B7E8A', tealLight:'rgba(11,126,138,0.09)' };
 
 export default function RecordsListScreen({ navigation }: any) {
   const [records, setRecords] = useState<any[]>([]);
@@ -28,7 +28,7 @@ export default function RecordsListScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor="#0B7E8A" />
+      <StatusBar barStyle="light-content" backgroundColor="#083236" />
       {/* Teal Header */}
       <View style={s.header}>
         <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
@@ -69,14 +69,14 @@ export default function RecordsListScreen({ navigation }: any) {
 }
 
 const s = StyleSheet.create({
-  container:{flex:1,backgroundColor:'#0B7E8A'},
+  container:{flex:1,backgroundColor:'#083236'},
   header:{flexDirection:'row',alignItems:'center',paddingHorizontal:20,paddingTop:12,paddingBottom:20,gap:14},
   backBtn:{width:40,height:40,borderRadius:20,backgroundColor:'rgba(255,255,255,0.2)',alignItems:'center',justifyContent:'center'},
   headerIconCircle:{width:56,height:56,borderRadius:28,backgroundColor:'rgba(255,255,255,0.2)',borderWidth:1,borderColor:'rgba(255,255,255,0.4)',alignItems:'center',justifyContent:'center'},
   headerCenter:{flex:1},
-  headerTitle:{fontSize:26,fontWeight:'700',color:'#fff',letterSpacing:-0.3},
-  headerSub:{fontSize:14,color:'rgba(255,255,255,0.75)',marginTop:2},
-  whiteCard:{flex:1,backgroundColor:'#ffffff',borderTopLeftRadius:28,borderTopRightRadius:28,overflow:'hidden'},
+  headerTitle:{fontSize:26,fontFamily:'Montserrat_700Bold',color:'#fff',letterSpacing:-0.3},
+  headerSub:{fontSize:14,fontFamily:'SpaceGrotesk_400Regular',color:'rgba(255,255,255,0.75)',marginTop:2},
+  whiteCard:{flex:1,backgroundColor:'#F5F3EE',borderTopLeftRadius:28,borderTopRightRadius:28,overflow:'hidden'},
   card:{flexDirection:'row',alignItems:'center',backgroundColor:C.surface,borderRadius:14,padding:14,gap:14},
   iconBox:{width:48,height:48,borderRadius:12,backgroundColor:'#E6F5F5',alignItems:'center',justifyContent:'center'},
   title:{fontSize:14,fontWeight:'600',color:C.text},

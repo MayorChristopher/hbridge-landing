@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 
 interface RecordsBadgeContextType {
@@ -23,25 +24,27 @@ export function RecordsBadgeProvider({ children }: { children: React.ReactNode }
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Only track for doctor accounts
       const { data: doctorRow } = await supabase
         .from('doctors').select('id').eq('user_id', user.id).maybeSingle();
       if (!doctorRow) return;
 
       doctorIdRef.current = doctorRow.id;
 
-      // Count existing unread incoming records (new ones since we last saw)
+      // Read the timestamp of when this doctor last viewed Case Files
       const seenKey = `records_seen_${doctorRow.id}`;
-      const lastSeen = new Date(0).toISOString();
+      const lastSeen = (await AsyncStorage.getItem(seenKey)) ?? new Date(0).toISOString();
 
       const { count } = await supabase
         .from('medical_record_access')
         .select('id', { count: 'exact', head: true })
         .eq('doctor_id', doctorRow.id)
         .eq('is_active', true)
+        .neq('access_type', 'doctor_sent')   // only records sent TO the doctor
         .gt('granted_at', lastSeen);
 
-      // Use realtime for new inserts
+      setNewRecordsCount(count ?? 0);
+
+      // Increment live when a new record is shared
       channel = supabase
         .channel(`records-badge-${doctorRow.id}`)
         .on('postgres_changes', {
@@ -49,8 +52,11 @@ export function RecordsBadgeProvider({ children }: { children: React.ReactNode }
           schema: 'public',
           table: 'medical_record_access',
           filter: `doctor_id=eq.${doctorRow.id}`,
-        }, () => {
-          setNewRecordsCount(prev => prev + 1);
+        }, (payload: any) => {
+          // Only count records sent TO the doctor, not ones the doctor sent out
+          if (payload.new?.access_type !== 'doctor_sent') {
+            setNewRecordsCount(prev => prev + 1);
+          }
         })
         .subscribe();
     };
@@ -58,7 +64,12 @@ export function RecordsBadgeProvider({ children }: { children: React.ReactNode }
     return () => { if (channel) supabase.removeChannel(channel); };
   }, []);
 
-  const clearRecordsBadge = () => setNewRecordsCount(0);
+  const clearRecordsBadge = () => {
+    setNewRecordsCount(0);
+    if (doctorIdRef.current) {
+      AsyncStorage.setItem(`records_seen_${doctorIdRef.current}`, new Date().toISOString());
+    }
+  };
 
   return (
     <RecordsBadgeContext.Provider value={{ newRecordsCount, clearRecordsBadge }}>

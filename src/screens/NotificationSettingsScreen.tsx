@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet, Text, View, ScrollView, TouchableOpacity,
-  Switch, ActivityIndicator, Alert, Animated, StatusBar,
+  Switch, ActivityIndicator, Animated, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { locationService } from '../services/locationService';
+import { useToast } from '../components/ToastProvider';
+import { drName } from '../utils/formatters';
 
 const C = {
   bg: '#FFFFFF',
@@ -103,6 +105,7 @@ function apptIcon(specialization: string) {
 const DEFAULT_PREFS: Prefs = { push: true, email: false, sms: true, sound: true };
 
 export default function NotificationSettingsScreen({ navigation }: any) {
+  const toast = useToast();
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
   const [saving, setSaving] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
@@ -144,7 +147,7 @@ export default function NotificationSettingsScreen({ navigation }: any) {
       .eq('id', userId);
     setSaving(false);
     if (error) {
-      Alert.alert('Error', 'Could not save preference. Please try again.');
+      toast.showError('Error', 'Could not save preference. Please try again.');
       setPrefs(prefs);
     }
   };
@@ -192,8 +195,8 @@ export default function NotificationSettingsScreen({ navigation }: any) {
   };
 
   const shareLocation = () => {
-    if (!location) { Alert.alert('Location unavailable', 'Enable location access first.'); return; }
-    Alert.alert('Share Location', `Your location: ${location.address}\nLat: ${location.lat}, Lon: ${location.lon}`);
+    if (!location) { toast.showWarning('Location unavailable', 'Enable location access first.'); return; }
+    toast.showInfo('Your Location', `${location.address}`);
   };
 
   const formatApptDate = (iso: string) =>
@@ -202,7 +205,7 @@ export default function NotificationSettingsScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor="#0B7E8A" />
+      <StatusBar barStyle="light-content" backgroundColor="#083236" />
       {/* Teal Header */}
       <View style={s.header}>
         <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
@@ -285,7 +288,7 @@ export default function NotificationSettingsScreen({ navigation }: any) {
                     />
                   </View>
                   <View style={{ flex: 1, gap: 2 }}>
-                    <Text style={s.apptName}>Dr. {appt.doctor.full_name}</Text>
+                    <Text style={s.apptName}>{drName(appt.doctor.full_name, appt.doctor.title)}</Text>
                     <Text style={s.apptSpec}>{appt.doctor.specialization}</Text>
                     <Text style={s.apptDate}>{formatApptDate(appt.scheduled_at)}</Text>
                   </View>
@@ -364,15 +367,15 @@ export default function NotificationSettingsScreen({ navigation }: any) {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B7E8A' },
+  container: { flex: 1, backgroundColor: '#083236' },
 
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20, gap: 14 },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
   headerIconCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255,255,255,0.2)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)', alignItems: 'center', justifyContent: 'center' },
   headerCenter: { flex: 1 },
-  headerTitle: { fontSize: 26, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
-  headerSub: { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
-  whiteCard: { flex: 1, backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: 'hidden' },
+  headerTitle: { fontSize: 26, fontFamily: 'Montserrat_700Bold', color: '#fff', letterSpacing: -0.3 },
+  headerSub: { fontSize: 14, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+  whiteCard: { flex: 1, backgroundColor: '#F5F3EE', borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
 
   card: {
     borderWidth: 1, borderColor: C.border, borderRadius: 16,

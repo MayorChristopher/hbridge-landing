@@ -194,8 +194,8 @@
     }
     .hero-grid { display: none; }
     .hero-inner {
-      position: relative; z-index: 2; padding: 80px 0;
-      display: flex; align-items: center; gap: 80px;
+      position: relative; z-index: 2; padding: 40px 0 32px;
+      display: flex; align-items: center; gap: 56px;
     }
     .hero-left { flex: 1; max-width: 560px; }
     .hero-badge {
@@ -277,20 +277,19 @@
     .hero-wave { position: absolute; bottom: 0; left: 0; right: 0; line-height: 0; z-index: 2; }
     .hero-wave svg { display: block; width: 100%; }
 
-    /* ── Stats strip ── */
-    .stats { background: var(--card); padding: 56px 0; border-bottom: 1px solid var(--border); }
-    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-    .stat-item {
-      display: flex; flex-direction: column; align-items: center; gap: 6px;
-      padding: 24px 16px;
+    /* ── Trust bar ── */
+    .trust-pill {
+      display: flex; align-items: center; gap: 7px;
+      padding: 0 24px;
+      font-size: 13px; font-weight: 600; color: var(--muted);
     }
-    .stat-icon {
-      width: 44px; height: 44px; border-radius: 13px;
-      background: var(--teal-lt);
-      display: flex; align-items: center; justify-content: center; margin-bottom: 6px;
+    .trust-divider {
+      width: 1px; height: 20px; background: var(--border); flex-shrink: 0;
     }
-    .stat-num { font-size: 30px; font-weight: 700; color: var(--ink); line-height: 1; }
-    .stat-label { font-size: 12px; color: var(--muted); font-weight: 500; text-align: center; }
+    @media (max-width: 767px) {
+      .trust-pill { padding: 8px 14px; font-size: 12px; }
+      .trust-divider { display: none; }
+    }
 
     /* ── Platform (What we do) ── */
     .platform { background: var(--paper); padding: 100px 0; }
@@ -357,28 +356,11 @@
     .for-hospitals { background: var(--paper); padding: 100px 0; }
 
     /* ── How it works ── */
-    .how { background: var(--card); padding: 100px 0; }
-    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 48px; position: relative; }
-    .steps::before {
-      content: ''; position: absolute; top: 28px; left: calc(33.33% + 8px); right: calc(33.33% + 8px);
-      height: 1.5px; background: var(--border);
-    }
-    .step-num {
-      width: 56px; height: 56px; border-radius: 18px; margin-bottom: 20px;
-      background: var(--teal-lt);
-      border: 1.5px solid rgba(11,126,138,0.18);
-      display: flex; align-items: center; justify-content: center;
-      position: relative;
-    }
-    .step-num i { color: var(--teal) !important; }
-    .step-badge {
-      position: absolute; top: -7px; right: -7px;
-      width: 22px; height: 22px; border-radius: 50%;
-      background: var(--teal); color: #fff;
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'Montserrat', sans-serif;
-      font-size: 10px; font-weight: 700;
-    }
+    .how { background: var(--teal-dk); padding: 100px 0; }
+    .how .section-heading h2 { color: #fff; }
+    .how .section-heading h2 span { color: #7FE8F0; }
+    .how .section-heading p { color: rgba(255,255,255,.5); }
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 48px; }
 
     /* ── Waitlist ── */
     .waitlist-section { background: var(--paper); padding: 100px 0; }
@@ -485,62 +467,213 @@
        RESPONSIVE
     ══════════════════════════ */
 
-    /* Tablet */
+    /* ── Tablet ── */
     @media (max-width: 1023px) {
       .hero-right { display: none; }
       .hero-h1 { font-size: 48px; }
       .emr-inner { grid-template-columns: 1fr; gap: 28px; }
       .for-grid { grid-template-columns: 1fr; gap: 40px; }
+      .for-grid img { width: 260px !important; }
       .feat-grid { grid-template-columns: repeat(2, 1fr); }
+      .rg-about { grid-template-columns: 1fr !important; gap: 40px !important; }
+      .rg-about > div:last-child { order: -1; }
+      .steps { grid-template-columns: 1fr; gap: 40px; }
       .footer-links-grid { grid-template-columns: repeat(2, 1fr); gap: 32px; }
     }
 
-    /* Mobile */
+    /* ── Mobile ── */
     @media (max-width: 767px) {
       .container { padding: 0 18px; }
-      .hero-inner { padding: 60px 0 80px; flex-direction: column; gap: 0; }
-      .hero-h1 { font-size: 38px; }
+
+      /* Hero */
+      .hero-inner { padding: 48px 0 56px; flex-direction: column; gap: 0; }
+      .hero-h1 { font-size: 36px; }
       .hero-sub { font-size: 15px; }
       .hero-btns { gap: 10px; }
       .hero-btns .btn { padding: 12px 20px; font-size: 14px; }
 
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      /* Trust bar */
+      .trust-pill { padding: 8px 14px; font-size: 12px; }
+      .trust-divider { display: none; }
 
-      .platform { padding: 72px 0; }
-      .section-heading h2 { font-size: 30px; }
-      .section-heading { margin-bottom: 40px; }
-      .emr-card { padding: 28px; }
+      /* Platform */
+      .platform { padding: 64px 0; }
+      .section-heading h2 { font-size: 28px; }
+      .section-heading { margin-bottom: 36px; }
+      .emr-card { padding: 24px; }
       .feat-grid { grid-template-columns: 1fr; gap: 12px; }
 
-      .for-doctors, .for-hospitals { padding: 72px 0; }
-      .for-grid { gap: 32px; }
+      /* About */
+      #about { padding: 64px 0 !important; }
 
-      .how { padding: 72px 0; }
-      .steps { grid-template-columns: 1fr; gap: 36px; }
-      .steps::before { display: none; }
+      /* For Doctors / Hospitals */
+      .for-doctors, .for-hospitals { padding: 64px 0; }
+      .for-grid { gap: 28px; }
+      .for-grid img { width: 220px !important; }
 
-      .waitlist-section { padding: 72px 0; }
-      .waitlist-card { padding: 28px 20px; }
-      .waitlist-metrics { gap: 12px; }
+      /* How it works */
+      .how { padding: 64px 0; }
 
+      /* Showcase */
+      .showcase-section { padding: 64px 0; }
+      .showcase-grid { gap: 12px; }
+      .showcase-item img { width: 140px; }
+      .showcase-item:nth-child(2) img { width: 152px; }
+      .showcase-home { grid-template-columns: 1fr; gap: 28px; }
+      .showcase-home-img img { width: 200px; }
+      .showcase-home-copy { text-align: center; }
+      .showcase-home-copy h3 { font-size: 22px; }
+
+      /* Waitlist */
+      .waitlist-section { padding: 64px 0; }
+      .waitlist-card { padding: 24px 16px; }
+      .waitlist-metrics { gap: 10px; }
+
+      /* Footer */
       footer { padding: 48px 0 28px; }
-      .footer-inner { flex-direction: column; gap: 36px; }
+      .footer-inner { flex-direction: column; gap: 32px; }
       .footer-brand { max-width: 100%; flex: none; }
-      .footer-links-grid { grid-template-columns: repeat(2, 1fr); gap: 28px; }
+      .footer-links-grid { grid-template-columns: repeat(2, 1fr); gap: 24px; }
       .footer-bottom { flex-direction: column; align-items: flex-start; gap: 6px; }
 
+      /* Nav */
       .nav-links { display: none; }
       .nav-cta .nav-cta-ghost { display: none; }
       .hamburger { display: block; }
       .btn-lg { padding: 13px 24px; font-size: 14px; }
-
-      .steps::before { display: none; }
     }
 
-    @media (max-width: 480px) {
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
-      .hero-h1 { font-size: 34px; }
+    /* ── Small phones ── */
+    @media (max-width: 420px) {
+      .hero-h1 { font-size: 30px; }
       .feat-grid { grid-template-columns: 1fr; }
+      .role-tabs { grid-template-columns: 1fr; }
+      .showcase-item img { width: 120px; }
+      .showcase-item:nth-child(2) img { width: 130px; }
+      /* App store badges stack on tiny screens */
+      .hero-store-badges { flex-direction: column !important; }
+    }
+
+    /* ── Hero phone duo ── */
+    .hero-phones-duo {
+      position: relative;
+      flex-shrink: 0;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      width: 460px;
+      padding-bottom: 16px;
+    }
+    .hero-phones-glow {
+      position: absolute;
+      width: 400px; height: 400px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(127,232,240,.28) 0%, rgba(11,126,138,.12) 45%, transparent 72%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 0;
+      filter: blur(28px);
+    }
+    .hero-phone-left {
+      width: 192px;
+      position: relative;
+      z-index: 1;
+      transform: rotate(-5deg) translateY(32px);
+      margin-right: -24px;
+      flex-shrink: 0;
+    }
+    .hero-phone-right {
+      width: 210px;
+      position: relative;
+      z-index: 2;
+      transform: rotate(3deg);
+      flex-shrink: 0;
+    }
+
+    /* ── App Showcase section ── */
+    .showcase-section {
+      background: #030F10;
+      padding: 100px 0;
+      overflow: hidden;
+      border-top: 1px solid rgba(255,255,255,.06);
+    }
+    .showcase-section .section-heading h2 { color: #fff; }
+    .showcase-section .section-heading p  { color: rgba(255,255,255,.5); }
+
+    .showcase-grid {
+      display: flex;
+      gap: 32px;
+      justify-content: center;
+      align-items: flex-end;
+      margin-top: 56px;
+      flex-wrap: wrap;
+    }
+    .showcase-item {
+      flex: 0 0 auto;
+      text-align: center;
+    }
+    .showcase-item img {
+      width: 210px;
+      display: block;
+      margin: 0 auto 14px;
+      transition: transform .35s cubic-bezier(.16,1,.3,1);
+    }
+    .showcase-item:hover img { transform: translateY(-10px); }
+    .showcase-item:nth-child(2) img {
+      width: 230px;
+      transform: translateY(-28px);
+    }
+    .showcase-item:nth-child(2):hover img {
+      transform: translateY(-38px);
+    }
+    .showcase-label {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase;
+      color: rgba(255,255,255,.32);
+    }
+
+    .showcase-home {
+      margin-top: 64px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 56px;
+      align-items: center;
+    }
+    .showcase-home-img {
+      text-align: center;
+    }
+    .showcase-home-img img {
+      width: 260px;
+      display: block;
+      margin: 0 auto;
+    }
+    .showcase-home-copy h3 {
+      font-size: 28px; font-weight: 700;
+      color: #fff; line-height: 1.15;
+      letter-spacing: -.02em; margin-bottom: 14px;
+    }
+    .showcase-home-copy h3 span { color: #7FE8F0; }
+    .showcase-home-copy p {
+      font-size: 15px; color: rgba(255,255,255,.5);
+      line-height: 1.75;
+    }
+
+    @media (max-width: 1023px) {
+      .hero-phones-duo { width: 340px; }
+      .hero-phone-left { width: 148px; }
+      .hero-phone-right { width: 162px; }
+      .hero-phones-glow { width: 300px; height: 300px; }
+    }
+    @media (max-width: 767px) {
+      .showcase-section { padding: 72px 0; }
+      .showcase-item img { width: 160px; }
+      .showcase-item:nth-child(2) img { width: 175px; }
+      .showcase-grid { gap: 16px; }
+      .showcase-home { grid-template-columns: 1fr; gap: 32px; }
+      .showcase-home-img img { width: 210px; }
+      .showcase-home-copy { text-align: center; }
+      .showcase-home-copy h3 { font-size: 22px; }
     }
   </style>
 </head>
@@ -605,95 +738,78 @@
       <div class="hero-left">
         <div class="hero-badge reveal">
           <span class="hero-badge-dot"></span>
-          Healthcare Platform &middot; Nigeria
+          Now Building &middot; Nigeria
         </div>
         <h1 class="hero-h1 reveal d1">
-          Healthcare,<br/><span>bridged.</span>
+          Stop losing your<br/><span>medical records.</span>
         </h1>
         <p class="hero-sub reveal d2">
-          Hbridge is Nigeria's <strong>healthcare platform for all</strong> — secure medical records, instant doctor consultations, appointment booking, AI health guidance, and emergency response, all on your phone.
-        </p>
-        <p class="hero-sub2 reveal d2">
-          For patients, doctors, and hospitals. One platform. Every healthcare need.
+          Hbridge gives every Nigerian a <strong>secure digital health vault</strong> — find verified doctors, book consultations, share records in one tap, and get emergency help when it matters most.
         </p>
         <div class="hero-btns reveal d3">
           <a href="/waitlist" class="btn btn-white btn-lg" data-nav="/waitlist">
-            Join the Waitlist
+            Get Early Access
             <i data-lucide="arrow-right" style="width:15px;height:15px;stroke-width:2.5;color:var(--teal)"></i>
           </a>
-          <a href="/features" class="btn btn-outline-white btn-lg" data-nav="/features">
-            See Features
-            <i data-lucide="chevron-down" style="width:15px;height:15px;stroke-width:2.5"></i>
+          <a href="/how-it-works" class="btn btn-outline-white btn-lg" data-nav="/how-it-works">
+            See How It Works
           </a>
         </div>
-        <p class="hero-hint reveal d4">Launching 2026 &nbsp;&middot;&nbsp; Free to join &nbsp;&middot;&nbsp; Built in Nigeria</p>
+        <div class="reveal d4" style="margin-top:8px">
+          <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:20px">
+            <div style="display:flex;align-items:center;gap:6px">
+              <i data-lucide="shield-check" style="width:13px;height:13px;color:rgba(255,255,255,.4);stroke-width:2"></i>
+              <span style="font-size:12px;color:rgba(255,255,255,.35)">AES-256 Encrypted</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <i data-lucide="lock" style="width:13px;height:13px;color:rgba(255,255,255,.4);stroke-width:2"></i>
+              <span style="font-size:12px;color:rgba(255,255,255,.35)">PIN Protected</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <i data-lucide="smartphone" style="width:13px;height:13px;color:rgba(255,255,255,.4);stroke-width:2"></i>
+              <span style="font-size:12px;color:rgba(255,255,255,.35)">Android &amp; iOS</span>
+            </div>
+          </div>
+          <div class="hero-store-badges" style="display:flex;gap:12px;flex-wrap:wrap">
+            <!-- Apple App Store badge -->
+            <a href="#" style="display:inline-flex;align-items:center;gap:12px;padding:11px 20px;border-radius:13px;background:#000;border:1px solid rgba(255,255,255,.15);text-decoration:none;min-width:152px">
+              <svg width="20" height="24" viewBox="0 0 20 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M16.462 12.748c-.028-3.09 2.524-4.584 2.638-4.657-1.438-2.102-3.672-2.39-4.47-2.416-1.894-.196-3.706 1.112-4.664 1.112-.972 0-2.44-1.085-4.01-1.055C3.76 5.762 1.8 6.944.748 8.79c-2.108 3.691-.542 9.153 1.51 12.146.998 1.438 2.18 3.048 3.732 2.99 1.5-.057 2.066-.966 3.878-.966 1.81 0 2.326.966 3.91.94 1.626-.029 2.65-1.469 3.63-2.912 1.154-1.666 1.627-3.286 1.655-3.37-.037-.015-3.164-1.213-3.19-4.87h-.411zM13.477 3.7C14.3 2.7 14.852.87 14.69 0c-1.182.05-2.617.793-3.464 1.782-.762.874-1.43 2.316-1.25 3.684 1.322.101 2.673-.672 3.5-1.766z" fill="white"/>
+              </svg>
+              <div>
+                <p style="font-size:9px;color:rgba(255,255,255,.5);font-weight:400;letter-spacing:.02em;line-height:1;margin-bottom:3px;font-family:'Space Grotesk',sans-serif">Download on the</p>
+                <p style="font-size:15px;color:#fff;font-weight:600;line-height:1;font-family:'Space Grotesk',sans-serif;letter-spacing:-.01em">App Store</p>
+              </div>
+            </a>
+            <!-- Google Play badge -->
+            <a href="#" style="display:inline-flex;align-items:center;gap:12px;padding:11px 20px;border-radius:13px;background:#000;border:1px solid rgba(255,255,255,.15);text-decoration:none;min-width:152px">
+              <svg width="20" height="22" viewBox="0 0 20 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M.5 1.27C.5.5 1.26.07 2.02.42l17.12 9.73c.68.39.68 1.36 0 1.74L2.02 21.62C1.26 21.97.5 21.54.5 20.77V1.27z" fill="url(#gp1)"/>
+                <path d="M.5 1.27l9.86 9.86-9.86 9.64C1.26 21.97.5 21.54.5 20.77V1.27z" fill="url(#gp2)"/>
+                <path d="M10.36 11.13L2.02.42C1.26.07.5.5.5 1.27v.38l9.86 9.48z" fill="url(#gp3)"/>
+                <path d="M19.14 10.15L10.36 11.13l5-4.88 3.78 2.16c.68.38.68 1.35 0 1.74z" fill="url(#gp4)"/>
+                <defs>
+                  <linearGradient id="gp1" x1="20" y1="11" x2="0" y2="11" gradientUnits="userSpaceOnUse"><stop stop-color="#EA4335"/><stop offset="1" stop-color="#FBBC04"/></linearGradient>
+                  <linearGradient id="gp2" x1="10" y1="1" x2="10" y2="21" gradientUnits="userSpaceOnUse"><stop stop-color="#FBBC04"/><stop offset="1" stop-color="#34A853"/></linearGradient>
+                  <linearGradient id="gp3" x1="0" y1="1" x2="10" y2="11" gradientUnits="userSpaceOnUse"><stop stop-color="#4285F4"/><stop offset="1" stop-color="#34A853"/></linearGradient>
+                  <linearGradient id="gp4" x1="10" y1="11" x2="20" y2="11" gradientUnits="userSpaceOnUse"><stop stop-color="#EA4335"/><stop offset="1" stop-color="#4285F4"/></linearGradient>
+                </defs>
+              </svg>
+              <div>
+                <p style="font-size:9px;color:rgba(255,255,255,.5);font-weight:400;letter-spacing:.02em;line-height:1;margin-bottom:3px;font-family:'Space Grotesk',sans-serif">Get it on</p>
+                <p style="font-size:15px;color:#fff;font-weight:600;line-height:1;font-family:'Space Grotesk',sans-serif;letter-spacing:-.01em">Google Play</p>
+              </div>
+            </a>
+          </div>
+        </div>
       </div>
 
-      <!-- Right: mockup -->
-      <div class="hero-right reveal d2" style="position:relative">
-
-        <div class="badge-float float-a" style="left:-64px;top:24px">
-          <div class="badge-float-icon" style="background:#E6F5F5">
-            <i data-lucide="share-2" style="width:14px;height:14px;color:#0B7E8A;stroke-width:2.5"></i>
-          </div>
-          <div>
-            <p style="font-size:11px;font-weight:700;color:#1a1a1a;line-height:1.3">Record Shared</p>
-            <p style="font-size:10px;color:#9AA3AE">Your doctor can view</p>
-          </div>
-        </div>
-
-        <div class="badge-float float-b" style="right:-40px;bottom:64px">
-          <div class="badge-float-icon" style="background:#fef3c7">
-            <i data-lucide="calendar-check" style="width:14px;height:14px;color:#D97706;stroke-width:2.5"></i>
-          </div>
-          <div>
-            <p style="font-size:11px;font-weight:700;color:#1a1a1a;line-height:1.3">Appointment Booked</p>
-            <p style="font-size:10px;color:#9AA3AE">Tomorrow, 10:00 AM</p>
-          </div>
-        </div>
-
-        <div class="hero-card">
-          <div class="hero-card-header">
-            <div class="hero-card-icon">
-              <i data-lucide="shield" style="width:18px;height:18px;color:#7FE8F0;stroke-width:2"></i>
-            </div>
-            <div>
-              <p style="color:#fff;font-weight:700;font-size:14px;line-height:1.3">Medical Vault</p>
-              <p style="color:rgba(255,255,255,.4);font-size:12px">PIN protected &middot; Secured</p>
-            </div>
-          </div>
-
-          <div class="vault-row">
-            <div class="vault-row-icon">
-              <i data-lucide="building-2" style="width:14px;height:14px;color:#7FE8F0;stroke-width:2"></i>
-            </div>
-            <div style="flex:1;min-width:0">
-              <p style="color:#fff;font-size:13px;font-weight:600">Hospital Records</p>
-              <p style="color:rgba(255,255,255,.38);font-size:11px">3 documents</p>
-            </div>
-            <i data-lucide="chevron-right" style="width:13px;height:13px;color:rgba(255,255,255,.25);stroke-width:2;flex-shrink:0"></i>
-          </div>
-
-          <div class="vault-row">
-            <div class="vault-row-icon">
-              <i data-lucide="stethoscope" style="width:14px;height:14px;color:#7FE8F0;stroke-width:2"></i>
-            </div>
-            <div style="flex:1;min-width:0">
-              <p style="color:#fff;font-size:13px;font-weight:600">Doctor Visits</p>
-              <p style="color:rgba(255,255,255,.38);font-size:11px">5 records</p>
-            </div>
-            <i data-lucide="chevron-right" style="width:13px;height:13px;color:rgba(255,255,255,.25);stroke-width:2;flex-shrink:0"></i>
-          </div>
-
-          <div class="vault-row vault-row-dashed">
-            <i data-lucide="folder-plus" style="width:14px;height:14px;color:rgba(127,232,240,.4);stroke-width:2;flex-shrink:0"></i>
-            <p style="color:rgba(255,255,255,.28);font-size:13px">Add new folder</p>
-          </div>
-
-          <button style="width:100%;margin-top:12px;padding:10px;border-radius:11px;background:rgba(127,232,240,.1);border:1px solid rgba(127,232,240,.18);color:#7FE8F0;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:background .2s">
-            <i data-lucide="plus" style="width:13px;height:13px;stroke-width:2.5"></i>
-            Add record
-          </button>
+      <!-- Right: mockup duo -->
+      <div class="hero-right reveal d2">
+        <div class="hero-phones-duo">
+          <div class="hero-phones-glow"></div>
+          <img src="ms-home-android.png" class="hero-phone-left" alt="Hbridge on Android" />
+          <img src="ms-home-iphone.png"  class="hero-phone-right" alt="Hbridge on iPhone" />
         </div>
       </div>
     </div>
@@ -709,36 +825,32 @@
 <!-- ════════════════════════════
      STATS
 ════════════════════════════ -->
-<section class="stats" id="stats">
+<section style="background:var(--card);padding:28px 0;border-bottom:1px solid var(--border)">
   <div class="container">
-    <div class="stats-grid">
-      <div class="stat-item reveal">
-        <div class="stat-icon">
-          <i data-lucide="users" style="width:20px;height:20px;color:var(--teal);stroke-width:2"></i>
-        </div>
-        <p class="stat-num" id="stat-patients">—</p>
-        <p class="stat-label">Patients on waitlist</p>
+    <div class="reveal" style="display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap">
+      <div class="trust-pill">
+        <i data-lucide="shield-check" style="width:15px;height:15px;color:var(--teal);stroke-width:2;flex-shrink:0"></i>
+        <span>AES-256 Encrypted</span>
       </div>
-      <div class="stat-item reveal d1">
-        <div class="stat-icon">
-          <i data-lucide="stethoscope" style="width:20px;height:20px;color:var(--teal);stroke-width:2"></i>
-        </div>
-        <p class="stat-num" id="stat-doctors">—</p>
-        <p class="stat-label">Doctors joined</p>
+      <div class="trust-divider"></div>
+      <div class="trust-pill">
+        <i data-lucide="lock-keyhole" style="width:15px;height:15px;color:var(--teal);stroke-width:2;flex-shrink:0"></i>
+        <span>PIN Protected Records</span>
       </div>
-      <div class="stat-item reveal d2">
-        <div class="stat-icon">
-          <i data-lucide="building-2" style="width:20px;height:20px;color:var(--teal);stroke-width:2"></i>
-        </div>
-        <p class="stat-num" id="stat-hospitals">—</p>
-        <p class="stat-label">Hospitals registered</p>
+      <div class="trust-divider"></div>
+      <div class="trust-pill">
+        <i data-lucide="users" style="width:15px;height:15px;color:var(--teal);stroke-width:2;flex-shrink:0"></i>
+        <span>Patients · Doctors · Hospitals</span>
       </div>
-      <div class="stat-item reveal d3">
-        <div class="stat-icon">
-          <i data-lucide="rocket" style="width:20px;height:20px;color:var(--teal);stroke-width:2"></i>
-        </div>
-        <p class="stat-num">2026</p>
-        <p class="stat-label">Public launch</p>
+      <div class="trust-divider"></div>
+      <div class="trust-pill">
+        <i data-lucide="smartphone" style="width:15px;height:15px;color:var(--teal);stroke-width:2;flex-shrink:0"></i>
+        <span>Android &amp; iOS</span>
+      </div>
+      <div class="trust-divider"></div>
+      <div class="trust-pill">
+        <i data-lucide="map-pin" style="width:15px;height:15px;color:var(--teal);stroke-width:2;flex-shrink:0"></i>
+        <span>Built for Nigeria</span>
       </div>
     </div>
   </div>
@@ -820,49 +932,28 @@
       </div>
     </div>
 
-    <!-- 5 secondary features -->
+    <!-- 3 key features -->
     <div class="feat-grid">
       <div class="feat-card reveal">
-        <div class="feat-icon" style="background:#ede9fe">
-          <i data-lucide="message-circle" style="width:22px;height:22px;color:#7C3AED;stroke-width:2"></i>
+        <div class="feat-icon" style="background:var(--teal-lt)">
+          <i data-lucide="message-circle" style="width:22px;height:22px;color:var(--teal);stroke-width:2"></i>
         </div>
-        <h3 style="font-weight:700;font-size:15px;color:var(--ink);margin-bottom:8px">Doctor Consultations</h3>
-        <p style="color:var(--muted);font-size:13px;line-height:1.7">Chat with verified Nigerian doctors in real time. Share records directly from your vault during every consultation.</p>
+        <h3 style="font-weight:700;font-size:16px;color:var(--ink);margin-bottom:10px">Doctor Consultations</h3>
+        <p style="color:var(--muted);font-size:14px;line-height:1.75">Chat or video call verified Nigerian doctors. Share records from your vault in one tap — no paper, no delays.</p>
       </div>
       <div class="feat-card reveal d1">
         <div class="feat-icon" style="background:#fef3c7">
           <i data-lucide="calendar-check" style="width:22px;height:22px;color:#D97706;stroke-width:2"></i>
         </div>
-        <h3 style="font-weight:700;font-size:15px;color:var(--ink);margin-bottom:8px">Appointment Booking</h3>
-        <p style="color:var(--muted);font-size:13px;line-height:1.7">Book clinic and virtual appointments with verified doctors. Manage all your bookings in one place.</p>
+        <h3 style="font-weight:700;font-size:16px;color:var(--ink);margin-bottom:10px">Appointment Booking</h3>
+        <p style="color:var(--muted);font-size:14px;line-height:1.75">Book clinic and virtual appointments with verified doctors. Request, approve, pay — all inside the app.</p>
       </div>
       <div class="feat-card reveal d2">
-        <div class="feat-icon" style="background:#e0f2fe">
-          <i data-lucide="brain-circuit" style="width:22px;height:22px;color:#0284C7;stroke-width:2"></i>
-        </div>
-        <h3 style="font-weight:700;font-size:15px;color:var(--ink);margin-bottom:8px">AI Health Assistant</h3>
-        <p style="color:var(--muted);font-size:13px;line-height:1.7">Ask health questions, check symptoms, and get guidance — powered by AI, private, and available 24/7.</p>
-      </div>
-      <div class="feat-card reveal">
         <div class="feat-icon" style="background:#fee2e2">
           <i data-lucide="phone-call" style="width:22px;height:22px;color:#DC2626;stroke-width:2"></i>
         </div>
-        <h3 style="font-weight:700;font-size:15px;color:var(--ink);margin-bottom:8px">Emergency Response</h3>
-        <p style="color:var(--muted);font-size:13px;line-height:1.7">One-tap SOS with location. Emergency contacts alerted immediately, with your full medical history ready for responders.</p>
-      </div>
-      <div class="feat-card reveal d1">
-        <div class="feat-icon" style="background:#dcfce7">
-          <i data-lucide="hospital" style="width:22px;height:22px;color:#16A34A;stroke-width:2"></i>
-        </div>
-        <h3 style="font-weight:700;font-size:15px;color:var(--ink);margin-bottom:8px">Hospital Integration</h3>
-        <p style="color:var(--muted);font-size:13px;line-height:1.7">Hospitals receive patient records digitally. No more paper folders — cleaner handoffs, faster care decisions.</p>
-      </div>
-      <div class="feat-card reveal d2">
-        <div class="feat-icon" style="background:var(--teal-lt)">
-          <i data-lucide="heart-pulse" style="width:22px;height:22px;color:var(--teal);stroke-width:2"></i>
-        </div>
-        <h3 style="font-weight:700;font-size:15px;color:var(--ink);margin-bottom:8px">Health Tracking</h3>
-        <p style="color:var(--muted);font-size:13px;line-height:1.7">Track vitals, allergies, blood type, and conditions. Your full health profile at your fingertips and your doctor's.</p>
+        <h3 style="font-weight:700;font-size:16px;color:var(--ink);margin-bottom:10px">Emergency SOS</h3>
+        <p style="color:var(--muted);font-size:14px;line-height:1.75">One-tap alert with your location and full medical history — sent instantly to your emergency contacts and responders.</p>
       </div>
     </div>
   </div>
@@ -873,17 +964,7 @@
 ════════════════════════════ -->
 <section style="background:var(--card);padding:100px 0" id="about">
   <div class="container">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center" class="rg-about">
-      <!-- Logo panel -->
-      <div class="reveal" style="display:flex;align-items:center;justify-content:center">
-        <div style="position:relative;width:320px;height:320px;max-width:85vw;max-height:85vw">
-          <div style="position:absolute;inset:0;border-radius:28px;background:linear-gradient(135deg,var(--teal-dk),var(--teal));transform:rotate(-9deg);box-shadow:0 24px 60px rgba(11,126,138,.22)"></div>
-          <div style="position:absolute;inset:14px;border-radius:22px;background:var(--surface);transform:rotate(-4deg)"></div>
-          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
-            <img src="logo.png" alt="Hbridge" style="width:130px;height:130px;object-fit:cover;border-radius:50%;display:block;box-shadow:0 8px 32px rgba(8,50,54,.18)" />
-          </div>
-        </div>
-      </div>
+    <div class="rg-about" style="display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center">
 
       <!-- Copy -->
       <div>
@@ -900,27 +981,33 @@
         <p class="reveal d2" style="font-size:15px;line-height:1.8;color:var(--muted);margin-bottom:32px">
           Hbridge bridges that gap — connecting patients, doctors, and hospitals on one secure platform built specifically for Nigeria.
         </p>
-        <div class="reveal d3" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-          <div style="display:flex;align-items:flex-start;gap:12px;padding:16px;background:var(--paper);border-radius:14px">
-            <div style="width:36px;height:36px;border-radius:10px;background:var(--teal-lt);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-              <i data-lucide="shield-check" style="width:16px;height:16px;color:var(--teal);stroke-width:2"></i>
+        <div class="reveal d3" style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:32px;height:32px;border-radius:9px;background:var(--teal-lt);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <i data-lucide="shield-check" style="width:14px;height:14px;color:var(--teal);stroke-width:2"></i>
             </div>
-            <div>
-              <p style="font-weight:700;color:var(--ink);font-size:13px;margin-bottom:3px">End-to-end secure</p>
-              <p style="color:var(--muted);font-size:12px;line-height:1.6">Encrypted, PIN-locked, full access control.</p>
-            </div>
+            <p style="font-size:14px;color:var(--muted)"><strong style="color:var(--ink)">End-to-end secure</strong> — Encrypted, PIN-locked, full access control.</p>
           </div>
-          <div style="display:flex;align-items:flex-start;gap:12px;padding:16px;background:var(--paper);border-radius:14px">
-            <div style="width:36px;height:36px;border-radius:10px;background:var(--teal-lt);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-              <i data-lucide="users" style="width:16px;height:16px;color:var(--teal);stroke-width:2"></i>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:32px;height:32px;border-radius:9px;background:var(--teal-lt);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <i data-lucide="users" style="width:14px;height:14px;color:var(--teal);stroke-width:2"></i>
             </div>
-            <div>
-              <p style="font-weight:700;color:var(--ink);font-size:13px;margin-bottom:3px">Built for everyone</p>
-              <p style="color:var(--muted);font-size:12px;line-height:1.6">Patients, doctors, and hospitals.</p>
+            <p style="font-size:14px;color:var(--muted)"><strong style="color:var(--ink)">Built for everyone</strong> — Patients, doctors, and hospitals on one platform.</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:32px;height:32px;border-radius:9px;background:var(--teal-lt);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <i data-lucide="map-pin" style="width:14px;height:14px;color:var(--teal);stroke-width:2"></i>
             </div>
+            <p style="font-size:14px;color:var(--muted)"><strong style="color:var(--ink)">Made for Nigeria</strong> — Built around how Nigerian healthcare actually works.</p>
           </div>
         </div>
       </div>
+
+      <!-- Real app mockup -->
+      <div class="reveal d2" style="display:flex;justify-content:center;align-items:center">
+        <img src="ms-booking-iphone.png" alt="Book a consultation on Hbridge" style="width:300px;max-width:100%;display:block" />
+      </div>
+
     </div>
   </div>
 </section>
@@ -988,46 +1075,9 @@
         </div>
       </div>
 
-      <!-- Doctor card -->
-      <div class="reveal d2">
-        <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:28px">
-          <div style="display:flex;align-items:center;gap:14px;padding:16px;background:rgba(255,255,255,.06);border-radius:16px;margin-bottom:16px">
-            <div style="width:48px;height:48px;border-radius:50%;background:rgba(127,232,240,.15);border:2px solid rgba(127,232,240,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-              <i data-lucide="user" style="width:22px;height:22px;color:#7FE8F0;stroke-width:1.5"></i>
-            </div>
-            <div style="flex:1">
-              <p style="color:#fff;font-weight:700;font-size:14px">Doctor Profile</p>
-              <p style="color:rgba(255,255,255,.4);font-size:12px">Verified · General Practitioner</p>
-            </div>
-            <div style="display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:100px;background:rgba(127,232,240,.12)">
-              <span style="width:6px;height:6px;border-radius:50%;background:#7FE8F0;display:inline-block"></span>
-              <span style="font-size:11px;color:#7FE8F0;font-weight:600">Active</span>
-            </div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:10px">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:rgba(255,255,255,.05);border-radius:12px">
-              <div style="display:flex;align-items:center;gap:10px">
-                <i data-lucide="calendar" style="width:15px;height:15px;color:rgba(255,255,255,.5);stroke-width:2"></i>
-                <span style="font-size:13px;color:rgba(255,255,255,.7)">Appointment Request</span>
-              </div>
-              <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:100px;background:var(--gold-bg);color:var(--gold)">Pending</span>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:rgba(255,255,255,.05);border-radius:12px">
-              <div style="display:flex;align-items:center;gap:10px">
-                <i data-lucide="file-text" style="width:15px;height:15px;color:rgba(255,255,255,.5);stroke-width:2"></i>
-                <span style="font-size:13px;color:rgba(255,255,255,.7)">Patient Shared Records</span>
-              </div>
-              <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:100px;background:rgba(127,232,240,.12);color:#7FE8F0">New</span>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:rgba(255,255,255,.05);border-radius:12px">
-              <div style="display:flex;align-items:center;gap:10px">
-                <i data-lucide="message-circle" style="width:15px;height:15px;color:rgba(255,255,255,.5);stroke-width:2"></i>
-                <span style="font-size:13px;color:rgba(255,255,255,.7)">Patient Message</span>
-              </div>
-              <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:100px;background:rgba(127,232,240,.12);color:#7FE8F0">1</span>
-            </div>
-          </div>
-        </div>
+      <!-- Doctor mockup -->
+      <div class="reveal d2" style="display:flex;justify-content:center">
+        <img src="ms-explore-android.png" alt="Patients find you on Hbridge" style="width:300px;max-width:100%;display:block" />
       </div>
     </div>
   </div>
@@ -1087,34 +1137,9 @@
         </div>
       </div>
 
-      <!-- Hospital card -->
-      <div class="reveal d2">
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:24px;padding:28px;box-shadow:0 8px 40px rgba(8,50,54,.06)">
-          <div style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--paper);border-radius:14px;margin-bottom:16px">
-            <div style="width:44px;height:44px;border-radius:12px;background:var(--teal-lt);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-              <i data-lucide="building-2" style="width:20px;height:20px;color:var(--teal);stroke-width:2"></i>
-            </div>
-            <div>
-              <p style="font-weight:700;color:var(--ink);font-size:14px">Hospital Dashboard</p>
-              <p style="color:var(--muted);font-size:12px">Command Center</p>
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-            <div style="padding:14px;background:var(--paper);border-radius:12px;text-align:center">
-              <p style="font-size:24px;font-weight:700;color:var(--ink)">—</p>
-              <p style="font-size:11px;color:var(--muted)">Records today</p>
-            </div>
-            <div style="padding:14px;background:var(--teal-lt);border-radius:12px;text-align:center">
-              <p style="font-size:24px;font-weight:700;color:var(--teal)">—</p>
-              <p style="font-size:11px;color:var(--teal)">Pending records</p>
-            </div>
-          </div>
-          <div style="padding:14px;background:var(--paper);border-radius:12px;display:flex;align-items:center;gap:10px">
-            <i data-lucide="inbox" style="width:16px;height:16px;color:var(--teal);stroke-width:2;flex-shrink:0"></i>
-            <span style="font-size:13px;color:var(--muted)">Incoming patient records</span>
-            <span style="margin-left:auto;font-size:11px;font-weight:700;padding:3px 10px;border-radius:100px;background:var(--teal-lt);color:var(--teal)">Live</span>
-          </div>
-        </div>
+      <!-- Hospital mockup -->
+      <div class="reveal d2" style="display:flex;justify-content:center">
+        <img src="ms-records-android.png" alt="Digital records on Hbridge" style="width:300px;max-width:100%;display:block" />
       </div>
     </div>
   </div>
@@ -1126,38 +1151,91 @@
 <section class="how" id="how-it-works">
   <div class="container">
     <div class="section-heading">
-      <div class="label reveal" style="display:inline-flex;margin-bottom:12px">
+      <div class="label label-white reveal" style="display:inline-flex;margin-bottom:12px">
         <i data-lucide="zap" style="width:11px;height:11px;stroke-width:2.5"></i>
         How It Works
       </div>
-      <h2 class="reveal d1">Set up in under<br/><span style="color:var(--teal)">3 minutes</span></h2>
+      <h2 class="reveal d1">Set up in under<br/><span>3 minutes</span></h2>
       <p class="reveal d2">From signup to a fully organised health profile — completely on your phone.</p>
     </div>
 
     <div class="steps">
-      <div class="reveal">
-        <div class="step-num">
-          <i data-lucide="shield-plus" style="width:24px;height:24px;color:var(--teal);stroke-width:2"></i>
-          <span class="step-badge">1</span>
+      <div class="reveal" style="display:flex;flex-direction:column;align-items:center;text-align:center">
+        <div style="margin-bottom:28px;position:relative">
+          <img src="ms-home-iphone.png" alt="Hbridge sign up screen" style="width:170px;display:block;margin:0 auto" />
+          <span style="position:absolute;top:-10px;right:-10px;width:28px;height:28px;border-radius:50%;background:#7FE8F0;color:var(--teal-dk);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(127,232,240,.3)">1</span>
         </div>
-        <h3 style="font-size:19px;font-weight:700;color:var(--ink);margin-bottom:10px">Create your account</h3>
-        <p style="color:var(--muted);font-size:14px;line-height:1.75">Sign up as a patient, doctor, or hospital. Set your private PIN — no one else can access your records without it.</p>
+        <h3 style="font-size:18px;font-weight:700;color:#fff;margin-bottom:10px">Create your account</h3>
+        <p style="color:rgba(255,255,255,.5);font-size:14px;line-height:1.75;max-width:240px">Sign up as a patient, doctor, or hospital. Set your private PIN — no one else can access your records without it.</p>
       </div>
-      <div class="reveal d1">
-        <div class="step-num">
-          <i data-lucide="clipboard" style="width:24px;height:24px;color:var(--teal);stroke-width:2"></i>
-          <span class="step-badge">2</span>
+      <div class="reveal d1" style="display:flex;flex-direction:column;align-items:center;text-align:center">
+        <div style="margin-bottom:28px;position:relative">
+          <img src="ms-records-android.png" alt="Hbridge records vault" style="width:170px;display:block;margin:0 auto" />
+          <span style="position:absolute;top:-10px;right:-10px;width:28px;height:28px;border-radius:50%;background:#7FE8F0;color:var(--teal-dk);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(127,232,240,.3)">2</span>
         </div>
-        <h3 style="font-size:19px;font-weight:700;color:var(--ink);margin-bottom:10px">Build your health profile</h3>
-        <p style="color:var(--muted);font-size:14px;line-height:1.75">Upload lab results, prescriptions, and clinical notes. Organise by hospital or doctor. Your complete history, one place.</p>
+        <h3 style="font-size:18px;font-weight:700;color:#fff;margin-bottom:10px">Build your health profile</h3>
+        <p style="color:rgba(255,255,255,.5);font-size:14px;line-height:1.75;max-width:240px">Upload lab results, prescriptions, and clinical notes. Organise by hospital or doctor. Your complete history, one place.</p>
       </div>
-      <div class="reveal d2">
-        <div class="step-num">
-          <i data-lucide="share-2" style="width:24px;height:24px;color:var(--teal);stroke-width:2"></i>
-          <span class="step-badge">3</span>
+      <div class="reveal d2" style="display:flex;flex-direction:column;align-items:center;text-align:center">
+        <div style="margin-bottom:28px;position:relative">
+          <img src="ms-booking-android.png" alt="Hbridge book a consultation" style="width:170px;display:block;margin:0 auto" />
+          <span style="position:absolute;top:-10px;right:-10px;width:28px;height:28px;border-radius:50%;background:#7FE8F0;color:var(--teal-dk);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(127,232,240,.3)">3</span>
         </div>
-        <h3 style="font-size:19px;font-weight:700;color:var(--ink);margin-bottom:10px">Connect &amp; share</h3>
-        <p style="color:var(--muted);font-size:14px;line-height:1.75">Book a doctor, share your records in one tap, get AI guidance, or trigger an emergency alert. You're in full control.</p>
+        <h3 style="font-size:18px;font-weight:700;color:#fff;margin-bottom:10px">Connect &amp; share</h3>
+        <p style="color:rgba(255,255,255,.5);font-size:14px;line-height:1.75;max-width:240px">Book a doctor, share your records in one tap, get AI guidance, or trigger an emergency alert. You're in full control.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════
+     APP SHOWCASE
+════════════════════════════ -->
+<section class="showcase-section" id="app">
+  <div class="container">
+    <div class="section-heading">
+      <div class="label label-white reveal" style="display:inline-flex;margin-bottom:12px">
+        <i data-lucide="smartphone" style="width:11px;height:11px;stroke-width:2.5"></i>
+        The App
+      </div>
+      <h2 class="reveal d1">The whole picture,<br/><span style="color:#7FE8F0">on your phone.</span></h2>
+      <p class="reveal d2">Find verified doctors, secure your records, message your care team — one app, every healthcare need.</p>
+    </div>
+
+    <!-- 3-up: Explore · Records · Messages -->
+    <div class="showcase-grid">
+      <div class="showcase-item reveal">
+        <img src="ms-explore-android.png" alt="Explore practitioners on Hbridge" />
+        <p class="showcase-label">Explore</p>
+      </div>
+      <div class="showcase-item reveal d1">
+        <img src="ms-records-android.png" alt="Medical Records Vault on Hbridge" />
+        <p class="showcase-label">Records Vault</p>
+      </div>
+      <div class="showcase-item reveal d2">
+        <img src="ms-booking-android.png" alt="Book a consultation on Hbridge" />
+        <p class="showcase-label">Consultations</p>
+      </div>
+    </div>
+
+    <!-- Home screen + copy -->
+    <div class="showcase-home">
+      <div class="showcase-home-img reveal">
+        <img src="ms-home-android.png" alt="Hbridge patient home screen" />
+      </div>
+      <div class="showcase-home-copy reveal d1">
+        <div class="label label-white" style="display:inline-flex;margin-bottom:20px">
+          <i data-lucide="layout-dashboard" style="width:11px;height:11px;stroke-width:2.5"></i>
+          Patient Home
+        </div>
+        <h3>Your health, at a glance.<br/><span>Everything you need</span>, front and centre.</h3>
+        <p style="margin-top:16px">Upcoming appointments, recent records, quick access to your doctor — your personal health dashboard built for everyday use.</p>
+        <div style="margin-top:28px;display:flex;gap:12px;flex-wrap:wrap">
+          <a href="/waitlist" class="btn btn-white" data-nav="/waitlist">
+            Get Early Access
+            <i data-lucide="arrow-right" style="width:14px;height:14px;stroke-width:2.5;color:var(--teal)"></i>
+          </a>
+        </div>
       </div>
     </div>
   </div>
@@ -1185,7 +1263,7 @@
         <span style="font-size:13px;color:var(--muted)">patients</span>
       </div>
       <div class="metric-pill">
-        <span class="metric-dot" style="background:#7C3AED"></span>
+        <span class="metric-dot" style="background:var(--teal)"></span>
         <span id="m-practitioners" style="font-size:14px;font-weight:700;color:var(--ink)">—</span>
         <span style="font-size:13px;color:var(--muted)">practitioners</span>
       </div>
@@ -1354,6 +1432,7 @@
     '/for-doctors':'for-doctors',
     '/hospitals':  'hospitals',
     '/how-it-works':'how-it-works',
+    '/app':        'app',
     '/waitlist':   'waitlist',
   };
 
@@ -1419,9 +1498,6 @@
         countRole('patient'), countRole('doctor'), countRole('practitioner'), countRole('hospital')
       ]);
       const fmt = function(n) { return n > 0 ? n.toLocaleString() : '0'; };
-      document.getElementById('stat-patients').textContent  = fmt(p);
-      document.getElementById('stat-doctors').textContent   = fmt(d + pr);
-      document.getElementById('stat-hospitals').textContent = fmt(h);
       document.getElementById('m-patients').textContent     = fmt(p);
       document.getElementById('m-practitioners').textContent = fmt(d + pr);
       document.getElementById('m-hospitals').textContent    = fmt(h);
@@ -1503,15 +1579,6 @@
       btn.innerHTML = 'Join Waitlist <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline-block;vertical-align:middle"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
     }
   });
-
-  // ── Responsive about grid ──────────────────
-  function fixAboutGrid() {
-    const grid = document.querySelector('.rg-about');
-    if (!grid) return;
-    grid.style.gridTemplateColumns = window.innerWidth < 768 ? '1fr' : '1fr 1fr';
-  }
-  fixAboutGrid();
-  window.addEventListener('resize', fixAboutGrid);
 
   // ── Toast ──────────────────────────────────
   let toastTimer = null;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet, Text, View, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Linking, RefreshControl, StatusBar,
@@ -9,8 +9,8 @@ import { supabase } from '../lib/supabase';
 import { locationService } from '../services/locationService';
 
 const C = {
-  bg: '#FFFFFF', surface: '#F5F7FA', text: '#171717', muted: '#737373',
-  border: '#E5E5E5', teal: '#0B7E8A', tealLight: '#E6F5F5',
+  bg: '#F5F3EE', surface: '#EDE9E0', card: '#FFFFFF', text: '#0C2E30',
+  muted: '#6B7E7F', border: '#EAE5DA', teal: '#0B7E8A', tealLight: 'rgba(11,126,138,0.09)',
 };
 
 const TYPE_FILTERS = [
@@ -44,17 +44,18 @@ export default function HospitalsListScreen({ navigation }: any) {
   const loadHospitals = async (text: string, type?: string) => {
     setLoading(true);
     try {
+      const t = type ?? activeType;
       let query = supabase.from('hospitals')
         .select('id,name,type,city,state,rating,total_reviews,emergency_services,services,latitude,longitude')
         .eq('is_active', true)
         .ilike('name', `%${text}%`)
         .order('rating', { ascending: false })
         .limit(30);
-      const t = type ?? activeType;
       if (t !== 'All') query = query.eq('type', t);
-      const { data } = await query;
-      const mapped = (data || []).map((h: any) => {
-        let distance = `${h.city || h.state || ''}`;
+      const { data: hospRows } = await query;
+
+      const results: any[] = (hospRows || []).map((h: any) => {
+        let distance = h.city || h.state || '';
         if (userLocation && h.latitude && h.longitude) {
           const d = locationService.calculateDistance(
             userLocation.latitude, userLocation.longitude, h.latitude, h.longitude,
@@ -63,7 +64,31 @@ export default function HospitalsListScreen({ navigation }: any) {
         }
         return { ...h, distance };
       });
-      setHospitals(mapped);
+
+      // Fallback: also look in profiles for hospital_name (covers accounts without a hospitals row)
+      if (t === 'All') {
+        let profileQuery = supabase.from('profiles')
+          .select('hospital_name')
+          .not('hospital_name', 'is', null);
+        if (text.trim()) {
+          profileQuery = profileQuery.ilike('hospital_name', `%${text}%`);
+        }
+        const { data: profRows } = await profileQuery.limit(20);
+        for (const prof of profRows || []) {
+          const hospName = (prof.hospital_name || '').trim();
+          if (!hospName) continue;
+          const alreadyIn = results.some(r => r.name.toLowerCase() === hospName.toLowerCase());
+          if (!alreadyIn) {
+            results.push({
+              id: null, name: hospName, type: null, city: null,
+              state: null, rating: 0, total_reviews: 0,
+              emergency_services: false, services: [], distance: 'Nigeria',
+            });
+          }
+        }
+      }
+
+      setHospitals(results);
     } catch { setHospitals([]); }
     finally { setLoading(false); }
   };
@@ -78,41 +103,36 @@ export default function HospitalsListScreen({ navigation }: any) {
   const onRefresh   = async () => { setRefreshing(true); await loadHospitals(search); setRefreshing(false); };
 
   return (
-    <SafeAreaView style={s.container} edges={['top', 'bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor="#0B7E8A" />
+    <SafeAreaView style={s.container} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor="#083236" />
 
-      {/* Teal Header */}
+      {/* Deep teal header */}
       <View style={s.header}>
-        <View style={s.headerBranding}>
-          <TouchableOpacity style={s.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={22} color="#ffffff" />
-          </TouchableOpacity>
-          <View style={s.headerIconWrap}>
-            <MaterialCommunityIcons name="hospital-building" size={28} color="#ffffff" />
-          </View>
-          <View style={s.headerTitles}>
-            <Text style={s.headerTitle}>Find Hospitals</Text>
-            <Text style={s.headerSubtitle}>Browse nearby healthcare facilities</Text>
-          </View>
+        <TouchableOpacity style={s.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={22} color="#ffffff" />
+        </TouchableOpacity>
+        <View style={s.headerTitles}>
+          <Text style={s.headerTitle}>Find Hospitals</Text>
+          <Text style={s.headerSubtitle}>Browse nearby facilities</Text>
         </View>
       </View>
 
-      {/* White Card */}
-      <View style={s.card}>
+      {/* Paper card */}
+      <View style={s.paperCard}>
         <ScrollView
           showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.teal} colors={[C.teal]} />
-          }
-          contentContainerStyle={{ paddingBottom: 32 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.teal} colors={[C.teal]} />}
+          contentContainerStyle={{ paddingBottom: 40 }}
         >
-          {/* Toggle */}
+          {/* Toggle â€” Hospitals / Doctors */}
           <View style={s.toggleWrap}>
             <View style={s.toggle}>
               <View style={[s.toggleBtn, s.toggleBtnActive]}>
+                <MaterialCommunityIcons name="hospital-building" size={13} color="#fff" />
                 <Text style={s.toggleTextActive}>Hospitals</Text>
               </View>
               <TouchableOpacity style={s.toggleBtn} onPress={() => navigation.replace('DoctorsList')}>
+                <MaterialCommunityIcons name="stethoscope" size={13} color={C.muted} />
                 <Text style={s.toggleTextInactive}>Doctors</Text>
               </TouchableOpacity>
             </View>
@@ -120,108 +140,122 @@ export default function HospitalsListScreen({ navigation }: any) {
 
           {/* Search */}
           <View style={s.searchWrap}>
-            <View style={s.searchBar}>
-              <Ionicons name="search" size={16} color={C.muted} />
-              <TextInput
-                style={s.searchInput}
-                placeholder="Search hospitals..."
-                placeholderTextColor={C.muted}
-                value={search}
-                onChangeText={onSearchChange}
-                returnKeyType="search"
-              />
-            </View>
+            <Ionicons name="search-outline" size={17} color={C.muted} />
+            <TextInput
+              style={s.searchInput}
+              placeholder="Search hospitals by name or city..."
+              placeholderTextColor={C.muted}
+              value={search}
+              onChangeText={onSearchChange}
+              returnKeyType="search"
+            />
+            {search.length > 0 && (
+              <TouchableOpacity onPress={() => { setSearch(''); loadHospitals(''); }}>
+                <Ionicons name="close-circle" size={16} color={C.muted} />
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Type chips */}
-          <View style={s.chipsWrap}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipsContainer}>
-              {TYPE_FILTERS.map(t => (
-                <TouchableOpacity
-                  key={t.value}
-                  style={[s.chip, activeType === t.value && s.chipActive]}
-                  onPress={() => onTypePress(t.value)}
-                >
-                  <Text style={[s.chipText, activeType === t.value && s.chipTextActive]}>{t.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipsRow}>
+            {TYPE_FILTERS.map(t => (
+              <TouchableOpacity
+                key={t.value}
+                style={[s.chip, activeType === t.value && s.chipActive]}
+                onPress={() => onTypePress(t.value)}
+              >
+                <Text style={[s.chipText, activeType === t.value && s.chipTextActive]}>{t.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          {/* Results count */}
+          <View style={s.resultsBar}>
+            <Text style={s.resultsLabel}>
+              {loading ? 'Searching...' : `${hospitals.length} hospital${hospitals.length !== 1 ? 's' : ''} found`}
+            </Text>
           </View>
 
-          {/* Results header */}
-          <View style={s.resultsHeader}>
-            <Text style={s.resultsTitle}>Nearby Hospitals</Text>
-            <Text style={s.resultsCount}>{hospitals.length} found</Text>
-          </View>
-
-          {/* List */}
-          <View style={s.cardsList}>
+          {/* Hospital list */}
+          <View style={s.list}>
             {loading ? (
-              <ActivityIndicator size="large" color={C.teal} style={{ marginTop: 32 }} />
+              <ActivityIndicator size="large" color={C.teal} style={{ marginTop: 40 }} />
             ) : hospitals.length === 0 ? (
               <View style={s.empty}>
-                <Ionicons name="business-outline" size={40} color={C.muted} />
-                <Text style={s.emptyText}>No hospitals found</Text>
+                <View style={s.emptyIcon}>
+                  <MaterialCommunityIcons name="hospital-building" size={32} color={C.teal} />
+                </View>
+                <Text style={s.emptyTitle}>No hospitals found</Text>
+                <Text style={s.emptyHint}>Try adjusting the filter or search</Text>
               </View>
             ) : (
-              hospitals.map(h => (
-                <View key={h.id} style={s.hospCard}>
-                  <View style={s.cardImg}>
-                    <MaterialCommunityIcons name="hospital-building" size={36} color={C.teal} />
-                    <View style={s.imgBadge}>
-                      <Text style={s.imgBadgeText}>
-                        {h.type ? h.type.charAt(0).toUpperCase() + h.type.slice(1) : 'Hospital'}
+              hospitals.map(h => {
+                const navParams = h.id ? { hospitalId: h.id } : { hospitalName: h.name };
+                return (
+                <TouchableOpacity key={h.id || h.name} style={s.hospCard} activeOpacity={0.92}
+                  onPress={() => navigation.navigate('HospitalDetail', navParams)}>
+
+                  {/* Icon + badges */}
+                  <View style={s.hospCardTop}>
+                    <View style={s.hospIconWrap}>
+                      <MaterialCommunityIcons name="hospital-building" size={28} color={C.teal} />
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={s.hospName} numberOfLines={1}>{h.name}</Text>
+                      <Text style={s.hospLocation} numberOfLines={1}>
+                        {h.city && h.state ? `${h.city}, ${h.state}` : h.city || h.state || h.distance}
                       </Text>
                     </View>
+                    <View style={s.ratingPill}>
+                      <Ionicons name="star" size={11} color="#F59E0B" />
+                      <Text style={s.ratingText}>{(h.rating || 0).toFixed(1)}</Text>
+                    </View>
+                  </View>
+
+                  {/* Tags row */}
+                  <View style={s.tagsRow}>
+                    {h.type && (
+                      <View style={s.tag}>
+                        <Text style={s.tagText}>{h.type.charAt(0).toUpperCase() + h.type.slice(1)}</Text>
+                      </View>
+                    )}
                     {h.emergency_services && (
-                      <View style={s.emergencyBadge}>
-                        <Ionicons name="flash" size={10} color="#ffffff" />
-                        <Text style={s.emergencyText}>24hr</Text>
+                      <View style={[s.tag, s.tagRed]}>
+                        <Ionicons name="flash" size={10} color="#EF4444" />
+                        <Text style={[s.tagText, { color: '#EF4444' }]}>24hr Emergency</Text>
                       </View>
                     )}
-                  </View>
-                  <View style={s.cardContent}>
-                    <View style={s.cardRow}>
-                      <Text style={s.cardName} numberOfLines={1}>{h.name}</Text>
-                      <View style={s.ratingRow}>
-                        <Ionicons name="star" size={12} color="#F59E0B" />
-                        <Text style={s.ratingText}>{(h.rating || 0).toFixed(1)}</Text>
-                      </View>
-                    </View>
-                    <View style={s.metaRow}>
-                      <View style={s.metaItem}>
-                        <Ionicons name="location" size={12} color={C.muted} />
-                        <Text style={s.metaText}>{h.distance}</Text>
-                      </View>
-                      <View style={s.metaItem}>
-                        <Ionicons name="time" size={12} color={C.muted} />
-                        <Text style={s.metaText}>{h.emergency_services ? 'Open 24hrs' : 'Check hours'}</Text>
-                      </View>
-                    </View>
-                    {h.services && h.services.length > 0 && (
-                      <View style={s.metaItem}>
-                        <MaterialCommunityIcons name="stethoscope" size={12} color={C.muted} />
-                        <Text style={s.metaText} numberOfLines={1}>{h.services.slice(0, 3).join(', ')}</Text>
-                      </View>
-                    )}
-                    <View style={s.btnRow}>
-                      <TouchableOpacity
-                        style={s.outlineBtn}
-                        onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(h.name)}`)}
-                      >
-                        <Ionicons name="navigate-outline" size={13} color={C.teal} />
-                        <Text style={s.outlineBtnText}>Directions</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={s.darkBtn}
-                        onPress={() => navigation.navigate('HospitalDetail', { hospitalId: h.id })}
-                      >
-                        <Text style={s.darkBtnText}>View Details</Text>
-                      </TouchableOpacity>
+                    <View style={s.tag}>
+                      <Ionicons name="location-outline" size={11} color={C.muted} />
+                      <Text style={s.tagText}>{h.distance}</Text>
                     </View>
                   </View>
-                </View>
-              ))
+
+                  {h.services && h.services.length > 0 && (
+                    <Text style={s.servicesText} numberOfLines={1}>
+                      {h.services.slice(0, 3).join(' · ')}
+                    </Text>
+                  )}
+
+                  {/* Buttons */}
+                  <View style={s.btnRow}>
+                    <TouchableOpacity
+                      style={s.outlineBtn}
+                      onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(h.name)}`)}
+                    >
+                      <Ionicons name="navigate-outline" size={14} color={C.teal} />
+                      <Text style={s.outlineBtnText}>Directions</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={s.primaryBtn}
+                      onPress={() => navigation.navigate('HospitalDetail', navParams)}
+                    >
+                      <Text style={s.primaryBtnText}>View Details</Text>
+                    </TouchableOpacity>
+                  </View>
+                </TouchableOpacity>
+                );
+              })
             )}
           </View>
         </ScrollView>
@@ -231,144 +265,67 @@ export default function HospitalsListScreen({ navigation }: any) {
 }
 
 const s = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0B7E8A',
-  },
+  container: { flex: 1, backgroundColor: '#083236' },
 
   // Header
-  header: {
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 32,
-  },
-  headerBranding: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.4)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitles: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#ffffff',
-    letterSpacing: -0.3,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.75)',
-    marginTop: 2,
-  },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 32 },
+  backButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
+  headerIconWrap: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' },
+  headerTitles: { flex: 1 },
+  headerTitle: { fontSize: 26, fontFamily: 'Montserrat_800ExtraBold', color: '#ffffff', letterSpacing: -0.5 },
+  headerSubtitle: { fontSize: 13, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(255,255,255,0.70)', marginTop: 2 },
 
-  // White card
-  card: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    overflow: 'hidden',
-  },
+  // Paper card
+  paperCard: { flex: 1, backgroundColor: C.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
 
   // Toggle
-  toggleWrap: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 16 },
-  toggle: { flexDirection: 'row', backgroundColor: C.surface, borderRadius: 12, padding: 4 },
-  toggleBtn: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8 },
+  toggleWrap: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 14 },
+  toggle: { flexDirection: 'row', backgroundColor: C.surface, borderRadius: 14, padding: 4, gap: 4 },
+  toggleBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 9, borderRadius: 10 },
   toggleBtnActive: { backgroundColor: C.teal },
-  toggleTextActive: { fontSize: 13, fontWeight: '600', color: '#ffffff' },
-  toggleTextInactive: { fontSize: 13, fontWeight: '500', color: C.muted },
+  toggleTextActive: { fontSize: 13, fontFamily: 'Montserrat_600SemiBold', color: '#fff' },
+  toggleTextInactive: { fontSize: 13, fontFamily: 'Montserrat_600SemiBold', color: C.muted },
 
   // Search
-  searchWrap: { paddingHorizontal: 24, paddingBottom: 16 },
-  searchBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: C.surface, borderRadius: 12,
-    paddingHorizontal: 16, paddingVertical: 12,
-    borderWidth: 1.5, borderColor: C.border,
-  },
-  searchInput: { flex: 1, fontSize: 13, color: C.text, paddingVertical: 0 },
+  searchWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 20, backgroundColor: C.card, borderRadius: 14, borderWidth: 1.5, borderColor: C.border, paddingHorizontal: 14, paddingVertical: 11, marginBottom: 14 },
+  searchInput: { flex: 1, fontSize: 14, fontFamily: 'SpaceGrotesk_400Regular', color: C.text, paddingVertical: 0 },
 
-  // Chips
-  chipsWrap: { paddingBottom: 16 },
-  chipsContainer: { paddingHorizontal: 24, gap: 8 },
-  chip: {
-    borderRadius: 999, borderWidth: 1, borderColor: C.border,
-    paddingHorizontal: 14, paddingVertical: 6, backgroundColor: C.bg,
-  },
-  chipActive: { backgroundColor: C.teal, borderColor: C.teal },
-  chipText: { fontSize: 11, color: C.text },
-  chipTextActive: { color: '#ffffff', fontWeight: '600' },
+  // Filter chips
+  chipsRow: { paddingHorizontal: 20, gap: 8, paddingBottom: 14 },
+  chip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.border },
+  chipActive: { backgroundColor: C.tealLight, borderColor: C.teal },
+  chipText: { fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: C.text },
+  chipTextActive: { fontFamily: 'SpaceGrotesk_500Medium', color: C.teal },
 
-  // Results header
-  resultsHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 24, paddingBottom: 12,
-  },
-  resultsTitle: { fontSize: 13, fontWeight: '600', color: C.text },
-  resultsCount: { fontSize: 11, color: C.muted },
+  // Results count
+  resultsBar: { paddingHorizontal: 20, paddingBottom: 10 },
+  resultsLabel: { fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted },
 
-  // Cards list
-  cardsList: { paddingHorizontal: 24, gap: 16 },
-  hospCard: {
-    borderRadius: 16, overflow: 'hidden',
-    borderWidth: 1, borderColor: C.border, backgroundColor: C.bg,
-  },
-  cardImg: {
-    height: 120, backgroundColor: C.surface,
-    alignItems: 'center', justifyContent: 'center', position: 'relative',
-  },
-  imgBadge: {
-    position: 'absolute', top: 8, left: 8,
-    borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4,
-    backgroundColor: C.teal,
-  },
-  imgBadgeText: { fontSize: 11, fontWeight: '600', color: '#ffffff' },
-  emergencyBadge: {
-    position: 'absolute', top: 8, right: 8,
-    flexDirection: 'row', alignItems: 'center', gap: 3,
-    borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4,
-    backgroundColor: '#EF4444',
-  },
-  emergencyText: { fontSize: 10, fontWeight: '700', color: '#ffffff' },
-  cardContent: { padding: 16, gap: 8 },
-  cardRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  cardName: { fontSize: 14, fontWeight: '700', color: C.text, flex: 1, marginRight: 8 },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  ratingText: { fontSize: 11, fontWeight: '500', color: C.text },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  metaText: { fontSize: 11, color: C.muted },
-  btnRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  outlineBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
-    borderWidth: 1.5, borderColor: C.teal, borderRadius: 10, paddingVertical: 9,
-  },
-  outlineBtnText: { fontSize: 12, fontWeight: '600', color: C.teal },
-  darkBtn: {
-    flex: 1, backgroundColor: C.teal,
-    borderRadius: 10, paddingVertical: 9,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  darkBtnText: { fontSize: 12, fontWeight: '600', color: '#ffffff' },
-  empty: { alignItems: 'center', paddingVertical: 48, gap: 8 },
-  emptyText: { fontSize: 13, color: C.muted },
+  // List
+  list: { paddingHorizontal: 16, gap: 12 },
+
+  // Hospital card
+  hospCard: { backgroundColor: C.card, borderRadius: 18, borderWidth: 1, borderColor: C.border, padding: 16, gap: 10 },
+  hospCardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  hospIconWrap: { width: 52, height: 52, borderRadius: 14, backgroundColor: C.tealLight, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  hospName: { fontSize: 15, fontFamily: 'Montserrat_700Bold', color: C.text },
+  hospLocation: { fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted, marginTop: 2 },
+  ratingPill: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#FEF3C7', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4 },
+  ratingText: { fontSize: 11, fontFamily: 'Montserrat_700Bold', color: '#D97706' },
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  tag: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: C.surface, borderRadius: 999 },
+  tagRed: { backgroundColor: 'rgba(239,68,68,0.08)' },
+  tagText: { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted },
+  servicesText: { fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted, lineHeight: 16 },
+  btnRow: { flexDirection: 'row', gap: 8 },
+  outlineBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderWidth: 1.5, borderColor: C.teal, borderRadius: 12, paddingVertical: 10 },
+  outlineBtnText: { fontSize: 12, fontFamily: 'Montserrat_600SemiBold', color: C.teal },
+  primaryBtn: { flex: 1.2, backgroundColor: C.teal, borderRadius: 12, paddingVertical: 10, alignItems: 'center' },
+  primaryBtnText: { fontSize: 12, fontFamily: 'Montserrat_700Bold', color: '#fff' },
+
+  // Empty
+  empty: { alignItems: 'center', paddingVertical: 56, gap: 10 },
+  emptyIcon: { width: 68, height: 68, borderRadius: 34, backgroundColor: C.tealLight, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  emptyTitle: { fontSize: 16, fontFamily: 'Montserrat_700Bold', color: C.text },
+  emptyHint: { fontSize: 13, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted },
 });

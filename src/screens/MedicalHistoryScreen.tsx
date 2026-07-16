@@ -1,249 +1,430 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, StatusBar } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  StyleSheet, Text, View, ScrollView, TouchableOpacity,
+  ActivityIndicator, StatusBar, Modal, TextInput,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
-import { colors, typography, spacing, borderRadius } from '../utils/design';
+import { useToast } from '../components/ToastProvider';
+import { drName } from '../utils/formatters';
 
-interface MedicalRecord {
-  id: string;
-  date: string;
-  doctor: string;
-  specialty: string;
-  diagnosis: string;
-  prescription: string;
-  notes: string;
+const C = {
+  paper: '#F5F3EE', paperDark: '#EDE9E0', card: '#FFFFFF', border: '#EAE5DA',
+  ink: '#0C2E30', teal: '#0B7E8A', gold: '#D4A843',
+  muted: '#7A8785', muted2: '#97A2A0', textPrimary: '#16211F', textBody: '#5C6B69',
+  green: '#1E9E5A', red: '#EF4444',
+};
+
+const TABS = ['Consultations', 'Medications', 'Lab Results', 'Symptoms'] as const;
+type Tab = typeof TABS[number];
+
+const SYMPTOM_OPTIONS = [
+  'Headache', 'Fever', 'Cough', 'Fatigue', 'Nausea',
+  'Chest Pain', 'Shortness of Breath', 'Back Pain', 'Joint Pain',
+  'Vomiting', 'Diarrhea', 'Dizziness', 'Swelling', 'Loss of Appetite',
+  'Sore Throat', 'Runny Nose', 'Abdominal Pain', 'Blurred Vision',
+];
+
+function fmt(iso: string) {
+  return new Date(iso).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function SeverityBar({ value }: { value: number }) {
+  const color = value <= 3 ? C.green : value <= 6 ? C.gold : C.red;
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
+      <View style={{ flex: 1, height: 4, backgroundColor: C.border, borderRadius: 2 }}>
+        <View style={{ width: `${value * 10}%`, height: 4, backgroundColor: color, borderRadius: 2 }} />
+      </View>
+      <Text style={{ fontSize: 11, fontFamily: 'Montserrat_700Bold', color }}>{value}/10</Text>
+    </View>
+  );
 }
 
 export default function MedicalHistoryScreen({ navigation }: any) {
-  const [records, setRecords] = useState<MedicalRecord[]>([]);
+  const toast = useToast();
+  const [activeTab, setActiveTab] = useState<Tab>('Consultations');
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadMedicalHistory();
-  }, []);
+  const [consultations, setConsultations] = useState<any[]>([]);
+  const [medications, setMedications] = useState<any[]>([]);
+  const [labResults, setLabResults] = useState<any[]>([]);
+  const [symptoms, setSymptoms] = useState<any[]>([]);
 
-  const loadMedicalHistory = async () => {
+  // Symptom log modal
+  const [logModal, setLogModal] = useState(false);
+  const [selSymptoms, setSelSymptoms] = useState<string[]>([]);
+  const [severity, setSeverity] = useState(5);
+  const [note, setNote] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { loadAll(); }, []);
+
+  const loadAll = async () => {
+    setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-
-      const { data: consultations } = await supabase
-        .from('consultations')
-        .select(`
-          id,
-          scheduled_at,
-          diagnosis,
-          prescription,
-          notes,
-          doctors (
-            full_name,
-            specialization
-          )
-        `)
-        .eq('patient_id', user.id)
-        .eq('status', 'completed')
-        .order('scheduled_at', { ascending: false });
-
-      const medicalRecords: MedicalRecord[] = (consultations || []).map(consultation => ({
-        id: consultation.id,
-        date: consultation.scheduled_at,
-        doctor: consultation.doctors?.full_name || 'Unknown Doctor',
-        specialty: consultation.doctors?.specialization || 'General',
-        diagnosis: consultation.diagnosis || 'No diagnosis recorded',
-        prescription: consultation.prescription || 'No prescription',
-        notes: consultation.notes || 'No additional notes'
-      }));
-
-      setRecords(medicalRecords);
-    } catch (error) {
-      console.error('Error loading medical history:', error);
-    } finally {
-      setLoading(false);
-    }
+      setUserId(user.id);
+      await Promise.all([
+        loadConsultations(user.id),
+        loadMedications(user.id),
+        loadLabResults(user.id),
+        loadSymptoms(user.id),
+      ]);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   };
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <StatusBar barStyle="light-content" backgroundColor="#0B7E8A" />
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={22} color="#fff" />
-          </TouchableOpacity>
-          <View style={styles.headerIconCircle}>
-            <Ionicons name="medical" size={26} color="#fff" />
+  const loadConsultations = async (uid: string) => {
+    const { data } = await supabase
+      .from('consultations')
+      .select('id, scheduled_at, diagnosis, prescription, notes, consultation_type, doctors(full_name, specialization)')
+      .eq('patient_id', uid)
+      .eq('status', 'completed')
+      .order('scheduled_at', { ascending: false });
+    setConsultations(data || []);
+  };
+
+  const loadMedications = async (uid: string) => {
+    const { data } = await supabase
+      .from('medications')
+      .select('*')
+      .eq('patient_id', uid)
+      .order('created_at', { ascending: false });
+    setMedications(data || []);
+  };
+
+  const loadLabResults = async (uid: string) => {
+    const { data } = await supabase
+      .from('lab_analyses')
+      .select('*')
+      .eq('patient_id', uid)
+      .order('created_at', { ascending: false });
+    setLabResults(data || []);
+  };
+
+  const loadSymptoms = async (uid: string) => {
+    const { data } = await supabase
+      .from('symptom_logs')
+      .select('*')
+      .eq('patient_id', uid)
+      .order('logged_at', { ascending: false });
+    setSymptoms(data || []);
+  };
+
+  const toggleMedication = async (med: any) => {
+    const newVal = !med.is_active;
+    await supabase.from('medications').update({ is_active: newVal }).eq('id', med.id);
+    setMedications(prev => prev.map(m => m.id === med.id ? { ...m, is_active: newVal } : m));
+  };
+
+  const saveSymptomLog = async () => {
+    if (selSymptoms.length === 0) {
+      toast.showWarning('Required', 'Select at least one symptom');
+      return;
+    }
+    if (!userId) return;
+    setSaving(true);
+    try {
+      await supabase.from('symptom_logs').insert({
+        patient_id: userId,
+        symptoms: selSymptoms,
+        severity,
+        note: note.trim() || null,
+        logged_at: new Date().toISOString(),
+      });
+      setLogModal(false);
+      setSelSymptoms([]); setSeverity(5); setNote('');
+      await loadSymptoms(userId);
+      toast.showSuccess('Logged', 'Symptom log saved successfully.');
+    } catch (e: any) {
+      toast.showError('Error', e.message);
+    } finally { setSaving(false); }
+  };
+
+  const renderConsultations = () => (
+    consultations.length === 0
+      ? <Empty icon="calendar-outline" text="No completed consultations yet" />
+      : consultations.map(c => (
+        <View key={c.id} style={s.card}>
+          <View style={s.cardTop}>
+            <Text style={s.cardDate}>{fmt(c.scheduled_at)}</Text>
+            <View style={s.typeBadge}><Text style={s.typeBadgeText}>{(c.consultation_type || 'consultation').replace('_', ' ')}</Text></View>
           </View>
-          <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>Medical History</Text>
-            <Text style={styles.headerSub}>Your health timeline</Text>
-          </View>
+          <Text style={s.cardDr}>{drName(c.doctors?.full_name, c.doctors?.title)}</Text>
+          <Text style={s.cardSpec}>{c.doctors?.specialization || 'General'}</Text>
+          {c.diagnosis ? <InfoRow label="Diagnosis" value={c.diagnosis} /> : null}
+          {c.prescription ? <InfoRow label="Prescription" value={c.prescription} /> : null}
+          {c.notes ? <InfoRow label="Notes" value={c.notes} /> : null}
         </View>
-        <View style={styles.whiteCard}>
-          <View style={styles.center}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Loading medical history...</Text>
+      ))
+  );
+
+  const renderMedications = () => (
+    <>
+      {medications.length === 0
+        ? <Empty icon="medkit-outline" text="No medications prescribed yet" />
+        : medications.map(m => (
+          <View key={m.id} style={[s.card, !m.is_active && { opacity: 0.6 }]}>
+            <View style={s.cardTop}>
+              <Text style={s.medName}>{m.name}</Text>
+              <TouchableOpacity onPress={() => toggleMedication(m)} style={[s.statusPill, { backgroundColor: m.is_active ? 'rgba(30,158,90,0.1)' : C.border }]}>
+                <Text style={[s.statusPillText, { color: m.is_active ? C.green : C.muted }]}>{m.is_active ? 'Active' : 'Inactive'}</Text>
+              </TouchableOpacity>
+            </View>
+            {m.dosage ? <Text style={s.medMeta}>Dosage: <Text style={s.medMetaVal}>{m.dosage}</Text></Text> : null}
+            {m.frequency ? <Text style={s.medMeta}>Frequency: <Text style={s.medMetaVal}>{m.frequency}</Text></Text> : null}
+            {m.start_date ? <Text style={s.medMeta}>From: <Text style={s.medMetaVal}>{fmt(m.start_date)} {m.end_date ? `→ ${fmt(m.end_date)}` : ''}</Text></Text> : null}
+            {m.notes ? <Text style={[s.medMeta, { marginTop: 6 }]}>{m.notes}</Text> : null}
           </View>
+        ))
+      }
+    </>
+  );
+
+  const renderLabResults = () => (
+    labResults.length === 0
+      ? <Empty icon="flask-outline" text="No lab results yet.\nYour doctor will send results here." />
+      : labResults.map(l => (
+        <View key={l.id} style={s.card}>
+          <View style={s.cardTop}>
+            <Text style={s.medName}>{l.title}</Text>
+            {l.flagged_count > 0 && (
+              <View style={[s.statusPill, { backgroundColor: 'rgba(239,68,68,0.1)' }]}>
+                <Ionicons name="warning" size={11} color={C.red} />
+                <Text style={[s.statusPillText, { color: C.red }]}>{l.flagged_count} flagged</Text>
+              </View>
+            )}
+          </View>
+          <Text style={s.cardDate}>{fmt(l.created_at)}</Text>
+          {l.raw_text ? (
+            <View style={s.rawBlock}>
+              <Text style={s.rawText} numberOfLines={6}>{l.raw_text}</Text>
+            </View>
+          ) : null}
+          {l.analysis && typeof l.analysis === 'object' && Object.keys(l.analysis).length > 0 ? (
+            <View style={[s.rawBlock, { backgroundColor: 'rgba(11,126,138,0.05)', borderColor: 'rgba(11,126,138,0.15)' }]}>
+              <Text style={[s.rawText, { color: C.teal }]}>
+                {JSON.stringify(l.analysis, null, 2)}
+              </Text>
+            </View>
+          ) : null}
         </View>
-      </SafeAreaView>
-    );
-  }
+      ))
+  );
+
+  const renderSymptoms = () => (
+    <>
+      {symptoms.length === 0
+        ? <Empty icon="thermometer-outline" text="No symptoms logged yet.\nTap the button below to log how you feel." />
+        : symptoms.map(s2 => (
+          <View key={s2.id} style={s.card}>
+            <View style={s.cardTop}>
+              <Text style={s.cardDate}>{fmt(s2.logged_at)}</Text>
+              <Text style={s.severityLabel}>Severity</Text>
+            </View>
+            <SeverityBar value={s2.severity} />
+            <View style={s.tagRow}>
+              {(s2.symptoms || []).map((sym: string) => (
+                <View key={sym} style={s.tag}><Text style={s.tagText}>{sym}</Text></View>
+              ))}
+            </View>
+            {s2.note ? <Text style={s.medMeta}>{s2.note}</Text> : null}
+          </View>
+        ))
+      }
+      <TouchableOpacity style={s.logBtn} onPress={() => setLogModal(true)}>
+        <Ionicons name="add-circle" size={18} color="#fff" />
+        <Text style={s.logBtnText}>Log Symptoms Now</Text>
+      </TouchableOpacity>
+    </>
+  );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor="#0B7E8A" />
-      {/* Teal Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+    <SafeAreaView style={s.root} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor="#083236" />
+
+      {/* Header */}
+      <View style={s.hdr}>
+        <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
-        <View style={styles.headerIconCircle}>
-          <Ionicons name="medical" size={26} color="#fff" />
-        </View>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Medical History</Text>
-          <Text style={styles.headerSub}>Your health timeline</Text>
+        <View style={s.hdrIcon}><Ionicons name="medical" size={26} color="#fff" /></View>
+        <View style={{ flex: 1 }}>
+          <Text style={s.hdrTitle}>Medical History</Text>
+          <Text style={s.hdrSub}>Your complete health record</Text>
         </View>
       </View>
 
-      {/* White Card */}
-      <View style={styles.whiteCard}>
-      <ScrollView style={styles.content}>
-        {records.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="document-text-outline" size={64} color={colors.textSecondary} />
-            <Text style={styles.emptyTitle}>No Medical Records</Text>
-            <Text style={styles.emptyText}>
-              Your completed consultations will appear here as medical records.
-            </Text>
-          </View>
-        ) : (
-          records.map((record) => (
-            <View key={record.id} style={styles.recordCard}>
-              <View style={styles.recordHeader}>
-                <Text style={styles.recordDate}>
-                  {new Date(record.date).toLocaleDateString()}
-                </Text>
-                <View style={styles.specialtyBadge}>
-                  <Text style={styles.specialtyText}>{record.specialty}</Text>
-                </View>
-              </View>
-              
-              <Text style={styles.doctorName}>Dr. {record.doctor}</Text>
-              
-              <View style={styles.recordSection}>
-                <Text style={styles.sectionLabel}>Diagnosis</Text>
-                <Text style={styles.sectionValue}>{record.diagnosis}</Text>
-              </View>
-              
-              <View style={styles.recordSection}>
-                <Text style={styles.sectionLabel}>Prescription</Text>
-                <Text style={styles.sectionValue}>{record.prescription}</Text>
-              </View>
-              
-              {record.notes && (
-                <View style={styles.recordSection}>
-                  <Text style={styles.sectionLabel}>Notes</Text>
-                  <Text style={styles.sectionValue}>{record.notes}</Text>
-                </View>
-              )}
-            </View>
-          ))
-        )}
-      </ScrollView>
+      <View style={s.paperCard}>
+        {/* Tabs */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.tabBar} contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12, gap: 8 }}>
+          {TABS.map(tab => (
+            <TouchableOpacity
+              key={tab}
+              style={[s.tab, activeTab === tab && s.tabActive]}
+              onPress={() => setActiveTab(tab)}
+            >
+              <Text style={[s.tabText, activeTab === tab && s.tabTextActive]}>{tab}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {loading
+          ? <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color={C.teal} size="large" /></View>
+          : (
+            <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+              {activeTab === 'Consultations' && renderConsultations()}
+              {activeTab === 'Medications' && renderMedications()}
+              {activeTab === 'Lab Results' && renderLabResults()}
+              {activeTab === 'Symptoms' && renderSymptoms()}
+            </ScrollView>
+          )}
       </View>
+
+      {/* Symptom Log Modal */}
+      <Modal visible={logModal} animationType="slide" transparent onRequestClose={() => setLogModal(false)}>
+        <View style={s.modalOverlay}>
+          <View style={s.modalSheet}>
+            <View style={s.modalHandle} />
+            <Text style={s.modalTitle}>Log Symptoms</Text>
+
+            <Text style={s.modalLabel}>What are you experiencing?</Text>
+            <View style={s.symptomGrid}>
+              {SYMPTOM_OPTIONS.map(sym => {
+                const active = selSymptoms.includes(sym);
+                return (
+                  <TouchableOpacity
+                    key={sym}
+                    style={[s.symChip, active && s.symChipActive]}
+                    onPress={() => setSelSymptoms(prev => active ? prev.filter(s => s !== sym) : [...prev, sym])}
+                  >
+                    <Text style={[s.symChipText, active && s.symChipTextActive]}>{sym}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Text style={s.modalLabel}>Severity: <Text style={{ color: severity <= 3 ? C.green : severity <= 6 ? C.gold : C.red, fontFamily: 'Montserrat_700Bold' }}>{severity}/10</Text></Text>
+            <View style={s.severityRow}>
+              {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                <TouchableOpacity
+                  key={n}
+                  style={[s.sevBtn, severity === n && { backgroundColor: n <= 3 ? C.green : n <= 6 ? C.gold : C.red }]}
+                  onPress={() => setSeverity(n)}
+                >
+                  <Text style={[s.sevBtnText, severity === n && { color: '#fff' }]}>{n}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={s.modalLabel}>Additional notes (optional)</Text>
+            <TextInput
+              style={s.noteInput}
+              value={note}
+              onChangeText={setNote}
+              placeholder="Any other details..."
+              placeholderTextColor={C.muted2}
+              multiline
+              textAlignVertical="top"
+            />
+
+            <View style={s.modalBtns}>
+              <TouchableOpacity style={s.cancelBtn} onPress={() => setLogModal(false)}>
+                <Text style={s.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.saveBtn} onPress={saveSymptomLog} disabled={saving}>
+                {saving ? <ActivityIndicator color="#fff" /> : <Text style={s.saveBtnText}>Save Log</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B7E8A' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20, gap: 14 },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  headerIconCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255,255,255,0.2)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)', alignItems: 'center', justifyContent: 'center' },
-  headerCenter: { flex: 1 },
-  headerTitle: { fontSize: 26, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
-  headerSub: { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
-  whiteCard: { flex: 1, backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: 'hidden' },
-  content: {
-    flex: 1,
-    padding: spacing.lg,
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginTop: spacing.md,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.xl * 2,
-  },
-  emptyTitle: {
-    ...typography.h3,
-    color: colors.textPrimary,
-    marginTop: spacing.lg,
-    marginBottom: spacing.sm,
-  },
-  emptyText: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    maxWidth: 280,
-  },
-  recordCard: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  recordHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  recordDate: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    fontWeight: '600',
-  },
-  specialtyBadge: {
-    backgroundColor: colors.primary + '20',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
-  },
-  specialtyText: {
-    ...typography.caption,
-    color: colors.primary,
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  doctorName: {
-    ...typography.h4,
-    color: colors.textPrimary,
-    marginBottom: spacing.lg,
-  },
-  recordSection: {
-    marginBottom: spacing.md,
-  },
-  sectionLabel: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    fontWeight: '600',
-    marginBottom: spacing.xs,
-  },
-  sectionValue: {
-    ...typography.body,
-    color: colors.textPrimary,
-    lineHeight: 20,
-  },
+function Empty({ icon, text }: { icon: string; text: string }) {
+  return (
+    <View style={{ alignItems: 'center', paddingVertical: 48, gap: 12 }}>
+      <Ionicons name={icon as any} size={52} color="#C9D0CF" />
+      <Text style={{ fontSize: 13, fontFamily: 'SpaceGrotesk_400Regular', color: '#97A2A0', textAlign: 'center', lineHeight: 20 }}>{text}</Text>
+    </View>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={{ marginTop: 8 }}>
+      <Text style={{ fontSize: 10.5, fontFamily: 'Montserrat_700Bold', color: '#97A2A0', letterSpacing: 0.8, marginBottom: 2 }}>{label.toUpperCase()}</Text>
+      <Text style={{ fontSize: 13, fontFamily: 'SpaceGrotesk_400Regular', color: '#5C6B69', lineHeight: 19 }}>{value}</Text>
+    </View>
+  );
+}
+
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#083236' },
+
+  hdr: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20, gap: 14 },
+  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+  hdrIcon: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+  hdrTitle: { fontSize: 22, fontFamily: 'Montserrat_700Bold', color: '#fff', letterSpacing: -0.3 },
+  hdrSub: { fontSize: 13, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(255,255,255,0.65)', marginTop: 1 },
+
+  paperCard: { flex: 1, backgroundColor: '#F5F3EE', borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
+
+  tabBar: { flexGrow: 0, borderBottomWidth: 1, borderBottomColor: '#EAE5DA' },
+  tab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#EDE9E0' },
+  tabActive: { backgroundColor: '#0B7E8A' },
+  tabText: { fontSize: 13, fontFamily: 'Montserrat_600SemiBold', color: '#7A8785' },
+  tabTextActive: { color: '#fff' },
+
+  card: { backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: '#EAE5DA', padding: 14, marginBottom: 10, gap: 4 },
+  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  cardDate: { fontSize: 11.5, fontFamily: 'SpaceGrotesk_400Regular', color: '#97A2A0' },
+  cardDr: { fontSize: 15, fontFamily: 'Montserrat_700Bold', color: '#16211F', marginTop: 4 },
+  cardSpec: { fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: '#7A8785' },
+  typeBadge: { backgroundColor: 'rgba(11,126,138,0.09)', borderRadius: 8, paddingHorizontal: 9, paddingVertical: 3 },
+  typeBadgeText: { fontSize: 11, fontFamily: 'Montserrat_600SemiBold', color: '#0B7E8A', textTransform: 'capitalize' },
+
+  medName: { fontSize: 15, fontFamily: 'Montserrat_700Bold', color: '#16211F', flex: 1 },
+  medMeta: { fontSize: 12.5, fontFamily: 'SpaceGrotesk_400Regular', color: '#7A8785', marginTop: 3 },
+  medMetaVal: { fontFamily: 'SpaceGrotesk_500Medium', color: '#16211F' },
+  statusPill: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+  statusPillText: { fontSize: 11, fontFamily: 'Montserrat_600SemiBold' },
+
+  rawBlock: { backgroundColor: '#F5F3EE', borderRadius: 8, padding: 10, marginTop: 8, borderWidth: 1, borderColor: '#EAE5DA' },
+  rawText: { fontSize: 11.5, fontFamily: 'SpaceGrotesk_400Regular', color: '#5C6B69', lineHeight: 18 },
+
+  severityLabel: { fontSize: 11, fontFamily: 'Montserrat_600SemiBold', color: '#97A2A0' },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+  tag: { backgroundColor: 'rgba(11,126,138,0.09)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+  tagText: { fontSize: 11.5, fontFamily: 'SpaceGrotesk_500Medium', color: '#0B7E8A' },
+
+  logBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#0B7E8A', borderRadius: 14, padding: 14, marginTop: 8 },
+  logBtnText: { fontSize: 14, fontFamily: 'Montserrat_700Bold', color: '#fff' },
+
+  // Modal
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalSheet: { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, paddingBottom: 36, maxHeight: '90%' },
+  modalHandle: { width: 40, height: 4, backgroundColor: '#EAE5DA', borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
+  modalTitle: { fontSize: 18, fontFamily: 'Montserrat_700Bold', color: '#0C2E30', marginBottom: 16 },
+  modalLabel: { fontSize: 12, fontFamily: 'Montserrat_700Bold', color: '#7A8785', letterSpacing: 0.6, marginBottom: 8, marginTop: 12 },
+  symptomGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  symChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: '#EDE9E0', borderWidth: 1, borderColor: '#EAE5DA' },
+  symChipActive: { backgroundColor: 'rgba(11,126,138,0.1)', borderColor: '#0B7E8A' },
+  symChipText: { fontSize: 12, fontFamily: 'SpaceGrotesk_500Medium', color: '#7A8785' },
+  symChipTextActive: { color: '#0B7E8A' },
+  severityRow: { flexDirection: 'row', gap: 6 },
+  sevBtn: { flex: 1, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: '#EDE9E0' },
+  sevBtnText: { fontSize: 12, fontFamily: 'Montserrat_700Bold', color: '#7A8785' },
+  noteInput: { backgroundColor: '#F5F3EE', borderRadius: 12, borderWidth: 1, borderColor: '#EAE5DA', padding: 12, fontSize: 13, fontFamily: 'SpaceGrotesk_400Regular', color: '#16211F', minHeight: 70, marginBottom: 16 },
+  modalBtns: { flexDirection: 'row', gap: 10 },
+  cancelBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: '#EDE9E0', alignItems: 'center' },
+  cancelBtnText: { fontSize: 14, fontFamily: 'Montserrat_600SemiBold', color: '#7A8785' },
+  saveBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: '#0B7E8A', alignItems: 'center' },
+  saveBtnText: { fontSize: 14, fontFamily: 'Montserrat_700Bold', color: '#fff' },
 });

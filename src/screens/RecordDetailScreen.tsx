@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,11 +18,7 @@ export default function RecordDetailScreen({ route, navigation }: any) {
     try {
       const { data, error } = await supabase
         .from('medical_records')
-        .select(`
-          *,
-          doctor:doctors(full_name, specialization),
-          consultation:consultations(scheduled_at, consultation_type)
-        `)
+        .select('*')
         .eq('id', record.id)
         .single();
 
@@ -48,14 +44,11 @@ export default function RecordDetailScreen({ route, navigation }: any) {
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <StatusBar barStyle="light-content" backgroundColor="#0B7E8A" />
+        <StatusBar barStyle="light-content" backgroundColor="#083236" />
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={22} color="#fff" />
           </TouchableOpacity>
-          <View style={styles.headerIconCircle}>
-            <Ionicons name="document-text" size={26} color="#fff" />
-          </View>
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>Record Details</Text>
             <Text style={styles.headerSub}>Medical document</Text>
@@ -68,15 +61,12 @@ export default function RecordDetailScreen({ route, navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor="#0B7E8A" />
+      <StatusBar barStyle="light-content" backgroundColor="#083236" />
       {/* Teal Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
-        <View style={styles.headerIconCircle}>
-          <Ionicons name="document-text" size={26} color="#fff" />
-        </View>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Record Details</Text>
           <Text style={styles.headerSub}>Medical document</Text>
@@ -107,16 +97,7 @@ export default function RecordDetailScreen({ route, navigation }: any) {
               </Text>
             </View>
 
-            {recordData?.doctor && (
-              <View style={styles.metaItem}>
-                <Ionicons name="medical" size={16} color={colors.textSecondary} />
-                <Text style={styles.metaText}>
-                  Dr. {recordData.doctor.full_name} - {recordData.doctor.specialization}
-                </Text>
-              </View>
-            )}
-
-            {recordData?.is_sensitive && (
+{recordData?.is_sensitive && (
               <View style={styles.metaItem}>
                 <Ionicons name="lock-closed" size={16} color={colors.error} />
                 <Text style={[styles.metaText, { color: colors.error }]}>
@@ -154,14 +135,13 @@ export default function RecordDetailScreen({ route, navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B7E8A' },
+  container: { flex: 1, backgroundColor: '#083236' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20, gap: 14 },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  headerIconCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255,255,255,0.2)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)', alignItems: 'center', justifyContent: 'center' },
-  headerCenter: { flex: 1 },
-  headerTitle: { fontSize: 26, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
-  headerSub: { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
-  whiteCard: { flex: 1, backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: 'hidden' },
+  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+headerCenter: { flex: 1 },
+  headerTitle: { fontSize: 26, fontFamily: 'Montserrat_700Bold', color: '#fff', letterSpacing: -0.3 },
+  headerSub: { fontSize: 14, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+  whiteCard: { flex: 1, backgroundColor: '#F5F3EE', borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
   content: { flex: 1, padding: spacing.lg },
   recordCard: {
     backgroundColor: colors.surface,

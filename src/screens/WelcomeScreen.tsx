@@ -5,8 +5,12 @@ import {
   Dimensions, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width: W, height: H } = Dimensions.get('window');
+
+const C = { teal: '#0B7E8A', ink: '#0C2E30' };
 
 const SLIDES = [
   {
@@ -59,7 +63,7 @@ const LOOP_SLIDES = [...SLIDES, SLIDES[0]];
 const AUTO_ADVANCE_MS = 7000;
 
 export default function WelcomeScreen({ navigation }: any) {
-  const flatRef      = useRef<FlatList>(null);
+  const flatRef        = useRef<FlatList>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const activeIndexRef = useRef(0);
   const isSnapping     = useRef(false);
@@ -80,7 +84,6 @@ export default function WelcomeScreen({ navigation }: any) {
     if (idx == null || isSnapping.current) return;
 
     if (idx >= SLIDES.length) {
-      // Landed on the clone of slide 0 — snap back to real index 0 instantly
       isSnapping.current = true;
       setTimeout(() => {
         flatRef.current?.scrollToIndex({ index: 0, animated: false });
@@ -97,11 +100,10 @@ export default function WelcomeScreen({ navigation }: any) {
 
   const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
 
-  // Auto-advance — scrolls forward, including into the clone at position SLIDES.length
   useEffect(() => {
     const timer = setInterval(() => {
       if (isSnapping.current) return;
-      const next = activeIndexRef.current + 1; // 1…SLIDES.length (inclusive of clone)
+      const next = activeIndexRef.current + 1;
       flatRef.current?.scrollToIndex({ index: next, animated: true });
     }, AUTO_ADVANCE_MS);
     return () => clearInterval(timer);
@@ -113,7 +115,7 @@ export default function WelcomeScreen({ navigation }: any) {
     <View style={s.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* Full-screen image slideshow — no overlays on images */}
+      {/* Full-screen image slideshow */}
       <FlatList
         ref={flatRef}
         data={LOOP_SLIDES}
@@ -133,30 +135,38 @@ export default function WelcomeScreen({ navigation }: any) {
             source={item.image}
             style={s.slide}
             resizeMode="contain"
+            imageStyle={s.slideImage}
           />
         )}
       />
 
-      {/* Text + buttons overlay — dark panel only at the bottom */}
+      {/* Dark gradient sits over image — readable text zone at bottom of image */}
+      <LinearGradient
+        colors={['transparent', 'rgba(8,26,26,0.45)', 'rgba(8,26,26,0.88)']}
+        locations={[0.35, 0.62, 0.82]}
+        style={s.gradient}
+        pointerEvents="none"
+      />
+
+      {/* Absolute overlay — text over image, card pinned to bottom */}
       <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-        <SafeAreaView style={s.safeArea} edges={['top', 'bottom']}>
+        <SafeAreaView style={s.safeArea} edges={['bottom']}>
 
-          {/* Spacer — image visible above */}
-          <View style={s.topSpacer} />
-
-          {/* Dark bottom panel — text lives here, image still shows above */}
-          <View style={s.bottomPanel} pointerEvents="box-none">
-
-            <Animated.View style={[s.textBlock, { opacity: textOpacity }]} pointerEvents="none">
-              <Animated.View style={[s.tagRow, { transform: [{ translateY: tagTranslate }] }]}>
-                <View style={s.tag}>
-                  <Text style={s.tagText}>{slide.tag}</Text>
-                </View>
-              </Animated.View>
+          {/* Text floats over image in the dark gradient zone */}
+          <View style={s.textZone} pointerEvents="none">
+            <Animated.View style={{ opacity: textOpacity, transform: [{ translateY: tagTranslate }] }}>
+              <View style={s.tag}>
+                <Text style={s.tagText}>{slide.tag}</Text>
+              </View>
+            </Animated.View>
+            <Animated.View style={{ opacity: textOpacity }}>
               <Text style={s.headline}>{slide.headline}</Text>
               <Text style={s.sub}>{slide.sub}</Text>
             </Animated.View>
+          </View>
 
+          {/* Card: dots + buttons only — compact, doesn't eat into image */}
+          <View style={s.card}>
             {/* Dot indicators */}
             <View style={s.dots}>
               {SLIDES.map((_, i) => (
@@ -182,7 +192,14 @@ export default function WelcomeScreen({ navigation }: any) {
                 onPress={() => navigation.navigate('SignUp')}
                 activeOpacity={0.88}
               >
-                <Text style={s.signUpText}>Get Started</Text>
+                <LinearGradient
+                  colors={['#0C6570', '#083C42']}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                  style={s.signUpGradient}
+                >
+                  <Text style={s.signUpText}>Get Started</Text>
+                  <Ionicons name="arrow-forward" size={17} color="#fff" />
+                </LinearGradient>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -193,7 +210,6 @@ export default function WelcomeScreen({ navigation }: any) {
                 <Text style={s.signInText}>I already have an account</Text>
               </TouchableOpacity>
             </View>
-
           </View>
         </SafeAreaView>
       </View>
@@ -202,99 +218,79 @@ export default function WelcomeScreen({ navigation }: any) {
 }
 
 const s = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0B1A1A',
-  },
-  slide: {
-    width: W,
-    height: H,
-    backgroundColor: '#0B1A1A',
-  },
-  safeArea: {
-    flex: 1,
-  },
-  topSpacer: {
-    flex: 1,
-  },
+  container: { flex: 1, backgroundColor: '#0B1A1A' },
+  slide:     { width: W, height: H },
+  slideImage: { top: 0, bottom: undefined, left: 0, right: 0 },
+  gradient:  { ...StyleSheet.absoluteFillObject },
+  safeArea:  { flex: 1, justifyContent: 'flex-end' },
 
-  /* Dark translucent panel behind the text — doesn't touch the image */
-  bottomPanel: {
-    backgroundColor: 'rgba(10,20,20,0.78)',
-    paddingTop: 20,
-    paddingHorizontal: 28,
-    paddingBottom: Platform.OS === 'ios' ? 12 : 20,
-    gap: 18,
+  // Text floats over the image in the dark zone
+  textZone: {
+    paddingHorizontal: 24,
+    paddingBottom: 20,
+    gap: 10,
   },
-
-  textBlock: { gap: 10 },
-  tagRow:    { flexDirection: 'row' },
   tag: {
-    backgroundColor: '#D4A843',
+    backgroundColor: C.teal,
     borderRadius: 999,
-    paddingHorizontal: 14,
+    paddingHorizontal: 13,
     paddingVertical: 5,
     alignSelf: 'flex-start',
+    marginBottom: 2,
   },
   tagText: {
-    fontSize: 12,
+    fontSize: 11,
+    fontFamily: 'Montserrat_700Bold',
     color: '#fff',
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
   headline: {
-    fontSize: 36,
-    fontWeight: '800',
+    fontSize: 30,
+    fontFamily: 'Montserrat_800ExtraBold',
     color: '#ffffff',
-    lineHeight: 44,
-    letterSpacing: -0.5,
+    lineHeight: 38,
+    letterSpacing: -0.4,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   sub: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.80)',
-    lineHeight: 21,
+    fontSize: 13.5,
+    fontFamily: 'SpaceGrotesk_400Regular',
+    color: 'rgba(255,255,255,0.85)',
+    lineHeight: 20,
   },
 
-  /* Dots */
-  dots: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-  },
-  dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: 'rgba(255,255,255,0.30)',
-  },
-  dotActive: {
-    width: 22,
-    borderRadius: 4,
-    backgroundColor: '#D4A843',
+  // Compact card — buttons only
+  card: {
+    backgroundColor: '#F5F3EE',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingTop: 18,
+    paddingHorizontal: 24,
+    paddingBottom: Platform.OS === 'ios' ? 14 : 22,
+    gap: 14,
   },
 
-  /* Buttons */
+  dots: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  dot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: '#D5CFC4' },
+  dotActive: { width: 22, borderRadius: 4, backgroundColor: '#D4A843' },
+
   buttons: { gap: 10 },
   signUpButton: {
-    backgroundColor: '#0B7E8A',
-    borderRadius: 14,
-    paddingVertical: 17,
-    alignItems: 'center',
+    borderRadius: 14, overflow: 'hidden',
+    shadowColor: '#083C42', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.22, shadowRadius: 16, elevation: 6,
   },
-  signUpText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#ffffff',
-    letterSpacing: 0.2,
+  signUpGradient: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'center', gap: 8, paddingVertical: 17,
   },
+  signUpText: { fontSize: 16, fontFamily: 'Montserrat_700Bold', color: '#fff', letterSpacing: 0.2 },
   signInLink: {
-    alignItems: 'center',
-    paddingVertical: 8,
+    alignItems: 'center', paddingVertical: 14, borderRadius: 14,
+    borderWidth: 1.5, borderColor: '#EAE5DA', backgroundColor: '#FFFFFF',
   },
-  signInText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.82)',
-    textDecorationLine: 'underline',
-  },
+  signInText: { fontSize: 15, fontFamily: 'Montserrat_600SemiBold', color: '#0C2E30' },
 });

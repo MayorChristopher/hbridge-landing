@@ -1,8 +1,17 @@
 import React, { Component, ReactNode } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, typography, spacing, borderRadius } from '../utils/design';
 import { sanitizeForLog } from '../utils/security';
+
+const C = {
+  bg: '#083236',
+  card: '#0C3D42',
+  teal: '#0B7E8A',
+  tealLight: 'rgba(11,126,138,0.18)',
+  white: '#FFFFFF',
+  offWhite: 'rgba(255,255,255,0.72)',
+  muted: 'rgba(255,255,255,0.45)',
+};
 
 interface Props {
   children: ReactNode;
@@ -40,18 +49,19 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <View style={styles.container}>
-          <View style={styles.content}>
-            <Ionicons name="warning-outline" size={64} color={colors.error} />
-            <Text style={styles.title}>Something went wrong</Text>
-            <Text style={styles.message}>
-              The app encountered an unexpected error. Please try again.
-            </Text>
-            <TouchableOpacity style={styles.retryButton} onPress={this.handleRetry}>
-              <Ionicons name="refresh" size={20} color={colors.textInverse} />
-              <Text style={styles.retryText}>Try Again</Text>
-            </TouchableOpacity>
+        <View style={s.container}>
+          <StatusBar barStyle="light-content" backgroundColor={C.bg} />
+          <View style={s.iconRing}>
+            <Ionicons name="alert-circle-outline" size={40} color={C.teal} />
           </View>
+          <Text style={s.title}>Something went wrong</Text>
+          <Text style={s.message}>
+            An unexpected error occurred. Please try again — your data is safe.
+          </Text>
+          <TouchableOpacity style={s.btn} onPress={this.handleRetry} activeOpacity={0.82}>
+            <Ionicons name="refresh" size={18} color={C.white} />
+            <Text style={s.btnText}>Try Again</Text>
+          </TouchableOpacity>
         </View>
       );
     }
@@ -60,44 +70,54 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: C.bg,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing.xl,
+    padding: 32,
   },
-  content: {
+  iconRing: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: C.tealLight,
+    borderWidth: 1.5,
+    borderColor: 'rgba(11,126,138,0.35)',
+    justifyContent: 'center',
     alignItems: 'center',
-    maxWidth: 300,
+    marginBottom: 24,
   },
   title: {
-    ...typography.h3,
-    color: colors.textPrimary,
-    marginTop: spacing.lg,
-    marginBottom: spacing.md,
+    fontSize: 20,
+    fontWeight: '700',
+    color: C.white,
     textAlign: 'center',
+    marginBottom: 10,
+    letterSpacing: 0.2,
   },
   message: {
-    ...typography.body,
-    color: colors.textSecondary,
+    fontSize: 14,
+    color: C.offWhite,
     textAlign: 'center',
-    marginBottom: spacing.xl,
     lineHeight: 22,
+    marginBottom: 32,
+    maxWidth: 280,
   },
-  retryButton: {
+  btn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
-    gap: spacing.sm,
+    backgroundColor: C.teal,
+    paddingHorizontal: 28,
+    paddingVertical: 13,
+    borderRadius: 14,
+    gap: 8,
   },
-  retryText: {
-    ...typography.button,
-    color: colors.textInverse,
-    fontWeight: '600',
+  btnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: C.white,
+    letterSpacing: 0.2,
   },
 });

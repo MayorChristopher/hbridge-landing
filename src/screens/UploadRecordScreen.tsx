@@ -4,7 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { supabase } from '../lib/supabase';
-import { MedicalRecordsService } from '../services/medicalRecordsService';
 import { colors, typography, spacing, components } from '../utils/design';
 import { Toast } from '../utils/toast';
 
@@ -42,7 +41,6 @@ export default function UploadRecordScreen({ route, navigation }: any) {
       Toast.showError('Please enter a title');
       return;
     }
-
     if (!selectedFile) {
       Toast.showError('Please upload a file (PDF or Image)');
       return;
@@ -53,36 +51,49 @@ export default function UploadRecordScreen({ route, navigation }: any) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const medicalService = MedicalRecordsService.getInstance();
-      
-      const recordData: any = {
-        title: recordTitle,
-        description: description || undefined,
-      };
+      // Upload file directly to Supabase Storage
+      const ext = (selectedFile.name?.split('.').pop() || 'pdf').toLowerCase();
+      const mime = selectedFile.mimeType || (ext === 'pdf' ? 'application/pdf' : 'image/jpeg');
+      const storagePath = `records/${user.id}/${Date.now()}.${ext}`;
 
-      if (selectedFile) {
-        recordData.file_name = selectedFile.name;
-        recordData.file_size = selectedFile.size;
-        recordData.file_type = selectedFile.mimeType;
+      const formData = new FormData();
+      formData.append('file', { uri: selectedFile.uri, name: selectedFile.name || `file.${ext}`, type: mime } as any);
+
+      const { data: session } = await supabase.auth.getSession();
+      const token = session?.session?.access_token;
+      const supabaseUrl = (supabase as any).supabaseUrl as string;
+
+      const uploadRes = await fetch(`${supabaseUrl}/storage/v1/object/attachments/${storagePath}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'x-upsert': 'true' },
+        body: formData,
+      });
+      if (!uploadRes.ok) {
+        const errText = await uploadRes.text();
+        throw new Error(`File upload failed: ${errText}`);
       }
 
-      const result = await medicalService.createRecord({
+      const { data: { publicUrl } } = supabase.storage.from('attachments').getPublicUrl(storagePath);
+
+      // Insert record into DB
+      const { data: newRecord, error } = await supabase.from('medical_records').insert({
         user_id: user.id,
         record_type: recordType,
-        title: recordTitle,
-        description,
-        data: recordData,
+        title: recordTitle.trim(),
+        file_url: publicUrl,
+        attachment_url: publicUrl,
+        data: { file_name: selectedFile.name ?? null, notes: description.trim() || null },
         is_sensitive: true,
-      });
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }).select('id').single();
 
-      if (result.success && result.record_id) {
-        setUploadedRecord({ id: result.record_id, title: recordTitle });
-        setShowSharePrompt(true);
-      } else {
-        Toast.showError(result.message);
-      }
-    } catch (error) {
-      Toast.showError('Failed to upload record');
+      if (error) throw error;
+
+      setUploadedRecord({ id: newRecord.id, title: recordTitle.trim() });
+      setShowSharePrompt(true);
+    } catch (error: any) {
+      Toast.showError(error.message || 'Failed to upload record');
     } finally {
       setUploading(false);
     }
@@ -186,7 +197,7 @@ export default function UploadRecordScreen({ route, navigation }: any) {
               }}
             >
               <Ionicons name="share-social-outline" size={18} color="#fff" />
-              <Text style={shareStyles.primaryText}>Share with a Health Worker</Text>
+              <Text style={shareStyles.primaryText}>Share with a Medical Practitioner</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={shareStyles.secondaryBtn}

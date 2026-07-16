@@ -1,1 +1,428 @@
-import { supabase } from '../lib/supabase';\nimport { sanitizeForLog } from '../utils/security';\n\nexport interface DatabaseTestResult {\n  testName: string;\n  status: 'PASSED' | 'FAILED' | 'WARNING';\n  message: string;\n  details?: any;\n}\n\nexport class DatabaseTestService {\n  private static instance: DatabaseTestService;\n  \n  static getInstance(): DatabaseTestService {\n    if (!DatabaseTestService.instance) {\n      DatabaseTestService.instance = new DatabaseTestService();\n    }\n    return DatabaseTestService.instance;\n  }\n\n  async runAllTests(): Promise<DatabaseTestResult[]> {\n    const results: DatabaseTestResult[] = [];\n\n    // Test 1: Basic Connection\n    results.push(await this.testConnection());\n    \n    // Test 2: Authentication\n    results.push(await this.testAuthentication());\n    \n    // Test 3: Profiles Table\n    results.push(await this.testProfilesTable());\n    \n    // Test 4: Hospitals Table\n    results.push(await this.testHospitalsTable());\n    \n    // Test 5: Doctors Table\n    results.push(await this.testDoctorsTable());\n    \n    // Test 6: Medical Records Table\n    results.push(await this.testMedicalRecordsTable());\n    \n    // Test 7: Medical Record Access Table\n    results.push(await this.testMedicalRecordAccessTable());\n    \n    // Test 8: Consultations Table\n    results.push(await this.testConsultationsTable());\n    \n    // Test 9: Notifications Table\n    results.push(await this.testNotificationsTable());\n    \n    // Test 10: Storage Buckets\n    results.push(await this.testStorageBuckets());\n\n    return results;\n  }\n\n  private async testConnection(): Promise<DatabaseTestResult> {\n    try {\n      const { data, error } = await supabase\n        .from('profiles')\n        .select('count')\n        .limit(1);\n      \n      if (error) {\n        return {\n          testName: 'Database Connection',\n          status: 'FAILED',\n          message: `Connection failed: ${sanitizeForLog(error.message)}`,\n          details: error\n        };\n      }\n\n      return {\n        testName: 'Database Connection',\n        status: 'PASSED',\n        message: 'Successfully connected to Supabase database'\n      };\n    } catch (error) {\n      return {\n        testName: 'Database Connection',\n        status: 'FAILED',\n        message: `Connection error: ${sanitizeForLog(error)}`,\n        details: error\n      };\n    }\n  }\n\n  private async testAuthentication(): Promise<DatabaseTestResult> {\n    try {\n      const { data: { user }, error } = await supabase.auth.getUser();\n      \n      if (error) {\n        return {\n          testName: 'Authentication',\n          status: 'WARNING',\n          message: `Auth error: ${sanitizeForLog(error.message)}`,\n          details: error\n        };\n      }\n\n      if (!user) {\n        return {\n          testName: 'Authentication',\n          status: 'WARNING',\n          message: 'No authenticated user (expected for testing)',\n          details: null\n        };\n      }\n\n      return {\n        testName: 'Authentication',\n        status: 'PASSED',\n        message: `Authenticated user: ${sanitizeForLog(user.email)}`,\n        details: { userId: user.id, email: user.email }\n      };\n    } catch (error) {\n      return {\n        testName: 'Authentication',\n        status: 'FAILED',\n        message: `Auth system error: ${sanitizeForLog(error)}`,\n        details: error\n      };\n    }\n  }\n\n  private async testProfilesTable(): Promise<DatabaseTestResult> {\n    try {\n      const { data, error } = await supabase\n        .from('profiles')\n        .select('id, full_name, user_type')\n        .limit(5);\n      \n      if (error) {\n        return {\n          testName: 'Profiles Table',\n          status: 'FAILED',\n          message: `Profiles table error: ${sanitizeForLog(error.message)}`,\n          details: error\n        };\n      }\n\n      return {\n        testName: 'Profiles Table',\n        status: 'PASSED',\n        message: `Profiles table accessible. Found ${data?.length || 0} profiles`,\n        details: { count: data?.length || 0 }\n      };\n    } catch (error) {\n      return {\n        testName: 'Profiles Table',\n        status: 'FAILED',\n        message: `Profiles table system error: ${sanitizeForLog(error)}`,\n        details: error\n      };\n    }\n  }\n\n  private async testHospitalsTable(): Promise<DatabaseTestResult> {\n    try {\n      const { data, error } = await supabase\n        .from('hospitals')\n        .select('id, name, is_active')\n        .limit(5);\n      \n      if (error) {\n        return {\n          testName: 'Hospitals Table',\n          status: 'FAILED',\n          message: `Hospitals table error: ${sanitizeForLog(error.message)}`,\n          details: error\n        };\n      }\n\n      const activeHospitals = data?.filter(h => h.is_active).length || 0;\n\n      return {\n        testName: 'Hospitals Table',\n        status: 'PASSED',\n        message: `Hospitals table accessible. Found ${data?.length || 0} hospitals (${activeHospitals} active)`,\n        details: { total: data?.length || 0, active: activeHospitals }\n      };\n    } catch (error) {\n      return {\n        testName: 'Hospitals Table',\n        status: 'FAILED',\n        message: `Hospitals table system error: ${sanitizeForLog(error)}`,\n        details: error\n      };\n    }\n  }\n\n  private async testDoctorsTable(): Promise<DatabaseTestResult> {\n    try {\n      const { data, error } = await supabase\n        .from('doctors')\n        .select('id, full_name, verification_status')\n        .limit(5);\n      \n      if (error) {\n        return {\n          testName: 'Doctors Table',\n          status: 'FAILED',\n          message: `Doctors table error: ${sanitizeForLog(error.message)}`,\n          details: error\n        };\n      }\n\n      const verifiedDoctors = data?.filter(d => d.verification_status === 'verified').length || 0;\n\n      return {\n        testName: 'Doctors Table',\n        status: 'PASSED',\n        message: `Doctors table accessible. Found ${data?.length || 0} doctors (${verifiedDoctors} verified)`,\n        details: { total: data?.length || 0, verified: verifiedDoctors }\n      };\n    } catch (error) {\n      return {\n        testName: 'Doctors Table',\n        status: 'FAILED',\n        message: `Doctors table system error: ${sanitizeForLog(error)}`,\n        details: error\n      };\n    }\n  }\n\n  private async testMedicalRecordsTable(): Promise<DatabaseTestResult> {\n    try {\n      const { data, error } = await supabase\n        .from('medical_records')\n        .select('id, record_type, is_sensitive')\n        .limit(5);\n      \n      if (error) {\n        return {\n          testName: 'Medical Records Table',\n          status: 'FAILED',\n          message: `Medical records table error: ${sanitizeForLog(error.message)}`,\n          details: error\n        };\n      }\n\n      return {\n        testName: 'Medical Records Table',\n        status: 'PASSED',\n        message: `Medical records table accessible. Found ${data?.length || 0} records`,\n        details: { count: data?.length || 0 }\n      };\n    } catch (error) {\n      return {\n        testName: 'Medical Records Table',\n        status: 'FAILED',\n        message: `Medical records table system error: ${sanitizeForLog(error)}`,\n        details: error\n      };\n    }\n  }\n\n  private async testMedicalRecordAccessTable(): Promise<DatabaseTestResult> {\n    try {\n      const { data, error } = await supabase\n        .from('medical_record_access')\n        .select('id, granted_at')\n        .limit(5);\n      \n      if (error) {\n        return {\n          testName: 'Medical Record Access Table',\n          status: 'FAILED',\n          message: `Medical record access table error: ${sanitizeForLog(error.message)}`,\n          details: error\n        };\n      }\n\n      return {\n        testName: 'Medical Record Access Table',\n        status: 'PASSED',\n        message: `Medical record access table accessible. Found ${data?.length || 0} access records`,\n        details: { count: data?.length || 0 }\n      };\n    } catch (error) {\n      return {\n        testName: 'Medical Record Access Table',\n        status: 'FAILED',\n        message: `Medical record access table system error: ${sanitizeForLog(error)}`,\n        details: error\n      };\n    }\n  }\n\n  private async testConsultationsTable(): Promise<DatabaseTestResult> {\n    try {\n      const { data, error } = await supabase\n        .from('consultations')\n        .select('id, status, consultation_type')\n        .limit(5);\n      \n      if (error) {\n        return {\n          testName: 'Consultations Table',\n          status: 'FAILED',\n          message: `Consultations table error: ${sanitizeForLog(error.message)}`,\n          details: error\n        };\n      }\n\n      return {\n        testName: 'Consultations Table',\n        status: 'PASSED',\n        message: `Consultations table accessible. Found ${data?.length || 0} consultations`,\n        details: { count: data?.length || 0 }\n      };\n    } catch (error) {\n      return {\n        testName: 'Consultations Table',\n        status: 'FAILED',\n        message: `Consultations table system error: ${sanitizeForLog(error)}`,\n        details: error\n      };\n    }\n  }\n\n  private async testNotificationsTable(): Promise<DatabaseTestResult> {\n    try {\n      const { data, error } = await supabase\n        .from('notifications')\n        .select('id, type, is_read')\n        .limit(5);\n      \n      if (error) {\n        return {\n          testName: 'Notifications Table',\n          status: 'FAILED',\n          message: `Notifications table error: ${sanitizeForLog(error.message)}`,\n          details: error\n        };\n      }\n\n      return {\n        testName: 'Notifications Table',\n        status: 'PASSED',\n        message: `Notifications table accessible. Found ${data?.length || 0} notifications`,\n        details: { count: data?.length || 0 }\n      };\n    } catch (error) {\n      return {\n        testName: 'Notifications Table',\n        status: 'FAILED',\n        message: `Notifications table system error: ${sanitizeForLog(error)}`,\n        details: error\n      };\n    }\n  }\n\n  private async testStorageBuckets(): Promise<DatabaseTestResult> {\n    try {\n      const { data, error } = await supabase.storage.listBuckets();\n      \n      if (error) {\n        return {\n          testName: 'Storage Buckets',\n          status: 'FAILED',\n          message: `Storage buckets error: ${sanitizeForLog(error.message)}`,\n          details: error\n        };\n      }\n\n      const bucketNames = data?.map(b => b.name) || [];\n      const hasProfilesBucket = bucketNames.includes('profiles');\n      const hasMedicalBucket = bucketNames.includes('medical-records');\n\n      return {\n        testName: 'Storage Buckets',\n        status: hasProfilesBucket ? 'PASSED' : 'WARNING',\n        message: `Found ${bucketNames.length} storage buckets: ${bucketNames.join(', ')}`,\n        details: { \n          buckets: bucketNames, \n          hasProfiles: hasProfilesBucket, \n          hasMedical: hasMedicalBucket \n        }\n      };\n    } catch (error) {\n      return {\n        testName: 'Storage Buckets',\n        status: 'FAILED',\n        message: `Storage system error: ${sanitizeForLog(error)}`,\n        details: error\n      };\n    }\n  }\n\n  async testSpecificUserData(userId: string): Promise<DatabaseTestResult[]> {\n    const results: DatabaseTestResult[] = [];\n\n    // Test user profile\n    try {\n      const { data: profile, error } = await supabase\n        .from('profiles')\n        .select('*')\n        .eq('id', userId)\n        .single();\n      \n      if (error) {\n        results.push({\n          testName: 'User Profile',\n          status: 'FAILED',\n          message: `Profile error: ${sanitizeForLog(error.message)}`,\n          details: error\n        });\n      } else {\n        results.push({\n          testName: 'User Profile',\n          status: 'PASSED',\n          message: `Profile found for user: ${sanitizeForLog(profile.full_name)}`,\n          details: { userType: profile.user_type, hasPin: !!profile.medical_pin }\n        });\n      }\n    } catch (error) {\n      results.push({\n        testName: 'User Profile',\n        status: 'FAILED',\n        message: `Profile system error: ${sanitizeForLog(error)}`,\n        details: error\n      });\n    }\n\n    return results;\n  }\n}
+﻿import { supabase } from '../lib/supabase';
+import { sanitizeForLog } from '../utils/security';
+
+export interface DatabaseTestResult {
+  testName: string;
+  status: 'PASSED' | 'FAILED' | 'WARNING';
+  message: string;
+  details?: any;
+}
+
+export class DatabaseTestService {
+  private static instance: DatabaseTestService;
+  
+  static getInstance(): DatabaseTestService {
+    if (!DatabaseTestService.instance) {
+      DatabaseTestService.instance = new DatabaseTestService();
+    }
+    return DatabaseTestService.instance;
+  }
+
+  async runAllTests(): Promise<DatabaseTestResult[]> {
+    const results: DatabaseTestResult[] = [];
+
+    // Test 1: Basic Connection
+    results.push(await this.testConnection());
+    
+    // Test 2: Authentication
+    results.push(await this.testAuthentication());
+    
+    // Test 3: Profiles Table
+    results.push(await this.testProfilesTable());
+    
+    // Test 4: Hospitals Table
+    results.push(await this.testHospitalsTable());
+    
+    // Test 5: Doctors Table
+    results.push(await this.testDoctorsTable());
+    
+    // Test 6: Medical Records Table
+    results.push(await this.testMedicalRecordsTable());
+    
+    // Test 7: Medical Record Access Table
+    results.push(await this.testMedicalRecordAccessTable());
+    
+    // Test 8: Consultations Table
+    results.push(await this.testConsultationsTable());
+    
+    // Test 9: Notifications Table
+    results.push(await this.testNotificationsTable());
+    
+    // Test 10: Storage Buckets
+    results.push(await this.testStorageBuckets());
+
+    return results;
+  }
+
+  private async testConnection(): Promise<DatabaseTestResult> {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('count')
+        .limit(1);
+      
+      if (error) {
+        return {
+          testName: 'Database Connection',
+          status: 'FAILED',
+          message: `Connection failed: ${sanitizeForLog(error.message)}`,
+          details: error
+        };
+      }
+
+      return {
+        testName: 'Database Connection',
+        status: 'PASSED',
+        message: 'Successfully connected to Supabase database'
+      };
+    } catch (error) {
+      return {
+        testName: 'Database Connection',
+        status: 'FAILED',
+        message: `Connection error: ${sanitizeForLog(error)}`,
+        details: error
+      };
+    }
+  }
+
+  private async testAuthentication(): Promise<DatabaseTestResult> {
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (error) {
+        return {
+          testName: 'Authentication',
+          status: 'WARNING',
+          message: `Auth error: ${sanitizeForLog(error.message)}`,
+          details: error
+        };
+      }
+
+      if (!user) {
+        return {
+          testName: 'Authentication',
+          status: 'WARNING',
+          message: 'No authenticated user (expected for testing)',
+          details: null
+        };
+      }
+
+      return {
+        testName: 'Authentication',
+        status: 'PASSED',
+        message: `Authenticated user: ${sanitizeForLog(user.email)}`,
+        details: { userId: user.id, email: user.email }
+      };
+    } catch (error) {
+      return {
+        testName: 'Authentication',
+        status: 'FAILED',
+        message: `Auth system error: ${sanitizeForLog(error)}`,
+        details: error
+      };
+    }
+  }
+
+  private async testProfilesTable(): Promise<DatabaseTestResult> {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, user_type')
+        .limit(5);
+      
+      if (error) {
+        return {
+          testName: 'Profiles Table',
+          status: 'FAILED',
+          message: `Profiles table error: ${sanitizeForLog(error.message)}`,
+          details: error
+        };
+      }
+
+      return {
+        testName: 'Profiles Table',
+        status: 'PASSED',
+        message: `Profiles table accessible. Found ${data?.length || 0} profiles`,
+        details: { count: data?.length || 0 }
+      };
+    } catch (error) {
+      return {
+        testName: 'Profiles Table',
+        status: 'FAILED',
+        message: `Profiles table system error: ${sanitizeForLog(error)}`,
+        details: error
+      };
+    }
+  }
+
+  private async testHospitalsTable(): Promise<DatabaseTestResult> {
+    try {
+      const { data, error } = await supabase
+        .from('hospitals')
+        .select('id, name, is_active')
+        .limit(5);
+      
+      if (error) {
+        return {
+          testName: 'Hospitals Table',
+          status: 'FAILED',
+          message: `Hospitals table error: ${sanitizeForLog(error.message)}`,
+          details: error
+        };
+      }
+
+      const activeHospitals = data?.filter(h => h.is_active).length || 0;
+
+      return {
+        testName: 'Hospitals Table',
+        status: 'PASSED',
+        message: `Hospitals table accessible. Found ${data?.length || 0} hospitals (${activeHospitals} active)`,
+        details: { total: data?.length || 0, active: activeHospitals }
+      };
+    } catch (error) {
+      return {
+        testName: 'Hospitals Table',
+        status: 'FAILED',
+        message: `Hospitals table system error: ${sanitizeForLog(error)}`,
+        details: error
+      };
+    }
+  }
+
+  private async testDoctorsTable(): Promise<DatabaseTestResult> {
+    try {
+      const { data, error } = await supabase
+        .from('doctors')
+        .select('id, full_name, verification_status')
+        .limit(5);
+      
+      if (error) {
+        return {
+          testName: 'Doctors Table',
+          status: 'FAILED',
+          message: `Doctors table error: ${sanitizeForLog(error.message)}`,
+          details: error
+        };
+      }
+
+      const verifiedDoctors = data?.filter(d => d.verification_status === 'verified').length || 0;
+
+      return {
+        testName: 'Doctors Table',
+        status: 'PASSED',
+        message: `Doctors table accessible. Found ${data?.length || 0} doctors (${verifiedDoctors} verified)`,
+        details: { total: data?.length || 0, verified: verifiedDoctors }
+      };
+    } catch (error) {
+      return {
+        testName: 'Doctors Table',
+        status: 'FAILED',
+        message: `Doctors table system error: ${sanitizeForLog(error)}`,
+        details: error
+      };
+    }
+  }
+
+  private async testMedicalRecordsTable(): Promise<DatabaseTestResult> {
+    try {
+      const { data, error } = await supabase
+        .from('medical_records')
+        .select('id, record_type, is_sensitive')
+        .limit(5);
+      
+      if (error) {
+        return {
+          testName: 'Medical Records Table',
+          status: 'FAILED',
+          message: `Medical records table error: ${sanitizeForLog(error.message)}`,
+          details: error
+        };
+      }
+
+      return {
+        testName: 'Medical Records Table',
+        status: 'PASSED',
+        message: `Medical records table accessible. Found ${data?.length || 0} records`,
+        details: { count: data?.length || 0 }
+      };
+    } catch (error) {
+      return {
+        testName: 'Medical Records Table',
+        status: 'FAILED',
+        message: `Medical records table system error: ${sanitizeForLog(error)}`,
+        details: error
+      };
+    }
+  }
+
+  private async testMedicalRecordAccessTable(): Promise<DatabaseTestResult> {
+    try {
+      const { data, error } = await supabase
+        .from('medical_record_access')
+        .select('id, granted_at')
+        .limit(5);
+      
+      if (error) {
+        return {
+          testName: 'Medical Record Access Table',
+          status: 'FAILED',
+          message: `Medical record access table error: ${sanitizeForLog(error.message)}`,
+          details: error
+        };
+      }
+
+      return {
+        testName: 'Medical Record Access Table',
+        status: 'PASSED',
+        message: `Medical record access table accessible. Found ${data?.length || 0} access records`,
+        details: { count: data?.length || 0 }
+      };
+    } catch (error) {
+      return {
+        testName: 'Medical Record Access Table',
+        status: 'FAILED',
+        message: `Medical record access table system error: ${sanitizeForLog(error)}`,
+        details: error
+      };
+    }
+  }
+
+  private async testConsultationsTable(): Promise<DatabaseTestResult> {
+    try {
+      const { data, error } = await supabase
+        .from('consultations')
+        .select('id, status, consultation_type')
+        .limit(5);
+      
+      if (error) {
+        return {
+          testName: 'Consultations Table',
+          status: 'FAILED',
+          message: `Consultations table error: ${sanitizeForLog(error.message)}`,
+          details: error
+        };
+      }
+
+      return {
+        testName: 'Consultations Table',
+        status: 'PASSED',
+        message: `Consultations table accessible. Found ${data?.length || 0} consultations`,
+        details: { count: data?.length || 0 }
+      };
+    } catch (error) {
+      return {
+        testName: 'Consultations Table',
+        status: 'FAILED',
+        message: `Consultations table system error: ${sanitizeForLog(error)}`,
+        details: error
+      };
+    }
+  }
+
+  private async testNotificationsTable(): Promise<DatabaseTestResult> {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('id, type, is_read')
+        .limit(5);
+      
+      if (error) {
+        return {
+          testName: 'Notifications Table',
+          status: 'FAILED',
+          message: `Notifications table error: ${sanitizeForLog(error.message)}`,
+          details: error
+        };
+      }
+
+      return {
+        testName: 'Notifications Table',
+        status: 'PASSED',
+        message: `Notifications table accessible. Found ${data?.length || 0} notifications`,
+        details: { count: data?.length || 0 }
+      };
+    } catch (error) {
+      return {
+        testName: 'Notifications Table',
+        status: 'FAILED',
+        message: `Notifications table system error: ${sanitizeForLog(error)}`,
+        details: error
+      };
+    }
+  }
+
+  private async testStorageBuckets(): Promise<DatabaseTestResult> {
+    try {
+      const { data, error } = await supabase.storage.listBuckets();
+      
+      if (error) {
+        return {
+          testName: 'Storage Buckets',
+          status: 'FAILED',
+          message: `Storage buckets error: ${sanitizeForLog(error.message)}`,
+          details: error
+        };
+      }
+
+      const bucketNames = data?.map(b => b.name) || [];
+      const hasProfilesBucket = bucketNames.includes('profiles');
+      const hasMedicalBucket = bucketNames.includes('medical-records');
+
+      return {
+        testName: 'Storage Buckets',
+        status: hasProfilesBucket ? 'PASSED' : 'WARNING',
+        message: `Found ${bucketNames.length} storage buckets: ${bucketNames.join(', ')}`,
+        details: { 
+          buckets: bucketNames, 
+          hasProfiles: hasProfilesBucket, 
+          hasMedical: hasMedicalBucket 
+        }
+      };
+    } catch (error) {
+      return {
+        testName: 'Storage Buckets',
+        status: 'FAILED',
+        message: `Storage system error: ${sanitizeForLog(error)}`,
+        details: error
+      };
+    }
+  }
+
+  async testSpecificUserData(userId: string): Promise<DatabaseTestResult[]> {
+    const results: DatabaseTestResult[] = [];
+
+    // Test user profile
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        results.push({
+          testName: 'User Profile',
+          status: 'FAILED',
+          message: `Profile error: ${sanitizeForLog(error.message)}`,
+          details: error
+        });
+      } else {
+        results.push({
+          testName: 'User Profile',
+          status: 'PASSED',
+          message: `Profile found for user: ${sanitizeForLog(profile.full_name)}`,
+          details: { userType: profile.user_type, hasPin: !!profile.medical_pin }
+        });
+      }
+    } catch (error) {
+      results.push({
+        testName: 'User Profile',
+        status: 'FAILED',
+        message: `Profile system error: ${sanitizeForLog(error)}`,
+        details: error
+      });
+    }
+
+    return results;
+  }
+}

@@ -1,15 +1,44 @@
 import React, { useState } from 'react';
 import {
   StyleSheet, Text, View, TextInput, TouchableOpacity,
-  KeyboardAvoidingView, Platform, ScrollView, Image, Alert,
+  KeyboardAvoidingView, Platform, ScrollView,
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Path, Rect } from 'react-native-svg';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastProvider';
 
 type Role = 'patient' | 'doctor' | 'hospital_admin';
+
+const C = {
+  paper: '#F5F3EE',
+  paperDark: '#EDE9E0',
+  card: '#FFFFFF',
+  border: '#EAE5DA',
+  ink: '#0C2E30',
+  teal: '#0B7E8A',
+  tealLight: 'rgba(11,126,138,0.09)',
+  gold: '#D4A843',
+  goldBg: 'rgba(212,168,67,0.10)',
+  goldBorder: 'rgba(212,168,67,0.28)',
+  muted: '#7A8785',
+  muted2: '#97A2A0',
+  textPrimary: '#16211F',
+  textBody: '#5C6B69',
+};
+
+function HBridgeMark({ size = 28 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size * 1.1} viewBox="0 0 40 44">
+      <Path d="M0 0 h8 v44 h-8z M32 0 h8 v44 h-8z" fill="#3DA0AC" />
+      <Path d="M12 6 h6 v30 h-6z M22 6 h6 v30 h-6z" fill="#D4A843" />
+      <Rect x="12" y="18" width="16" height="6" fill="#D4A843" />
+    </Svg>
+  );
+}
 
 export default function AuthScreen({ route, navigation }: any) {
   const mode = route?.params?.mode || 'login';
@@ -21,7 +50,6 @@ export default function AuthScreen({ route, navigation }: any) {
   const [role, setRole]                     = useState<Role>('patient');
   const [showPassword, setShowPassword]     = useState(false);
   const [loading, setLoading]               = useState(false);
-  const [showForgot, setShowForgot]         = useState(false);
   const [medicalLicense, setMedicalLicense] = useState('');
   const [specialization, setSpecialization] = useState('');
   const [hospitalName, setHospitalName]     = useState('');
@@ -29,31 +57,13 @@ export default function AuthScreen({ route, navigation }: any) {
 
   const validateEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
-  // ── Forgot password ────────────────────────────────────────────────────
-  const handleForgotPassword = async () => {
-    if (!email) { toast.showWarning('Email Required', 'Enter your email to reset password.'); return; }
-    if (!validateEmail(email)) { toast.showError('Invalid Email', 'Enter a valid email address.'); return; }
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
-      if (error) {
-        toast.showError('Reset Failed', 'Unable to send reset email. Try again.');
-      } else {
-        toast.showSuccess('Email Sent', 'Check your inbox for reset instructions.');
-        setShowForgot(false);
-      }
-    } catch { toast.showError('Connection Error', 'Check your internet and try again.'); }
-    finally { setLoading(false); }
-  };
-
-  // ── Sign in / Sign up ──────────────────────────────────────────────────
   const handleAuth = async () => {
     if (!email || !password || (!isLogin && !fullName)) {
       toast.showWarning('Required Fields', 'Please fill in all required fields.');
       return;
     }
     if (!validateEmail(email)) { toast.showError('Invalid Email', 'Enter a valid email address.'); return; }
-    if (password.length < 8) { toast.showError('Weak Password', 'Password must be at least 8 characters.'); return; }
+    if (password.length < 8)   { toast.showError('Weak Password', 'Password must be at least 8 characters.'); return; }
 
     setLoading(true);
     try {
@@ -102,442 +112,338 @@ export default function AuthScreen({ route, navigation }: any) {
     finally { setLoading(false); }
   };
 
-  // ── Forgot password screen ─────────────────────────────────────────────
-  if (showForgot) {
-    return (
-      <SafeAreaView style={s.container} edges={['top', 'bottom']}>
-        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          {/* Back */}
-          <TouchableOpacity style={s.backBtn} onPress={() => setShowForgot(false)}>
-            <Ionicons name="arrow-back" size={20} color="#171717" />
-          </TouchableOpacity>
-
-          {/* Logo */}
-          <View style={s.logoWrap}>
-            <View style={s.logoBox}>
-              <Image source={require('../../assets/icon.png')} style={s.logoImg} resizeMode="contain" />
-            </View>
-            <Text style={s.appName}>Hbridge</Text>
-            <Text style={s.tagline}>Reset your password</Text>
-          </View>
-
-          <View style={s.card}>
-            <Text style={s.cardTitle}>Forgot Password</Text>
-            <Text style={s.cardSubtitle}>Enter your email and we'll send you reset instructions.</Text>
-
-            <View style={s.fieldWrap}>
-              <Text style={s.label}>Email Address</Text>
-              <View style={s.inputRow}>
-                <Ionicons name="mail-outline" size={18} color="#737373" style={s.inputIcon} />
-                <TextInput
-                  style={s.input}
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="you@example.com"
-                  placeholderTextColor="#a3a3a3"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={[s.primaryBtn, loading && s.primaryBtnDisabled]}
-              onPress={handleForgotPassword}
-              disabled={loading}
-              activeOpacity={0.85}
-            >
-              <Text style={s.primaryBtnText}>{loading ? 'Sending...' : 'Send Reset Email'}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={s.switchRow} onPress={() => setShowForgot(false)}>
-              <Text style={s.switchText}>Remember your password? </Text>
-              <Text style={s.switchLink}>Sign In</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
-  // ── Main auth screen ───────────────────────────────────────────────────
   return (
-    <SafeAreaView style={s.container} edges={['top', 'bottom']}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+    <SafeAreaView style={s.root} edges={['top', 'bottom']}>
+      <StatusBar barStyle="dark-content" backgroundColor={C.paper} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView
           contentContainerStyle={s.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Back button (from Welcome screen) */}
-          {navigation && (
-            <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
-              <Ionicons name="arrow-back" size={20} color="#171717" />
-            </TouchableOpacity>
-          )}
+          {/* Back button */}
+          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={20} color={C.textPrimary} />
+          </TouchableOpacity>
 
-          {/* ── Logo & heading ── */}
-          <View style={s.logoWrap}>
+          {/* Logo + headline */}
+          <View style={s.heroSection}>
             <View style={s.logoBox}>
-              <Image source={require('../../assets/icon.png')} style={s.logoImg} resizeMode="contain" />
+              <HBridgeMark size={32} />
             </View>
-            <Text style={s.appName}>Hbridge</Text>
-            <Text style={s.tagline}>
-              {isLogin ? 'Welcome back to your health companion' : "Join Nigeria's leading health platform"}
+            <Text style={s.headline}>{isLogin ? 'Welcome back' : 'Create account'}</Text>
+            <Text style={s.subline}>
+              {isLogin ? 'Sign in to your health companion' : "Join Nigeria's leading health platform"}
             </Text>
           </View>
 
-          {/* ── Tab switcher ── */}
-          <View style={s.tabRow}>
+          {/* Segmented tabs */}
+          <View style={s.segRow}>
             <TouchableOpacity
-              style={[s.tab, isLogin && s.tabActive]}
+              style={[s.seg, isLogin && s.segActive]}
               onPress={() => setIsLogin(true)}
             >
-              <Text style={[s.tabText, isLogin && s.tabTextActive]}>Sign In</Text>
+              <Text style={[s.segText, isLogin && s.segTextActive]}>Sign In</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[s.tab, !isLogin && s.tabActive]}
+              style={[s.seg, !isLogin && s.segActive]}
               onPress={() => setIsLogin(false)}
             >
-              <Text style={[s.tabText, !isLogin && s.tabTextActive]}>Create Account</Text>
+              <Text style={[s.segText, !isLogin && s.segTextActive]}>Create Account</Text>
             </TouchableOpacity>
           </View>
 
-          {/* ── Form card ── */}
-          <View style={s.card}>
+          {/* Sign-up only fields */}
+          {!isLogin && (
+            <>
+              <Field label="Full Name" icon="person-outline">
+                <TextInput
+                  style={s.fieldInput}
+                  value={fullName}
+                  onChangeText={setFullName}
+                  placeholder="Your full name"
+                  placeholderTextColor={C.muted2}
+                  autoCapitalize="words"
+                />
+              </Field>
 
-            {/* Sign-up only fields */}
-            {!isLogin && (
-              <>
-                {/* Full name */}
-                <View style={s.fieldWrap}>
-                  <Text style={s.label}>Full Name *</Text>
-                  <View style={s.inputRow}>
-                    <Ionicons name="person-outline" size={18} color="#737373" style={s.inputIcon} />
-                    <TextInput
-                      style={s.input}
-                      value={fullName}
-                      onChangeText={setFullName}
-                      placeholder="Your full name"
-                      placeholderTextColor="#a3a3a3"
-                      autoCapitalize="words"
-                    />
-                  </View>
-                </View>
+              <Field label="Phone Number" icon="call-outline">
+                <TextInput
+                  style={s.fieldInput}
+                  value={phone}
+                  onChangeText={setPhone}
+                  placeholder="+234 XXX XXX XXXX"
+                  placeholderTextColor={C.muted2}
+                  keyboardType="phone-pad"
+                />
+              </Field>
 
-                {/* Phone */}
-                <View style={s.fieldWrap}>
-                  <Text style={s.label}>Phone Number</Text>
-                  <View style={s.inputRow}>
-                    <Ionicons name="call-outline" size={18} color="#737373" style={s.inputIcon} />
-                    <TextInput
-                      style={s.input}
-                      value={phone}
-                      onChangeText={setPhone}
-                      placeholder="+234 XXX XXX XXXX"
-                      placeholderTextColor="#a3a3a3"
-                      keyboardType="phone-pad"
-                    />
-                  </View>
-                </View>
-
-                {/* Account type */}
-                <View style={s.fieldWrap}>
-                  <Text style={s.label}>Account Type *</Text>
-                  <View style={s.roleRow}>
-                    {([
-                      { value: 'patient',        label: 'Patient',  icon: 'person'   },
-                      { value: 'doctor',         label: 'Doctor',   icon: 'heart'    },
-                      { value: 'hospital_admin', label: 'Hospital', icon: 'business' },
-                    ] as const).map(r => (
+              {/* Account type */}
+              <View style={s.fieldGroup}>
+                <Text style={s.fieldLabel}>Account Type</Text>
+                <View style={s.roleRow}>
+                  {([
+                    { value: 'patient',        label: 'Patient',  icon: 'person-outline'   },
+                    { value: 'doctor',         label: 'Doctor',   icon: 'heart-outline'    },
+                    { value: 'hospital_admin', label: 'Hospital', icon: 'business-outline' },
+                  ] as const).map(r => {
+                    const active = role === r.value;
+                    return (
                       <TouchableOpacity
                         key={r.value}
-                        style={[s.roleCard, role === r.value && s.roleCardActive]}
+                        style={[s.roleCard, active && s.roleCardActive]}
                         onPress={() => setRole(r.value)}
                         activeOpacity={0.8}
                       >
-                        <View style={[s.roleIconWrap, role === r.value && s.roleIconWrapActive]}>
-                          <Ionicons name={r.icon as any} size={20} color={role === r.value ? '#0B7E8A' : '#737373'} />
+                        <View style={[s.roleIconBox, active && s.roleIconBoxActive]}>
+                          <Ionicons name={r.icon as any} size={20} color={active ? C.teal : C.muted} />
                         </View>
-                        <Text style={[s.roleLabel, role === r.value && s.roleLabelActive]}>{r.label}</Text>
-                        {role === r.value && (
+                        <Text style={[s.roleLabel, active && s.roleLabelActive]}>{r.label}</Text>
+                        {active && (
                           <View style={s.roleCheck}>
-                            <Ionicons name="checkmark" size={10} color="#fff" />
+                            <Ionicons name="checkmark" size={9} color="#fff" />
                           </View>
                         )}
                       </TouchableOpacity>
-                    ))}
-                  </View>
+                    );
+                  })}
                 </View>
-
-                {/* Doctor extras */}
-                {role === 'doctor' && (
-                  <>
-                    <View style={s.fieldWrap}>
-                      <Text style={s.label}>Medical License *</Text>
-                      <View style={s.inputRow}>
-                        <Ionicons name="document-text-outline" size={18} color="#737373" style={s.inputIcon} />
-                        <TextInput
-                          style={s.input}
-                          value={medicalLicense}
-                          onChangeText={setMedicalLicense}
-                          placeholder="License number"
-                          placeholderTextColor="#a3a3a3"
-                          autoCapitalize="characters"
-                        />
-                      </View>
-                    </View>
-                    <View style={s.fieldWrap}>
-                      <Text style={s.label}>Specialization *</Text>
-                      <View style={s.inputRow}>
-                        <Ionicons name="medkit-outline" size={18} color="#737373" style={s.inputIcon} />
-                        <TextInput
-                          style={s.input}
-                          value={specialization}
-                          onChangeText={setSpecialization}
-                          placeholder="e.g. Cardiology, General Practice"
-                          placeholderTextColor="#a3a3a3"
-                          autoCapitalize="words"
-                        />
-                      </View>
-                    </View>
-                  </>
-                )}
-
-                {/* Hospital extras */}
-                {role === 'hospital_admin' && (
-                  <View style={s.fieldWrap}>
-                    <Text style={s.label}>Hospital Name *</Text>
-                    <View style={s.inputRow}>
-                      <Ionicons name="business-outline" size={18} color="#737373" style={s.inputIcon} />
-                      <TextInput
-                        style={s.input}
-                        value={hospitalName}
-                        onChangeText={setHospitalName}
-                        placeholder="Hospital name"
-                        placeholderTextColor="#a3a3a3"
-                        autoCapitalize="words"
-                      />
-                    </View>
-                  </View>
-                )}
-              </>
-            )}
-
-            {/* Email */}
-            <View style={s.fieldWrap}>
-              <Text style={s.label}>Email Address *</Text>
-              <View style={s.inputRow}>
-                <Ionicons name="mail-outline" size={18} color="#737373" style={s.inputIcon} />
-                <TextInput
-                  style={s.input}
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="you@example.com"
-                  placeholderTextColor="#a3a3a3"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
               </View>
-            </View>
 
-            {/* Password */}
-            <View style={s.fieldWrap}>
-              <View style={s.labelRow}>
-                <Text style={s.label}>Password *</Text>
-                {isLogin && (
-                  <TouchableOpacity onPress={() => setShowForgot(true)}>
-                    <Text style={s.forgotLink}>Forgot password?</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-              <View style={s.inputRow}>
-                <Ionicons name="lock-closed-outline" size={18} color="#737373" style={s.inputIcon} />
-                <TextInput
-                  style={s.input}
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder={isLogin ? 'Your password' : 'Min. 8 characters'}
-                  placeholderTextColor="#a3a3a3"
-                  secureTextEntry={!showPassword}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                <TouchableOpacity onPress={() => setShowPassword(v => !v)} style={s.eyeBtn}>
-                  <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={18} color="#737373" />
+              {/* Doctor extras */}
+              {role === 'doctor' && (
+                <>
+                  <Field label="Medical License" icon="document-text-outline">
+                    <TextInput
+                      style={s.fieldInput}
+                      value={medicalLicense}
+                      onChangeText={setMedicalLicense}
+                      placeholder="License number"
+                      placeholderTextColor={C.muted2}
+                      autoCapitalize="characters"
+                    />
+                  </Field>
+                  <Field label="Specialization" icon="medkit-outline">
+                    <TextInput
+                      style={s.fieldInput}
+                      value={specialization}
+                      onChangeText={setSpecialization}
+                      placeholder="e.g. Cardiology, General Practice"
+                      placeholderTextColor={C.muted2}
+                      autoCapitalize="words"
+                    />
+                  </Field>
+                </>
+              )}
+
+              {/* Hospital extras */}
+              {role === 'hospital_admin' && (
+                <Field label="Hospital Name" icon="business-outline">
+                  <TextInput
+                    style={s.fieldInput}
+                    value={hospitalName}
+                    onChangeText={setHospitalName}
+                    placeholder="Hospital name"
+                    placeholderTextColor={C.muted2}
+                    autoCapitalize="words"
+                  />
+                </Field>
+              )}
+            </>
+          )}
+
+          {/* Email */}
+          <Field label="Email address" icon="mail-outline">
+            <TextInput
+              style={s.fieldInput}
+              value={email}
+              onChangeText={setEmail}
+              placeholder="you@email.com"
+              placeholderTextColor={C.muted2}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </Field>
+
+          {/* Password */}
+          <View style={s.fieldGroup}>
+            <View style={s.fieldLabelRow}>
+              <Text style={s.fieldLabel}>Password</Text>
+              {isLogin && (
+                <TouchableOpacity onPress={() => navigation.navigate('ResetPassword', { initialEmail: email })}>
+                  <Text style={s.forgotText}>Forgot?</Text>
                 </TouchableOpacity>
-              </View>
+              )}
             </View>
-
-            {/* Primary button */}
-            <TouchableOpacity
-              style={[s.primaryBtn, loading && s.primaryBtnDisabled]}
-              onPress={handleAuth}
-              disabled={loading}
-              activeOpacity={0.85}
-            >
-              {loading
-                ? <Text style={s.primaryBtnText}>Please wait...</Text>
-                : <Text style={s.primaryBtnText}>{isLogin ? 'Sign In' : 'Create Account'}</Text>
-              }
-            </TouchableOpacity>
-
-            {/* Switch mode */}
-            <TouchableOpacity style={s.switchRow} onPress={() => setIsLogin(v => !v)}>
-              <Text style={s.switchText}>{isLogin ? "Don't have an account? " : 'Already have an account? '}</Text>
-              <Text style={s.switchLink}>{isLogin ? 'Sign Up' : 'Sign In'}</Text>
-            </TouchableOpacity>
-
-            {/* Disclaimer (sign up only) */}
-            {!isLogin && (
-              <View style={s.disclaimer}>
-                <Ionicons name="shield-checkmark-outline" size={16} color="#0B7E8A" />
-                <Text style={s.disclaimerText}>
-                  By creating an account you agree to our{' '}
-                  <Text
-                    style={s.disclaimerLink}
-                    onPress={() => Alert.alert('Terms of Service', 'Hbridge provides medical information for educational purposes only and is not a substitute for professional medical advice.')}
-                  >Terms of Service</Text>
-                  {' '}and{' '}
-                  <Text
-                    style={s.disclaimerLink}
-                    onPress={() => Alert.alert('Privacy Policy', 'We encrypt all medical data and never share personal information with third parties.')}
-                  >Privacy Policy</Text>
-                  . Medical data is encrypted and HIPAA compliant.
-                </Text>
-              </View>
-            )}
+            <View style={s.fieldRow}>
+              <Ionicons name="lock-closed-outline" size={19} color={C.teal} />
+              <TextInput
+                style={[s.fieldInput, { flex: 1 }]}
+                value={password}
+                onChangeText={setPassword}
+                placeholder={isLogin ? '••••••••' : 'Min. 8 characters'}
+                placeholderTextColor={C.muted2}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <TouchableOpacity onPress={() => setShowPassword(v => !v)}>
+                <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={19} color={C.muted2} />
+              </TouchableOpacity>
+            </View>
           </View>
 
-          {/* Bottom spacer */}
-          <View style={{ height: 32 }} />
+          {/* Primary button */}
+          <TouchableOpacity style={s.primaryBtn} onPress={handleAuth} disabled={loading} activeOpacity={0.85}>
+            <LinearGradient colors={['#0C6570', '#083C42']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.primaryGradient}>
+              <Text style={s.primaryBtnText}>{loading ? 'Please wait…' : isLogin ? 'Sign In' : 'Create Account'}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {/* Switch mode */}
+          <View style={s.switchRow}>
+            <Text style={s.switchText}>{isLogin ? "Don't have an account? " : 'Already have an account? '}</Text>
+            <TouchableOpacity onPress={() => setIsLogin(v => !v)}>
+              <Text style={s.switchLink}>{isLogin ? 'Sign up' : 'Sign in'}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Disclaimer (sign up only) */}
+          {!isLogin && (
+            <View style={s.disclaimer}>
+              <Ionicons name="shield-checkmark-outline" size={15} color="#8A6A1F" />
+              <Text style={s.disclaimerText}>
+                By creating an account you agree to our{' '}
+                <Text style={s.disclaimerLink} onPress={() => navigation.navigate('PrivacySettings')}>Terms of Service</Text>
+                {' '}and{' '}
+                <Text style={s.disclaimerLink} onPress={() => navigation.navigate('PrivacySettings')}>Privacy Policy</Text>
+                . Your medical data is encrypted and secure.
+              </Text>
+            </View>
+          )}
+
+          {/* Trust badge */}
+          <View style={s.trustBadge}>
+            <Ionicons name="lock-closed-outline" size={14} color="#8A6A1F" />
+            <Text style={s.trustText}>Bank-grade encryption · NDPR compliant · Your data stays private.</Text>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
-// ── Styles ─────────────────────────────────────────────────────────────────
-const TEAL   = '#0B7E8A';
-const BLACK  = '#171717';
-const GREY   = '#737373';
-const LIGHT  = '#f5f5f5';
-const BORDER = '#e5e5e5';
+function Field({ label, icon, children }: { label: string; icon: string; children: React.ReactNode }) {
+  return (
+    <View style={s.fieldGroup}>
+      <Text style={s.fieldLabel}>{label}</Text>
+      <View style={s.fieldRow}>
+        <Ionicons name={icon as any} size={19} color={C.teal} />
+        {children}
+      </View>
+    </View>
+  );
+}
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  scroll:    { flexGrow: 1, paddingHorizontal: 24, paddingTop: 16, paddingBottom: 32 },
+  root:   { flex: 1, backgroundColor: C.paper },
+  scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 40 },
 
   backBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: LIGHT, alignItems: 'center', justifyContent: 'center',
-    marginBottom: 8,
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: C.card, borderWidth: 1, borderColor: C.border,
+    alignItems: 'center', justifyContent: 'center', marginTop: 6,
   },
 
-  // Logo
-  logoWrap: { alignItems: 'center', paddingVertical: 28 },
+  heroSection: { alignItems: 'center', paddingTop: 26, paddingBottom: 22 },
   logoBox: {
-    width: 72, height: 72, borderRadius: 18,
-    backgroundColor: LIGHT, alignItems: 'center', justifyContent: 'center',
-    marginBottom: 12,
-    borderWidth: 1, borderColor: BORDER,
-    // Hbridge signature corner cut
-    borderTopLeftRadius: 4,
-    borderBottomRightRadius: 4,
+    width: 66, height: 66, borderRadius: 20,
+    borderTopLeftRadius: 6, borderBottomRightRadius: 6,
+    backgroundColor: C.ink,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: C.ink, shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.22, shadowRadius: 20, elevation: 10,
+    marginBottom: 14,
   },
-  logoImg:  { width: 52, height: 52 },
-  appName:  { fontSize: 26, fontWeight: '700', color: BLACK, letterSpacing: -0.5, marginBottom: 6 },
-  tagline:  { fontSize: 14, color: GREY, textAlign: 'center', maxWidth: 260, lineHeight: 20 },
+  headline: { fontSize: 27, fontFamily: 'Montserrat_700Bold', color: C.ink, letterSpacing: -0.3 },
+  subline:  { fontSize: 13.5, fontFamily: 'SpaceGrotesk_400Regular', color: C.textBody, marginTop: 7, textAlign: 'center' },
 
-  // Tab switcher
-  tabRow: {
-    flexDirection: 'row', backgroundColor: LIGHT,
-    borderRadius: 12, padding: 4, marginBottom: 20,
+  segRow: {
+    flexDirection: 'row', backgroundColor: C.paperDark,
+    borderRadius: 14, padding: 4, marginBottom: 20,
   },
-  tab: {
-    flex: 1, paddingVertical: 10, borderRadius: 10,
-    alignItems: 'center',
+  seg: { flex: 1, alignItems: 'center', paddingVertical: 11, borderRadius: 11 },
+  segActive: {
+    backgroundColor: C.teal,
+    shadowColor: C.teal, shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.28, shadowRadius: 8, elevation: 4,
   },
-  tabActive:     { backgroundColor: TEAL  },
-  tabText:       { fontSize: 14, fontWeight: '500', color: GREY },
-  tabTextActive: { color: '#fff', fontWeight: '700' },
+  segText:       { fontSize: 14, fontFamily: 'Montserrat_500Medium', color: C.textBody },
+  segTextActive: { fontFamily: 'Montserrat_700Bold', color: '#fff' },
 
-  // Card
-  card: {
-    backgroundColor: '#fff', borderRadius: 16,
-    borderWidth: 1, borderColor: BORDER,
-    padding: 20, gap: 16,
+  fieldGroup:   { gap: 7, marginBottom: 16 },
+  fieldLabel:   { fontSize: 12, fontFamily: 'Montserrat_600SemiBold', color: C.textPrimary },
+  fieldLabelRow:{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  forgotText:   { fontSize: 12, fontFamily: 'Montserrat_600SemiBold', color: C.teal },
+  fieldRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: C.card, borderWidth: 1, borderColor: C.border,
+    borderRadius: 13, paddingHorizontal: 14, height: 50,
   },
-  cardTitle:    { fontSize: 20, fontWeight: '700', color: BLACK },
-  cardSubtitle: { fontSize: 14, color: GREY, lineHeight: 20, marginTop: -8 },
-
-  // Fields
-  fieldWrap: { gap: 6 },
-  labelRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  label:     { fontSize: 13, fontWeight: '600', color: BLACK },
-  forgotLink:{ fontSize: 13, color: TEAL, fontWeight: '600' },
-
-  inputRow: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: LIGHT, borderRadius: 12,
-    borderWidth: 1, borderColor: BORDER,
-    paddingHorizontal: 12, height: 48,
-  },
-  inputIcon: { marginRight: 10 },
-  input: {
-    flex: 1, fontSize: 14, color: BLACK,
+  fieldInput: {
+    flex: 1, fontSize: 14,
+    fontFamily: 'SpaceGrotesk_400Regular', color: C.textPrimary,
     paddingVertical: 0,
   },
-  eyeBtn: { padding: 4 },
 
   // Role selector
-  roleRow: { flexDirection: 'row', gap: 10 },
+  roleRow:         { flexDirection: 'row', gap: 10 },
   roleCard: {
-    flex: 1, alignItems: 'center', paddingVertical: 14, paddingHorizontal: 8,
-    backgroundColor: LIGHT, borderRadius: 12,
-    borderWidth: 1.5, borderColor: BORDER,
+    flex: 1, alignItems: 'center', paddingVertical: 14,
+    backgroundColor: C.card, borderRadius: 13,
+    borderWidth: 1.5, borderColor: C.border,
     gap: 6, position: 'relative',
   },
-  roleCardActive: { borderColor: TEAL, backgroundColor: '#E6F5F5' },
-  roleIconWrap: {
+  roleCardActive:  { borderColor: C.teal, backgroundColor: C.tealLight },
+  roleIconBox: {
     width: 40, height: 40, borderRadius: 10,
-    backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: BORDER,
+    backgroundColor: C.paperDark,
+    alignItems: 'center', justifyContent: 'center',
   },
-  roleIconWrapActive: { borderColor: TEAL, backgroundColor: '#E8F5E9' },
-  roleLabel:       { fontSize: 12, fontWeight: '600', color: GREY, textAlign: 'center' },
-  roleLabelActive: { color: TEAL  },
+  roleIconBoxActive: { backgroundColor: 'rgba(11,126,138,0.15)' },
+  roleLabel:       { fontSize: 11.5, fontFamily: 'Montserrat_600SemiBold', color: C.muted },
+  roleLabelActive: { color: C.teal },
   roleCheck: {
     position: 'absolute', top: 6, right: 6,
     width: 16, height: 16, borderRadius: 8,
-    backgroundColor: TEAL, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: C.teal, alignItems: 'center', justifyContent: 'center',
   },
 
-  // Primary button
   primaryBtn: {
-    backgroundColor: TEAL, borderRadius: 12,
-    height: 52, alignItems: 'center', justifyContent: 'center',
-    marginTop: 4,
+    borderRadius: 15, overflow: 'hidden', marginBottom: 4,
+    shadowColor: '#083C42', shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.26, shadowRadius: 22, elevation: 8,
   },
-  primaryBtnDisabled: { backgroundColor: '#a3a3a3' },
-  primaryBtnText: { fontSize: 15, fontWeight: '700', color: '#fff', letterSpacing: 0.2 },
+  primaryGradient: { height: 52, alignItems: 'center', justifyContent: 'center' },
+  primaryBtnText:  { fontSize: 15.5, fontFamily: 'Montserrat_700Bold', color: '#fff' },
 
-  // Switch
-  switchRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 4 },
-  switchText: { fontSize: 14, color: GREY },
-  switchLink: { fontSize: 14, color: TEAL, fontWeight: '700' },
+  switchRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 16, marginBottom: 20 },
+  switchText:{ fontSize: 13.5, fontFamily: 'SpaceGrotesk_400Regular', color: C.textBody },
+  switchLink:{ fontSize: 13.5, fontFamily: 'Montserrat_700Bold', color: C.teal },
 
-  // Disclaimer
   disclaimer: {
     flexDirection: 'row', gap: 8, alignItems: 'flex-start',
-    backgroundColor: '#E6F5F5', borderRadius: 10,
-    borderWidth: 1, borderColor: '#C8E6C9',
-    padding: 12,
+    backgroundColor: C.goldBg, borderWidth: 1, borderColor: C.goldBorder,
+    borderRadius: 12, padding: 12, marginBottom: 14,
   },
-  disclaimerText: { flex: 1, fontSize: 12, color: '#2E7D32', lineHeight: 18 },
-  disclaimerLink: { fontWeight: '700', textDecorationLine: 'underline' },
+  disclaimerText: { flex: 1, fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: '#6B4E12', lineHeight: 18 },
+  disclaimerLink: { fontFamily: 'SpaceGrotesk_500Medium', textDecorationLine: 'underline' },
+
+  trustBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: C.goldBg, borderWidth: 1, borderColor: C.goldBorder,
+    borderRadius: 12, padding: 12,
+  },
+  trustText: { flex: 1, fontSize: 11.5, fontFamily: 'SpaceGrotesk_500Medium', color: '#8A6A1F', lineHeight: 16 },
 });

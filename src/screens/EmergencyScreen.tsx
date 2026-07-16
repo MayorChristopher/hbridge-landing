@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet, Text, View, TouchableOpacity,
   Linking, ActivityIndicator, ScrollView, StatusBar,
@@ -11,9 +11,10 @@ import { locationService } from '../services/locationService';
 import { CustomAlert } from '../components/CustomAlert';
 
 const C = {
-  bg: '#FFFFFF', surface: '#F5F7FA', text: '#171717', muted: '#555F6D',
-  border: '#E2E8EF', teal: '#0B7E8A', tealRing1: '#CCECED', tealRing2: '#E6F5F5',
-  red: '#ef4444',
+  bg: '#F5F3EE', surface: '#EDE9E0', card: '#FFFFFF', text: '#0C2E30',
+  muted: '#6B7E7F', border: '#EAE5DA', teal: '#0B7E8A',
+  tealRing1: 'rgba(11,126,138,0.18)', tealRing2: 'rgba(11,126,138,0.09)',
+  red: '#EF4444',
 };
 
 const SOS_SIZE  = 180;
@@ -118,7 +119,7 @@ export default function EmergencyScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor="#0B7E8A" />
+      <StatusBar barStyle="light-content" backgroundColor="#083236" />
 
       {/* Teal Header */}
       <View style={s.header}>
@@ -127,9 +128,6 @@ export default function EmergencyScreen({ navigation }: any) {
             <Ionicons name="arrow-back" size={22} color="#ffffff" />
           </TouchableOpacity>
         )}
-        <View style={s.headerIconWrap}>
-          <Ionicons name="shield" size={28} color="#ffffff" />
-        </View>
         <View style={s.headerTitles}>
           <Text style={s.headerTitle}>Emergency SOS</Text>
           <Text style={s.headerSubtitle}>Get help fast</Text>
@@ -222,24 +220,24 @@ export default function EmergencyScreen({ navigation }: any) {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B7E8A' },
+  container: { flex: 1, backgroundColor: '#083236' },
 
   // Header
   header:        { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 },
-  backBtn:       { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  headerIconWrap:{ width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255,255,255,0.2)', borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)', alignItems: 'center', justifyContent: 'center' },
+  backBtn:       { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
+  headerIconWrap:{ width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(239,68,68,0.25)', borderWidth: 1.5, borderColor: 'rgba(239,68,68,0.4)', alignItems: 'center', justifyContent: 'center' },
   headerTitles:  { flex: 1 },
-  headerTitle:   { fontSize: 26, fontWeight: '700', color: '#ffffff', letterSpacing: -0.3 },
-  headerSubtitle:{ fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
-  callIconBtn:   { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  headerTitle:   { fontSize: 26, fontFamily: 'Montserrat_800ExtraBold', color: '#ffffff', letterSpacing: -0.5 },
+  headerSubtitle:{ fontSize: 13, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(255,255,255,0.70)', marginTop: 2 },
+  callIconBtn:   { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
 
-  // White card
-  card:   { flex: 1, backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: 'hidden' },
+  // Paper card
+  card:   { flex: 1, backgroundColor: C.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
   scroll: { flexGrow: 1, alignItems: 'center', paddingHorizontal: 24, paddingTop: 24, paddingBottom: 40, gap: 28 },
 
   // Location
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  locationText:{ fontSize: 13, color: C.muted, flex: 1, textAlign: 'center' },
+  locationText:{ fontSize: 13, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted, flex: 1, textAlign: 'center' },
 
   // SOS
   sosWrap:    { alignItems: 'center', justifyContent: 'center' },
@@ -264,25 +262,25 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   sosBtn:       { width: SOS_SIZE, height: SOS_SIZE, borderRadius: SOS_SIZE / 2, alignItems: 'center', justifyContent: 'center', gap: 8 },
-  sosBtnIdle:   { backgroundColor: C.teal },
-  sosBtnActive: { backgroundColor: C.red },
-  sosLabel:     { fontSize: 24, fontWeight: '700', color: '#ffffff' },
-  sosHint:      { fontSize: 13, color: C.muted, textAlign: 'center' },
+  sosBtnIdle:   { backgroundColor: C.red },
+  sosBtnActive: { backgroundColor: '#B91C1C' },
+  sosLabel:     { fontSize: 24, fontFamily: 'Montserrat_800ExtraBold', color: '#ffffff', letterSpacing: 2 },
+  sosHint:      { fontSize: 13, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted, textAlign: 'center' },
 
   // Hospital card
-  hospCard:    { width: '100%', borderRadius: 16, borderWidth: 1, borderColor: C.border, backgroundColor: C.bg, padding: 16, gap: 8 },
+  hospCard:    { width: '100%', borderRadius: 18, borderWidth: 1, borderColor: C.border, backgroundColor: C.card, padding: 16, gap: 8 },
   cardHeader:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  cardLabel:   { fontSize: 10, fontWeight: '500', color: C.muted, letterSpacing: 0.8, textTransform: 'uppercase' },
+  cardLabel:   { fontSize: 10, fontFamily: 'Montserrat_700Bold', color: C.muted, letterSpacing: 1.2, textTransform: 'uppercase' },
   badge:       { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: C.surface, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
-  badgeText:   { fontSize: 11, color: C.teal, fontWeight: '600' },
-  cardName:    { fontSize: 16, fontWeight: '700', color: C.text },
+  badgeText:   { fontSize: 11, fontFamily: 'Montserrat_600SemiBold', color: C.teal },
+  cardName:    { fontSize: 16, fontFamily: 'Montserrat_700Bold', color: C.text },
   cardPhoneRow:{ flexDirection: 'row', alignItems: 'center', gap: 6 },
-  cardPhone:   { fontSize: 13, color: C.muted },
-  callBtn:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.teal, borderRadius: 10, paddingVertical: 12, marginTop: 4 },
-  callBtnText: { fontSize: 14, fontWeight: '600', color: '#ffffff' },
+  cardPhone:   { fontSize: 13, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted },
+  callBtn:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.red, borderRadius: 12, paddingVertical: 13, marginTop: 4 },
+  callBtnText: { fontSize: 14, fontFamily: 'Montserrat_700Bold', color: '#ffffff' },
 
   // Footer
   footer:     { alignItems: 'center', gap: 8 },
-  footerNote: { fontSize: 11, color: C.muted, textAlign: 'center' },
-  footerLink: { fontSize: 11, color: C.muted, textDecorationLine: 'underline' },
+  footerNote: { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted, textAlign: 'center' },
+  footerLink: { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: C.teal, textDecorationLine: 'underline' },
 });

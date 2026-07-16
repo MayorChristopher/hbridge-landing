@@ -33,11 +33,11 @@
     "production": {
       "developmentClient": false,
       "distribution": "internal",
+      "channel": "production",
       "android": {
         "buildType": "apk",
         "env": {
-          "EXPO_PUBLIC_ENV": "production",
-          "NODE_ENV": "production"
+          "EXPO_PUBLIC_ENV": "production"
         }
       }
     }

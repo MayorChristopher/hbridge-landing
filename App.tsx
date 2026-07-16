@@ -4,7 +4,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { Text, View, Animated, Image, Easing, TouchableOpacity, AppState, Modal, StyleSheet, ActivityIndicator } from 'react-native';
+import { Text, View, Animated, Image, Easing, TouchableOpacity, AppState, Modal, StyleSheet, ActivityIndicator, DeviceEventEmitter, TextInput, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { Linking } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
@@ -13,6 +14,7 @@ import { ToastProvider, useToast } from './src/components/ToastProvider';
 import { ChatBadgeProvider, useChatBadge } from './src/context/ChatBadgeContext';
 import { NotificationBadgeProvider } from './src/context/NotificationBadgeContext';
 import { RecordsBadgeProvider, useRecordsBadge } from './src/context/RecordsBadgeContext';
+import { PresenceProvider } from './src/context/PresenceContext';
 import TutorialOverlay from './src/components/TutorialOverlay';
 import { setGlobalToastInstance } from './src/utils/toast';
 import SplashScreen from './src/components/SplashScreen';
@@ -60,7 +62,6 @@ import DoctorCaseFilesScreen from './src/screens/DoctorCaseFilesScreen';
 import DoctorPatientsScreen from './src/screens/DoctorPatientsScreen';
 import PatientDetailScreen from './src/screens/PatientDetailScreen';
 import ShareRecordScreen from './src/screens/ShareRecordScreen';
-import DoctorIncomingRecordsScreen from './src/screens/DoctorIncomingRecordsScreen';
 import HospitalsListScreen from './src/screens/HospitalsListScreen';
 import DoctorsListScreen from './src/screens/DoctorsListScreen';
 import MessagesScreen from './src/screens/MessagesScreen';
@@ -73,6 +74,10 @@ import { DEV_SCREENS, isDevelopment } from './src/utils/devScreens';
 
 // Hospital Admin Screens
 import HospitalCommandCenterScreen from './src/screens/HospitalCommandCenterScreen';
+import HospitalHomeScreen from './src/screens/HospitalHomeScreen';
+import HospitalStaffScreen from './src/screens/HospitalStaffScreen';
+import HospitalIncomingRecordsScreen from './src/screens/HospitalIncomingRecordsScreen';
+import HospitalAffiliationScreen from './src/screens/HospitalAffiliationScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -142,39 +147,559 @@ const lockStyles = StyleSheet.create({
   btnText:  { fontSize: 15, fontFamily: 'Montserrat_700Bold', color: '#fff' },
 });
 
-function SpinningLogo() {
-  const ring1   = React.useRef(new Animated.Value(0.85)).current;
-  const ring1Op = React.useRef(new Animated.Value(0.6)).current;
-  const logoS   = React.useRef(new Animated.Value(0.92)).current;
+function WelcomeBackScreen({
+  user,
+  onUnlock,
+  onSwitchAccount,
+}: {
+  user: { name: string; photo: string | null; email: string; userType?: string; title?: string };
+  onUnlock: () => void;
+  onSwitchAccount: () => void;
+}) {
+  const [hasBiometric, setHasBiometric] = React.useState(false);
+  const [bioChecking, setBioChecking]   = React.useState(false);
+  const [password, setPassword]         = React.useState('');
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [pwLoading, setPwLoading]       = React.useState(false);
+  const [pwError, setPwError]           = React.useState('');
+  const fadeIn      = React.useRef(new Animated.Value(0)).current;
+  const avatarScale = React.useRef(new Animated.Value(0.88)).current;
+
   React.useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeIn, {
+        toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true,
+      }),
+      Animated.spring(avatarScale, {
+        toValue: 1, tension: 65, friction: 9, useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Check biometric availability first — only auto-prompt if enrolled
+    (async () => {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled  = await LocalAuthentication.isEnrolledAsync();
+      if (hasHardware && isEnrolled) {
+        setHasBiometric(true);
+        tryBiometric();
+      }
+      // No biometric — show password input only, no auto-unlock
+    })();
+  }, []);
+
+  const tryBiometric = async () => {
+    setBioChecking(true);
+    try {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Verify your identity to continue',
+        fallbackLabel: 'Use PIN',
+        cancelLabel: 'Cancel',
+        disableDeviceFallback: false,
+      });
+      if (result.success) { onUnlock(); return; }
+    } catch {}
+    setBioChecking(false);
+  };
+
+  const handlePasswordUnlock = async () => {
+    if (!password.trim()) { setPwError('Enter your password'); return; }
+    setPwError('');
+    setPwLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: password.trim(),
+      });
+      if (error) {
+        setPwError('Incorrect password. Try again.');
+      } else {
+        onUnlock();
+      }
+    } catch {
+      setPwError('Something went wrong. Try again.');
+    }
+    setPwLoading(false);
+  };
+
+  const displayName = (() => {
+    if (!user.name) return 'there';
+    if (user.userType === 'doctor') {
+      const prefixes: Record<string, string> = {
+        dr: 'Dr.', prof: 'Prof.', nurse: 'Nurse', pharm: 'Pharm.', physio: 'Physio.',
+      };
+      const prefix = user.title ? (prefixes[user.title.toLowerCase()] ?? user.title) : 'Dr.';
+      return `${prefix} ${user.name.split(' ').pop()}`;
+    }
+    return user.name.split(' ')[0];
+  })();
+  const initial = (user.name || 'H')[0]?.toUpperCase() || 'H';
+
+  return (
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: '#F5F3EE' }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <StatusBar style="dark" backgroundColor="transparent" translucent />
+
+      <Animated.View style={{ flex: 1, opacity: fadeIn }}>
+        <ScrollView
+          contentContainerStyle={wbStyles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          {/* Logo */}
+          <Image source={require('./assets/hbridge3.png')} style={wbStyles.logoImg} resizeMode="cover" />
+
+          {/* Avatar */}
+          <Animated.View style={[wbStyles.avatarWrap, { transform: [{ scale: avatarScale }] }]}>
+            {user.photo ? (
+              <Image source={{ uri: user.photo }} style={wbStyles.avatar} resizeMode="cover" />
+            ) : (
+              <View style={wbStyles.avatarPlaceholder}>
+                <Text style={wbStyles.avatarInitial}>{initial}</Text>
+              </View>
+            )}
+          </Animated.View>
+
+          <Text style={wbStyles.greeting}>Welcome back</Text>
+          <Text style={wbStyles.name}>{displayName}</Text>
+
+          {/* Biometric — only shown if device has it enrolled */}
+          {hasBiometric && (
+            <>
+              <TouchableOpacity
+                style={wbStyles.bioBtn}
+                onPress={tryBiometric}
+                disabled={bioChecking}
+                activeOpacity={0.85}
+              >
+                <View style={wbStyles.bioBtnInner}>
+                  <Ionicons name="finger-print" size={20} color="#fff" />
+                  <Text style={wbStyles.bioText}>{bioChecking ? 'Verifying…' : 'Use Biometric'}</Text>
+                </View>
+              </TouchableOpacity>
+
+              <View style={wbStyles.dividerRow}>
+                <View style={wbStyles.dividerLine} />
+                <Text style={wbStyles.dividerLabel}>or enter password</Text>
+                <View style={wbStyles.dividerLine} />
+              </View>
+            </>
+          )}
+
+          {/* Password input */}
+          <View style={wbStyles.fieldGroup}>
+            <Text style={wbStyles.fieldLabel}>Password</Text>
+            <View style={wbStyles.inputWrap}>
+              <Ionicons name="lock-closed-outline" size={19} color="#0B7E8A" />
+              <TextInput
+                style={wbStyles.input}
+                placeholder="Enter your password"
+                placeholderTextColor="#97A2A0"
+                secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={(t) => { setPassword(t); setPwError(''); }}
+                onSubmitEditing={handlePasswordUnlock}
+                returnKeyType="go"
+                autoCapitalize="none"
+              />
+              <TouchableOpacity onPress={() => setShowPassword(v => !v)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={19} color="#97A2A0" />
+              </TouchableOpacity>
+            </View>
+            {pwError ? <Text style={wbStyles.errorText}>{pwError}</Text> : null}
+          </View>
+
+          <TouchableOpacity
+            style={[wbStyles.continueBtn, (!password.trim() || pwLoading) && { opacity: 0.45 }]}
+            onPress={handlePasswordUnlock}
+            disabled={!password.trim() || pwLoading}
+            activeOpacity={0.85}
+          >
+            <View style={wbStyles.continueBtnInner}>
+              {pwLoading
+                ? <ActivityIndicator color="#fff" size="small" />
+                : <Text style={wbStyles.continueText}>Continue</Text>}
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={onSwitchAccount} activeOpacity={0.6} style={wbStyles.switchRow}>
+            <Text style={wbStyles.switchText}>Not {displayName}?</Text>
+            <Text style={wbStyles.switchLink}>Switch account</Text>
+          </TouchableOpacity>
+
+          {/* Trust badge */}
+          <View style={wbStyles.trustBadge}>
+            <Ionicons name="shield-checkmark-outline" size={15} color="#8A6A1F" />
+            <Text style={wbStyles.trustText}>Bank-grade encryption · Your data stays private.</Text>
+          </View>
+        </ScrollView>
+      </Animated.View>
+    </KeyboardAvoidingView>
+  );
+}
+
+const wbStyles = StyleSheet.create({
+  scrollContent: {
+    flexGrow: 1, alignItems: 'center',
+    paddingHorizontal: 28, paddingTop: 72, paddingBottom: 48,
+  },
+
+  logoImg: {
+    width: 72, height: 72, borderRadius: 36,
+    borderWidth: 2.5, borderColor: '#0B7E8A',
+    marginBottom: 28,
+    shadowColor: '#0C2E30', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.22, shadowRadius: 20, elevation: 10,
+  },
+
+  avatarWrap: {
+    width: 88, height: 88, borderRadius: 44,
+    borderWidth: 2.5, borderColor: '#D4A843',
+    marginBottom: 16, overflow: 'hidden',
+    backgroundColor: '#0B7E8A',
+    shadowColor: '#D4A843', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25, shadowRadius: 10, elevation: 5,
+  },
+  avatar: { width: '100%', height: '100%' },
+  avatarPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0B7E8A' },
+  avatarInitial: { fontSize: 32, fontFamily: 'Montserrat_800ExtraBold', color: '#fff' },
+
+  greeting: {
+    fontSize: 13, fontFamily: 'SpaceGrotesk_400Regular',
+    color: '#7A8785', letterSpacing: 0.3, marginBottom: 4,
+  },
+  name: {
+    fontSize: 28, fontFamily: 'Montserrat_800ExtraBold',
+    color: '#0C2E30', letterSpacing: -0.5, marginBottom: 28,
+  },
+
+  bioBtn: {
+    borderRadius: 15, overflow: 'hidden', width: '100%', marginBottom: 20,
+    shadowColor: '#083C42', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.22, shadowRadius: 18, elevation: 6,
+  },
+  bioBtnInner: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 10, backgroundColor: '#0B7E8A',
+    paddingVertical: 15,
+  },
+  bioText: { fontSize: 15, fontFamily: 'Montserrat_700Bold', color: '#fff' },
+
+  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, width: '100%', marginBottom: 16 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: '#EAE5DA' },
+  dividerLabel: { fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: '#97A2A0' },
+
+  fieldGroup: { width: '100%', gap: 7, marginBottom: 16 },
+  fieldLabel: { fontSize: 12, fontFamily: 'Montserrat_600SemiBold', color: '#16211F' },
+  inputWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#EAE5DA',
+    borderRadius: 13, paddingHorizontal: 14, height: 50,
+    width: '100%',
+  },
+  input: { flex: 1, fontSize: 14, fontFamily: 'SpaceGrotesk_400Regular', color: '#16211F', paddingVertical: 0 },
+  errorText: { fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: '#EF4444', marginTop: 4 },
+
+  continueBtn: {
+    borderRadius: 15, overflow: 'hidden', width: '100%', marginBottom: 20,
+    shadowColor: '#083C42', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.22, shadowRadius: 18, elevation: 6,
+  },
+  continueBtnInner: {
+    height: 52, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#083C42',
+  },
+  continueText: { fontSize: 15.5, fontFamily: 'Montserrat_700Bold', color: '#fff' },
+
+  switchRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
+  switchText: { fontSize: 13, fontFamily: 'SpaceGrotesk_400Regular', color: '#7A8785' },
+  switchLink: { fontSize: 13, fontFamily: 'Montserrat_700Bold', color: '#0B7E8A' },
+
+  trustBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: 'rgba(212,168,67,0.10)', borderWidth: 1,
+    borderColor: 'rgba(212,168,67,0.28)', borderRadius: 12,
+    padding: 12, width: '100%',
+  },
+  trustText: { flex: 1, fontSize: 11.5, fontFamily: 'SpaceGrotesk_500Medium', color: '#8A6A1F', lineHeight: 16 },
+});
+
+const updateStyles = StyleSheet.create({
+  banner: {
+    position: 'absolute', bottom: 90, left: 16, right: 16,
+    backgroundColor: '#0B7E8A', borderRadius: 14,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18, shadowRadius: 12, elevation: 8,
+  },
+  bannerContent: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 10 },
+  bannerTitle: { fontSize: 13, fontFamily: 'Montserrat_700Bold', color: '#fff' },
+  bannerSub: { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(255,255,255,0.8)', marginTop: 1 },
+  bannerBtn: {
+    backgroundColor: '#fff', borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 6,
+  },
+  bannerBtnText: { fontSize: 12, fontFamily: 'Montserrat_700Bold', color: '#0B7E8A' },
+});
+
+function RolePickerScreen({ roles, onSelect, user }: { roles: UserType[]; onSelect: (r: UserType) => void; user?: { name: string; photo: string | null; email: string } | null }) {
+  const ROLE_META: Record<string, {
+    label: string; sub: string; desc: string;
+    icon: string; mat?: boolean;
+    color: string; dimColor: string; tag: string;
+  }> = {
+    patient: {
+      label: 'Patient',        sub: 'Personal health',
+      desc:  'Access your records, book appointments\nand chat with your AI health assistant.',
+      icon: 'person',          color: '#0B7E8A', dimColor: 'rgba(11,126,138,0.18)',
+      tag: 'Health',
+    },
+    doctor: {
+      label: 'Practitioner',   sub: 'Clinical workspace',
+      desc:  'Manage patients, view case files\nand handle consultation requests.',
+      icon: 'stethoscope',     mat: true,
+      color: '#1E9E5A',        dimColor: 'rgba(30,158,90,0.18)',
+      tag: 'Clinical',
+    },
+    hospital_admin: {
+      label: 'Hospital Admin', sub: 'Command center',
+      desc:  'Oversee incoming records, manage\nyour hospital and connected staff.',
+      icon: 'business',        color: '#D4A843', dimColor: 'rgba(212,168,67,0.18)',
+      tag: 'Admin',
+    },
+  };
+
+  const anims = React.useRef(roles.map(() => new Animated.Value(0))).current;
+
+  const fadeIn      = React.useRef(new Animated.Value(0)).current;
+  const avatarScale = React.useRef(new Animated.Value(0.88)).current;
+
+  React.useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeIn, { toValue: 1, duration: 380, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.spring(avatarScale, { toValue: 1, tension: 65, friction: 9, useNativeDriver: true }),
+    ]).start();
+    Animated.stagger(90,
+      anims.map(a => Animated.spring(a, { toValue: 1, tension: 60, friction: 10, useNativeDriver: true }))
+    ).start();
+  }, []);
+
+  const initial = user?.name?.[0]?.toUpperCase() || 'U';
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#F5F3EE' }}>
+      <Animated.ScrollView
+        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 64, paddingBottom: 48 }}
+        showsVerticalScrollIndicator={false}
+        style={{ opacity: fadeIn }}
+      >
+        {/* Brand logo */}
+        <View style={{ alignItems: 'center', marginBottom: 20 }}>
+          <Image
+            source={require('./assets/hbridge3.png')}
+            style={{ width: 72, height: 72, borderRadius: 36, borderWidth: 2.5, borderColor: '#0B7E8A' }}
+            resizeMode="cover"
+          />
+        </View>
+
+        {/* User profile photo + name */}
+        <View style={{ alignItems: 'center', marginBottom: 36 }}>
+          <Animated.View style={{ transform: [{ scale: avatarScale }], marginBottom: 14 }}>
+            <View style={{ width: 90, height: 90, borderRadius: 45, borderWidth: 2.5, borderColor: '#EAE5DA', backgroundColor: '#EDE9E0', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+              {user?.photo
+                ? <Image source={{ uri: user.photo }} style={{ width: 90, height: 90, borderRadius: 45 }} resizeMode="cover" />
+                : <Text style={{ fontSize: 30, fontFamily: 'Montserrat_800ExtraBold', color: '#0B7E8A' }}>{initial}</Text>}
+            </View>
+          </Animated.View>
+          <Text style={{ fontSize: 22, fontFamily: 'Montserrat_700Bold', color: '#0C2E30', letterSpacing: -0.4, marginBottom: 4 }}>
+            {user?.name || 'Welcome back'}
+          </Text>
+          <Text style={{ fontSize: 13, fontFamily: 'SpaceGrotesk_400Regular', color: '#5C6B69' }}>
+            Choose your workspace to continue
+          </Text>
+        </View>
+
+        {/* Role cards — SignIn field style */}
+        <View style={{ gap: 12 }}>
+          {roles.map((r, i) => {
+            const meta = ROLE_META[r];
+            if (!meta) return null;
+            return (
+              <Animated.View
+                key={r}
+                style={{
+                  opacity: anims[i],
+                  transform: [{ translateY: anims[i].interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) }],
+                }}
+              >
+                <TouchableOpacity
+                  activeOpacity={0.82}
+                  onPress={() => onSelect(r)}
+                  style={{
+                    flexDirection: 'row', alignItems: 'center',
+                    borderRadius: 15,
+                    borderWidth: 1,
+                    borderColor: '#EAE5DA',
+                    backgroundColor: '#FFFFFF',
+                    paddingVertical: 14, paddingHorizontal: 16, gap: 14,
+                    shadowColor: '#0C2E30',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.06,
+                    shadowRadius: 8,
+                    elevation: 2,
+                  }}
+                >
+                  <View style={{
+                    width: 46, height: 46, borderRadius: 13,
+                    backgroundColor: meta.dimColor,
+                    alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {meta.mat
+                      ? <MaterialCommunityIcons name={meta.icon as any} size={23} color={meta.color} />
+                      : <Ionicons name={meta.icon as any} size={23} color={meta.color} />}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 3 }}>
+                      <Text style={{ fontSize: 15, fontFamily: 'Montserrat_700Bold', color: '#0C2E30', letterSpacing: -0.2 }}>
+                        {meta.label}
+                      </Text>
+                      <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: meta.dimColor }}>
+                        <Text style={{ fontSize: 9, fontFamily: 'Montserrat_700Bold', color: meta.color, letterSpacing: 0.5 }}>
+                          {meta.tag}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={{ fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: '#6B7E7F', lineHeight: 17 }}>
+                      {meta.sub}
+                    </Text>
+                  </View>
+                  <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: meta.dimColor, alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name="arrow-forward" size={15} color={meta.color} />
+                  </View>
+                </TouchableOpacity>
+              </Animated.View>
+            );
+          })}
+        </View>
+
+        {/* Trust badge — matches SignIn bottom bar */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(212,168,67,0.10)', borderWidth: 1, borderColor: 'rgba(212,168,67,0.30)', borderRadius: 12, padding: 12, marginTop: 28 }}>
+          <Ionicons name="shield-checkmark-outline" size={16} color="#8A6A1F" />
+          <Text style={{ flex: 1, fontSize: 11.5, fontFamily: 'SpaceGrotesk_400Regular', color: '#8A6A1F', lineHeight: 16 }}>
+            Bank-grade encryption · HIPAA-aligned. Switch securely between your accounts.
+          </Text>
+        </View>
+
+        <Text style={{ textAlign: 'center', fontSize: 11.5, fontFamily: 'SpaceGrotesk_400Regular', color: '#97A2A0', marginTop: 20 }}>
+          Switch anytime from your Profile tab
+        </Text>
+      </Animated.ScrollView>
+    </View>
+  );
+}
+
+function SpinningLogo() {
+  const innerScale = React.useRef(new Animated.Value(1)).current;
+  const outerScale = React.useRef(new Animated.Value(0.88)).current;
+  const outerOp    = React.useRef(new Animated.Value(0.3)).current;
+  const logoScale  = React.useRef(new Animated.Value(1)).current;
+  const dot1       = React.useRef(new Animated.Value(0.3)).current;
+  const dot2       = React.useRef(new Animated.Value(0.3)).current;
+  const dot3       = React.useRef(new Animated.Value(0.3)).current;
+
+  React.useEffect(() => {
+    // Inner ring: gentle breathe
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(innerScale, { toValue: 1.07, duration: 1100, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(innerScale, { toValue: 1.0,  duration: 1100, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      ])
+    ).start();
+
+    // Outer ring: slower pulse, offset phase
     Animated.loop(
       Animated.sequence([
         Animated.parallel([
-          Animated.timing(ring1,   { toValue: 1.12, duration: 900, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-          Animated.timing(ring1Op, { toValue: 0,    duration: 900, easing: Easing.in(Easing.cubic),  useNativeDriver: true }),
-          Animated.timing(logoS,   { toValue: 1.04, duration: 900, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+          Animated.timing(outerScale, { toValue: 1.0,  duration: 1400, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+          Animated.timing(outerOp,    { toValue: 0.55, duration: 1400, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
         ]),
         Animated.parallel([
-          Animated.timing(ring1,   { toValue: 0.85, duration: 0,   useNativeDriver: true }),
-          Animated.timing(ring1Op, { toValue: 0.6,  duration: 0,   useNativeDriver: true }),
-          Animated.timing(logoS,   { toValue: 0.92, duration: 600, easing: Easing.in(Easing.cubic),  useNativeDriver: true }),
+          Animated.timing(outerScale, { toValue: 0.88, duration: 1400, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+          Animated.timing(outerOp,    { toValue: 0.3,  duration: 1400, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
         ]),
       ])
     ).start();
+
+    // Logo: subtle breathe, counter-phase to inner ring
+    Animated.loop(
+      Animated.sequence([
+        Animated.delay(550),
+        Animated.timing(logoScale, { toValue: 1.04, duration: 1100, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(logoScale, { toValue: 0.97, duration: 1100, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      ])
+    ).start();
+
+    // Loading dots stagger
+    const pulse = (dot: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(dot, { toValue: 1,   duration: 380, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+          Animated.timing(dot, { toValue: 0.3, duration: 380, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        ])
+      );
+
+    pulse(dot1, 0).start();
+    pulse(dot2, 200).start();
+    pulse(dot3, 400).start();
   }, []);
+
   return (
-    <View style={{ width: 140, height: 140, alignItems: 'center', justifyContent: 'center' }}>
-      <Animated.View style={{
-        position: 'absolute', width: 140, height: 140, borderRadius: 70,
-        borderWidth: 1.5, borderColor: 'rgba(11,126,138,0.5)',
-        backgroundColor: 'rgba(11,126,138,0.07)',
-        transform: [{ scale: ring1 }], opacity: ring1Op,
-      }} />
-      <Animated.Image
-        source={require('./assets/hbridge3.png')}
-        style={{ width: 92, height: 92, borderRadius: 46, borderWidth: 2, borderColor: 'rgba(255,255,255,0.15)', transform: [{ scale: logoS }] }}
-        resizeMode="cover"
-      />
+    <View style={{ alignItems: 'center' }}>
+      {/* Dual rings + logo */}
+      <View style={{ width: 164, height: 164, alignItems: 'center', justifyContent: 'center', marginBottom: 28 }}>
+        <Animated.View style={{
+          position: 'absolute', width: 164, height: 164, borderRadius: 82,
+          borderWidth: 1, borderColor: 'rgba(11,126,138,0.38)',
+          transform: [{ scale: outerScale }], opacity: outerOp,
+        }} />
+        <Animated.View style={{
+          position: 'absolute', width: 120, height: 120, borderRadius: 60,
+          borderWidth: 1.5, borderColor: 'rgba(11,126,138,0.75)',
+          backgroundColor: 'rgba(11,126,138,0.10)',
+          transform: [{ scale: innerScale }],
+        }} />
+        <Animated.Image
+          source={require('./assets/hbridge3.png')}
+          style={{
+            width: 84, height: 84, borderRadius: 42,
+            borderWidth: 2.5, borderColor: 'rgba(255,255,255,0.28)',
+            transform: [{ scale: logoScale }],
+          }}
+          resizeMode="cover"
+        />
+      </View>
+
+      {/* Brand name */}
+      <Text style={{
+        fontSize: 28, fontFamily: 'Montserrat_800ExtraBold',
+        fontWeight: '800', color: '#ffffff',
+        letterSpacing: -1, marginBottom: 14,
+      }}>
+        hbridge
+      </Text>
+
+      {/* Pulsing dots */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        {[dot1, dot2, dot3].map((anim, i) => (
+          <Animated.View key={i} style={{
+            width: 5, height: 5, borderRadius: 2.5,
+            backgroundColor: 'rgba(11,126,138,0.9)',
+            opacity: anim,
+          }} />
+        ))}
+      </View>
     </View>
   );
 }
@@ -188,6 +713,9 @@ export default function App() {
   const [lastRoute, setLastRoute] = useState<string>('Main');
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   const [locked, setLocked] = useState(false);
+  const [updateReady, setUpdateReady] = useState(false);
+  const [showWelcomeBack, setShowWelcomeBack] = useState(true);
+  const [welcomeUser, setWelcomeUser] = useState<{ name: string; photo: string | null; email: string; userType?: string; title?: string } | null>(null);
   const navigationRef = React.useRef<any>(null);
   const bgTimestampRef = useRef<number | null>(null);
   const LOCK_THRESHOLD_MS = 5 * 60 * 1000; // lock after 5 minutes in background
@@ -220,8 +748,49 @@ export default function App() {
     return () => sub.remove();
   }, [session]);
 
+  // Pre-fetch user name + photo for the welcome-back screen
+  useEffect(() => {
+    if (!session || loading) return;
+    (async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name, hospital_name, profile_image, user_type, user_types')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      // Use the active role so the lock screen shows the right identity
+      const storedRole = await AsyncStorage.getItem(`active_role_${session.user.id}`);
+      const roles: string[] = (data?.user_types as string[] | null) || [data?.user_type || 'patient'];
+      const effectiveType = (storedRole && roles.includes(storedRole)) ? storedRole : (data?.user_type || 'patient');
+
+      const displayName = effectiveType === 'hospital_admin'
+        ? (data?.hospital_name || data?.full_name || session.user.email?.split('@')[0] || '')
+        : (data?.full_name || session.user.email?.split('@')[0] || '');
+
+      let title: string | undefined;
+      if (effectiveType === 'doctor') {
+        const { data: doc } = await supabase.from('doctors').select('title').eq('user_id', session.user.id).maybeSingle();
+        title = doc?.title;
+      }
+      setWelcomeUser({
+        name: displayName,
+        photo: data?.profile_image || null,
+        email: session.user.email || '',
+        userType: effectiveType,
+        title,
+      });
+    })();
+  }, [session?.user.id, loading]);
+
   const initializeUpdates = async () => {
-    // skipped in dev to avoid slow startup
+    if (__DEV__) return;
+    try {
+      const check = await Updates.checkForUpdateAsync();
+      if (!check.isAvailable) return;
+      await Updates.fetchUpdateAsync();
+      // Show prompt — user decides when to restart
+      setUpdateReady(true);
+    } catch {}
   };
 
   const initializeTracking = () => {
@@ -302,6 +871,21 @@ export default function App() {
     );
   }
 
+  if (session && !isPasswordRecovery && showWelcomeBack) {
+    return (
+      <SafeAreaProvider>
+        <WelcomeBackScreen
+          user={welcomeUser || { name: session.user.email?.split('@')[0] || '', photo: null, email: session.user.email || '' }}
+          onUnlock={() => setShowWelcomeBack(false)}
+          onSwitchAccount={async () => {
+            setShowWelcomeBack(false);
+            await supabase.auth.signOut();
+          }}
+        />
+      </SafeAreaProvider>
+    );
+  }
+
   if (!session || isPasswordRecovery) {
     return (
       <SafeAreaProvider>
@@ -337,9 +921,25 @@ export default function App() {
     const [userId, setUserId] = useState<string | undefined>(undefined);
     const [showTutorial, setShowTutorial] = useState(false);
     const [profileImage, setProfileImage] = useState<string | null>(null);
+    const [availableRoles, setAvailableRoles] = useState<UserType[]>([]);
+    const [showRolePicker, setShowRolePicker] = useState(false);
     const cameFromOnboarding = React.useRef(false);
 
-    // Keep profile image in tab bar in sync with profile updates
+    // Instant profile image sync when ProfileScreen saves a new photo
+    useEffect(() => {
+      const sub = DeviceEventEmitter.addListener('profile_image_updated', (url: string | null) => {
+        setProfileImage(url);
+      });
+      return () => sub.remove();
+    }, []);
+
+    // Listen for role-switch request from Profile screen
+    useEffect(() => {
+      const sub = DeviceEventEmitter.addListener('show_role_picker', () => setShowRolePicker(true));
+      return () => sub.remove();
+    }, []);
+
+    // Fallback: Realtime sync for cross-device updates
     useEffect(() => {
       let channel: any;
       const sub = async () => {
@@ -367,7 +967,7 @@ export default function App() {
           for (let attempt = 0; attempt < 3; attempt++) {
             const { data, error } = await supabase
               .from('profiles')
-              .select('user_type, profile_image, onboarding_complete')
+              .select('user_type, user_types, profile_image, onboarding_complete')
               .eq('id', user.id)
               .maybeSingle();
 
@@ -375,9 +975,25 @@ export default function App() {
             if (attempt < 2) await new Promise(r => setTimeout(r, 800));
           }
 
-          const type = (profile?.user_type as UserType) || 'patient';
-          setUserType(type);
           setProfileImage(profile?.profile_image || null);
+
+          // Support multi-role accounts
+          const roles: UserType[] = ((profile?.user_types as UserType[] | null)?.filter(Boolean)) || [(profile?.user_type as UserType) || 'patient'];
+          setAvailableRoles(roles);
+
+          let type: UserType;
+          if (roles.length > 1) {
+            const storedRole = await AsyncStorage.getItem(`active_role_${user.id}`);
+            if (storedRole && roles.includes(storedRole as UserType)) {
+              type = storedRole as UserType;
+            } else {
+              setShowRolePicker(true);
+              return; // wait for role picker selection
+            }
+          } else {
+            type = roles[0];
+          }
+          setUserType(type);
 
           // New users go through onboarding first; tutorial shows when they return
           // _obAlreadyNavigated prevents re-sending if TabNavigator somehow remounts
@@ -397,8 +1013,11 @@ export default function App() {
             await AsyncStorage.setItem(tutorialKey, 'true');
             if (type === 'patient') {
               await AsyncStorage.setItem('spotlight_pending', 'true');
+            } else if (type === 'doctor') {
+              await AsyncStorage.setItem('doctor_spotlight_pending', 'true');
+            } else if (type === 'hospital_admin') {
+              await AsyncStorage.setItem('hospital_spotlight_pending', 'true');
             }
-            setShowTutorial(true);
           }
         } catch (error) {
           console.error('Error getting user type:', ErrorHandler.sanitizeError(error));
@@ -408,23 +1027,55 @@ export default function App() {
       getUserType();
     }, []);
 
-    // Show tutorial after returning from onboarding
+    // Show spotlight tour after returning from onboarding
     useEffect(() => {
-      const unsubscribe = (navigation as any).addListener('focus', () => {
+      const unsubscribe = (navigation as any).addListener('focus', async () => {
         if (cameFromOnboarding.current) {
           cameFromOnboarding.current = false;
-          setShowTutorial(true);
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const key = `tutorial_seen_${user.id}`;
+            const alreadySeen = await AsyncStorage.getItem(key);
+            if (alreadySeen) return;
+            await AsyncStorage.setItem(key, 'true');
+            // Trigger screen-specific spotlight in the home screen
+            const t = (profile as any)?.user_type ?? userType;
+            if (t === 'patient') {
+              await AsyncStorage.setItem('spotlight_pending', 'true');
+            } else if (t === 'doctor') {
+              await AsyncStorage.setItem('doctor_spotlight_pending', 'true');
+            } else if (t === 'hospital_admin') {
+              await AsyncStorage.setItem('hospital_spotlight_pending', 'true');
+            }
+          }
         }
       });
       return unsubscribe;
     }, [navigation]);
 
+    // Multi-role picker
+    if (showRolePicker) {
+      return (
+        <RolePickerScreen
+          roles={availableRoles}
+          user={welcomeUser}
+          onSelect={async (r) => {
+            // Write role to storage FIRST so MessagesScreen and other screens
+            // read the correct role when they mount on the incoming tab navigator
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) await AsyncStorage.setItem(`active_role_${user.id}`, r);
+            setUserType(r);
+            setShowRolePicker(false);
+          }}
+        />
+      );
+    }
+
     // Show loading until user type is determined
     if (userType === null) {
       return (
-        <View style={{ flex: 1, backgroundColor: '#083236', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
+        <View style={{ flex: 1, backgroundColor: '#083236', alignItems: 'center', justifyContent: 'center' }}>
           <SpinningLogo />
-          <ActivityIndicator size="small" color="rgba(255,255,255,0.55)" />
         </View>
       );
     }
@@ -454,7 +1105,7 @@ export default function App() {
     // Patient Navigation
     if (userType === 'patient') {
       return (
-        <>
+        <PresenceProvider userId={userId}>
           <Tab.Navigator
             tabBar={(props) => (
               <AnimatedTabBar
@@ -475,14 +1126,14 @@ export default function App() {
             <Tab.Screen name="Profile">{() => <ProfileScreen navigation={navigation} />}</Tab.Screen>
           </Tab.Navigator>
           {/* SpotlightTour for patients is rendered inside HomeScreen, triggered via AsyncStorage 'spotlight_pending' */}
-        </>
+        </PresenceProvider>
       );
     }
 
     // Doctor Navigation
     if (userType === 'doctor') {
       return (
-        <>
+        <PresenceProvider userId={userId}>
           <Tab.Navigator
             tabBar={(props) => (
               <AnimatedTabBar
@@ -503,39 +1154,39 @@ export default function App() {
             <Tab.Screen name="DoctorMessages">{() => <MessagesScreen navigation={navigation} />}</Tab.Screen>
             <Tab.Screen name="Profile">{() => <ProfileScreen navigation={navigation} />}</Tab.Screen>
           </Tab.Navigator>
-          {showTutorial && (
-            <TutorialOverlay userType="doctor" userId={userId} onComplete={() => setShowTutorial(false)} />
-          )}
-        </>
+        </PresenceProvider>
       );
     }
 
-    // Hospital Admin - redirect to web dashboard
+    // Hospital Admin
     if (userType === 'hospital_admin') {
+      const HOSPITAL_TABS = [
+        { name: 'HospitalHome',    label: 'Home',     activeIcon: 'home',                    inactiveIcon: 'home-outline' },
+        { name: 'HospitalStaff',   label: 'Staff',    activeIcon: 'people',                  inactiveIcon: 'people-outline' },
+        { name: 'HospitalRecords', label: 'Records',  activeIcon: 'folder-open',             inactiveIcon: 'folder-open-outline' },
+        { name: 'HospitalMessages',label: 'Messages', activeIcon: 'chatbubble-ellipses',     inactiveIcon: 'chatbubble-ellipses-outline' },
+        { name: 'Profile',         label: 'Profile',  activeIcon: 'business',                inactiveIcon: 'business-outline' },
+      ];
       return (
-        <View style={{ flex: 1, backgroundColor: '#083236', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-          <Image source={require('./assets/hbridge3.png')} style={{ width: 80, height: 80, borderRadius: 40, marginBottom: 28 }} resizeMode="cover" />
-          <Text style={{ fontSize: 22, fontFamily: 'Montserrat_700Bold', color: '#fff', textAlign: 'center', marginBottom: 10 }}>
-            Hospital Dashboard
-          </Text>
-          <Text style={{ fontSize: 14, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(255,255,255,0.65)', textAlign: 'center', lineHeight: 22, marginBottom: 36 }}>
-            The hospital admin dashboard is available on the web. Open the link below on your browser to manage your hospital.
-          </Text>
-          <View style={{ width: '100%', gap: 12 }}>
-            <TouchableOpacity
-              style={{ backgroundColor: '#0B7E8A', borderRadius: 14, paddingVertical: 16, alignItems: 'center' }}
-              onPress={() => Linking.openURL('https://hbridge.ng/hospital')}
-            >
-              <Text style={{ fontSize: 15, fontFamily: 'Montserrat_600SemiBold', color: '#fff' }}>Open Web Dashboard</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={{ borderRadius: 14, paddingVertical: 16, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.10)' }}
-              onPress={() => supabase.auth.signOut()}
-            >
-              <Text style={{ fontSize: 15, fontFamily: 'Montserrat_600SemiBold', color: 'rgba(255,255,255,0.75)' }}>Sign Out</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <PresenceProvider userId={userId}>
+          <Tab.Navigator
+            tabBar={(props) => (
+              <AnimatedTabBar
+                {...props}
+                profileImage={profileImage}
+                tabs={HOSPITAL_TABS}
+                badges={{ HospitalMessages: unreadCount > 0 ? unreadCount : undefined }}
+              />
+            )}
+            screenOptions={sharedTabOptions}
+          >
+            <Tab.Screen name="HospitalHome">{() => <HospitalHomeScreen navigation={navigation} />}</Tab.Screen>
+            <Tab.Screen name="HospitalStaff">{() => <HospitalStaffScreen navigation={navigation} />}</Tab.Screen>
+            <Tab.Screen name="HospitalRecords">{() => <HospitalIncomingRecordsScreen navigation={navigation} />}</Tab.Screen>
+            <Tab.Screen name="HospitalMessages">{() => <MessagesScreen navigation={navigation} />}</Tab.Screen>
+            <Tab.Screen name="Profile">{() => <ProfileScreen navigation={navigation} />}</Tab.Screen>
+          </Tab.Navigator>
+        </PresenceProvider>
       );
     }
 
@@ -560,13 +1211,33 @@ export default function App() {
       <SafeAreaProvider>
         <StatusBar style="light" backgroundColor="transparent" translucent />
         {locked && <BiometricLockScreen onUnlock={() => setLocked(false)} />}
-        <PaystackProvider publicKey="pk_live_bffbf95e5e25d5d56521b8619c35923e4553ac1f">
+        <PaystackProvider
+          publicKey="pk_live_bffbf95e5e25d5d56521b8619c35923e4553ac1f"
+          defaultChannels={['card', 'bank', 'ussd', 'bank_transfer', 'qr']}
+        >
         <ToastProvider>
           <ChatBadgeProvider>
             <RecordsBadgeProvider>
             <NotificationBadgeProvider>
               <ToastInitializer />
-              <NavigationContainer>
+              <NavigationContainer
+                linking={{
+                  prefixes: ['hbridge://'],
+                  getStateFromPath(path) {
+                    // hbridge://doctor/<id>
+                    const m = path.match(/^doctor\/([^/?#]+)/);
+                    if (m) {
+                      return {
+                        routes: [
+                          { name: 'Main' },
+                          { name: 'DoctorDetail', params: { doctor: { id: m[1] } } },
+                        ],
+                      };
+                    }
+                    return { routes: [{ name: 'Main' }] };
+                  },
+                }}
+              >
             <Stack.Navigator 
             screenOptions={{ 
               headerShown: false,
@@ -606,13 +1277,15 @@ export default function App() {
             {/* Doctor Screens */}
             <Stack.Screen name="DoctorAppointmentRequests" component={DoctorAppointmentRequestsScreen} />
             <Stack.Screen name="DoctorCaseFiles" component={DoctorCaseFilesScreen} />
-            <Stack.Screen name="DoctorIncomingRecords" component={DoctorIncomingRecordsScreen} />
             <Stack.Screen name="PatientDetail" component={PatientDetailScreen} />
             <Stack.Screen name="ShareRecord" component={ShareRecordScreen} />
             <Stack.Screen name="Patients" component={DoctorPatientsScreen} />
             
             {/* Hospital Admin Screens */}
             <Stack.Screen name="HospitalCommandCenter" component={HospitalCommandCenterScreen} />
+            <Stack.Screen name="HospitalStaff" component={HospitalStaffScreen} />
+            <Stack.Screen name="HospitalIncomingRecords" component={HospitalIncomingRecordsScreen} />
+            <Stack.Screen name="HospitalAffiliation" component={HospitalAffiliationScreen} />
             <Stack.Screen name="HospitalsList" component={HospitalsListScreen} />
             <Stack.Screen name="DoctorsList" component={DoctorsListScreen} />
             <Stack.Screen name="Messages" component={MessagesScreen} />
@@ -627,7 +1300,26 @@ export default function App() {
             ))}
           </Stack.Navigator>
         </NavigationContainer>
-        
+
+        {/* OTA update banner */}
+        {updateReady && (
+          <View style={updateStyles.banner}>
+            <View style={updateStyles.bannerContent}>
+              <Ionicons name="arrow-down-circle" size={20} color="#fff" />
+              <View style={{ flex: 1 }}>
+                <Text style={updateStyles.bannerTitle}>Update Available</Text>
+                <Text style={updateStyles.bannerSub}>A new version of Hbridge is ready.</Text>
+              </View>
+              <TouchableOpacity style={updateStyles.bannerBtn} onPress={() => Updates.reloadAsync()}>
+                <Text style={updateStyles.bannerBtnText}>Restart</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setUpdateReady(false)} style={{ padding: 4 }}>
+                <Ionicons name="close" size={18} color="rgba(255,255,255,0.7)" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         </NotificationBadgeProvider>
         </RecordsBadgeProvider>
         </ChatBadgeProvider>

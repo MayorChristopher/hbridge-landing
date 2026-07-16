@@ -1,73 +1,56 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, TextInput, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
+import { useToast } from './ToastProvider';
 
 const C = { bg:'#FFFFFF', text:'#171717', muted:'#737373', border:'#E5E5E5', teal:'#0B7E8A' };
 
 interface RatingModalProps {
   visible: boolean;
   onClose: () => void;
+  onSuccess?: (doctorId: string) => void;
   doctorId: string;
   doctorName: string;
   consultationId?: string;
 }
 
-export default function RatingModal({ visible, onClose, doctorId, doctorName, consultationId }: RatingModalProps) {
+export default function RatingModal({ visible, onClose, onSuccess, doctorId, doctorName, consultationId }: RatingModalProps) {
+  const toast = useToast();
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState('');
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async () => {
     if (rating === 0) {
-      Alert.alert('Rating Required', 'Please select a star rating');
+      toast.showWarning('Rating Required', 'Please select a star rating before submitting.');
       return;
     }
-    
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-
-      // Insert review
-      const { error: reviewError } = await supabase.from('reviews').insert({
-        doctor_id: doctorId,
+      const { error } = await supabase.from('ratings').upsert({
         patient_id: user.id,
-        consultation_id: consultationId,
+        doctor_id: doctorId,
         rating,
-        review_text: review.trim() || null,
-        created_at: new Date().toISOString(),
-      });
-
-      if (reviewError) throw reviewError;
-
-      // Update doctor's average rating
-      const { data: reviews } = await supabase
-        .from('reviews')
-        .select('rating')
-        .eq('doctor_id', doctorId);
-
-      if (reviews && reviews.length > 0) {
-        const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
-        await supabase.from('doctors').update({
-          average_rating: Math.round(avgRating * 10) / 10,
-          total_reviews: reviews.length,
-        }).eq('id', doctorId);
-      }
-
-      Alert.alert('Thank You!', 'Your rating has been submitted successfully.');
+        review: review.trim() || null,
+      }, { onConflict: 'patient_id,doctor_id' });
+      if (error) throw error;
+      toast.showSuccess('Thank You!', 'Your rating has been submitted.');
       setRating(0);
       setReview('');
+      onSuccess?.(doctorId);
       onClose();
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to submit rating');
+      toast.showError('Error', error.message || 'Failed to submit rating');
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} transparent animationType="fade">
       <View style={s.overlay}>
         <View style={s.modal}>
           <View style={s.header}>
@@ -128,13 +111,12 @@ export default function RatingModal({ visible, onClose, doctorId, doctorName, co
 }
 
 const s = StyleSheet.create({
-  overlay: { flex:1, backgroundColor:'rgba(0,0,0,0.4)', justifyContent:'flex-end' },
-  modal: { 
-    backgroundColor:C.bg, 
-    borderTopLeftRadius:20, 
-    borderTopRightRadius:20, 
-    padding:24, 
-    paddingBottom:40,
+  overlay: { flex:1, backgroundColor:'rgba(0,0,0,0.4)', justifyContent:'center', paddingHorizontal:24 },
+  modal: {
+    backgroundColor:C.bg,
+    borderRadius:24,
+    padding:24,
+    paddingBottom:32,
     gap:16,
     maxHeight:'90%'
   },

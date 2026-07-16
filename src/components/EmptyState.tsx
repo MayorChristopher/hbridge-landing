@@ -1,1 +1,86 @@
-import React from 'react';\nimport { StyleSheet, Text, View, TouchableOpacity } from 'react-native';\nimport { Ionicons } from '@expo/vector-icons';\nimport { colors, typography, spacing, borderRadius } from '../utils/design';\n\ninterface EmptyStateProps {\n  icon: string;\n  title: string;\n  description: string;\n  actionText?: string;\n  onAction?: () => void;\n  showAction?: boolean;\n}\n\nexport default function EmptyState({ \n  icon, \n  title, \n  description, \n  actionText, \n  onAction, \n  showAction = true \n}: EmptyStateProps) {\n  return (\n    <View style={styles.container}>\n      <View style={styles.iconContainer}>\n        <Ionicons name={icon as any} size={64} color={colors.textTertiary} />\n      </View>\n      \n      <Text style={styles.title}>{title}</Text>\n      <Text style={styles.description}>{description}</Text>\n      \n      {showAction && actionText && onAction && (\n        <TouchableOpacity style={styles.actionButton} onPress={onAction}>\n          <Ionicons name=\"add-circle-outline\" size={20} color={colors.textInverse} />\n          <Text style={styles.actionText}>{actionText}</Text>\n        </TouchableOpacity>\n      )}\n    </View>\n  );\n}\n\nconst styles = StyleSheet.create({\n  container: {\n    flex: 1,\n    alignItems: 'center',\n    justifyContent: 'center',\n    paddingHorizontal: spacing.xl,\n    paddingVertical: spacing.xxxl,\n    minHeight: 300,\n  },\n  iconContainer: {\n    width: 120,\n    height: 120,\n    borderRadius: 60,\n    backgroundColor: colors.backgroundSecondary,\n    alignItems: 'center',\n    justifyContent: 'center',\n    marginBottom: spacing.xl,\n  },\n  title: {\n    ...typography.h3,\n    color: colors.textSecondary,\n    textAlign: 'center',\n    marginBottom: spacing.md,\n  },\n  description: {\n    ...typography.body,\n    color: colors.textTertiary,\n    textAlign: 'center',\n    lineHeight: 24,\n    marginBottom: spacing.xl,\n  },\n  actionButton: {\n    flexDirection: 'row',\n    alignItems: 'center',\n    backgroundColor: colors.primary,\n    paddingHorizontal: spacing.lg,\n    paddingVertical: spacing.md,\n    borderRadius: borderRadius.md,\n    borderTopLeftRadius: 0,\n    borderBottomRightRadius: 0,\n    gap: spacing.sm,\n  },\n  actionText: {\n    ...typography.button,\n    color: colors.textInverse,\n  },\n});
+import React from 'react';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, typography, spacing, borderRadius } from '../utils/design';
+
+interface EmptyStateProps {
+  icon: string;
+  title: string;
+  description: string;
+  actionText?: string;
+  onAction?: () => void;
+  showAction?: boolean;
+}
+
+export default function EmptyState({
+  icon,
+  title,
+  description,
+  actionText,
+  onAction,
+  showAction = true,
+}: EmptyStateProps) {
+  return (
+    <View style={styles.container}>
+      <View style={styles.iconContainer}>
+        <Ionicons name={icon as any} size={64} color={colors.textMuted} />
+      </View>
+
+      <Text style={styles.title}>{title}</Text>
+      <Text style={styles.description}>{description}</Text>
+
+      {showAction && actionText && onAction && (
+        <TouchableOpacity style={styles.actionButton} onPress={onAction}>
+          <Ionicons name="add-circle-outline" size={20} color={colors.textInverse} />
+          <Text style={styles.actionText}>{actionText}</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xxxl,
+    minHeight: 300,
+  },
+  iconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: colors.paperDark,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xl,
+  },
+  title: {
+    ...typography.h3,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginBottom: spacing.md,
+  },
+  description: {
+    ...typography.body,
+    color: colors.textMuted2,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: spacing.xl,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.teal,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+    gap: spacing.sm,
+  },
+  actionText: {
+    ...typography.button,
+    color: colors.textInverse,
+  },
+});

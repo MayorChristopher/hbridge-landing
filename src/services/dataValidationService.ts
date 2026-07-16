@@ -1,1 +1,311 @@
-import { sanitizeInput, validateEmail, validatePhoneNumber } from '../utils/security';\n\nexport interface ValidationResult {\n  isValid: boolean;\n  errors: string[];\n  sanitizedData?: any;\n}\n\nexport class DataValidationService {\n  private static instance: DataValidationService;\n  \n  static getInstance(): DataValidationService {\n    if (!DataValidationService.instance) {\n      DataValidationService.instance = new DataValidationService();\n    }\n    return DataValidationService.instance;\n  }\n\n  /**\n   * Validate user registration data\n   */\n  validateRegistration(data: {\n    email: string;\n    password: string;\n    fullName: string;\n    phoneNumber?: string;\n    userType: string;\n  }): ValidationResult {\n    const errors: string[] = [];\n    const sanitizedData: any = {};\n\n    // Email validation\n    if (!data.email || !validateEmail(data.email)) {\n      errors.push('Please enter a valid email address');\n    } else {\n      sanitizedData.email = sanitizeInput(data.email.toLowerCase());\n    }\n\n    // Password validation\n    if (!data.password || data.password.length < 8) {\n      errors.push('Password must be at least 8 characters long');\n    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)/.test(data.password)) {\n      errors.push('Password must contain at least one uppercase letter, one lowercase letter, and one number');\n    } else {\n      sanitizedData.password = data.password; // Don't sanitize passwords\n    }\n\n    // Full name validation\n    if (!data.fullName || data.fullName.trim().length < 2) {\n      errors.push('Please enter your full name (at least 2 characters)');\n    } else if (data.fullName.length > 100) {\n      errors.push('Full name must be less than 100 characters');\n    } else {\n      sanitizedData.fullName = sanitizeInput(data.fullName);\n    }\n\n    // Phone number validation (optional)\n    if (data.phoneNumber) {\n      if (!validatePhoneNumber(data.phoneNumber)) {\n        errors.push('Please enter a valid Nigerian phone number');\n      } else {\n        sanitizedData.phoneNumber = sanitizeInput(data.phoneNumber);\n      }\n    }\n\n    // User type validation\n    const validUserTypes = ['patient', 'doctor', 'hospital_admin'];\n    if (!data.userType || !validUserTypes.includes(data.userType)) {\n      errors.push('Please select a valid user type');\n    } else {\n      sanitizedData.userType = data.userType;\n    }\n\n    return {\n      isValid: errors.length === 0,\n      errors,\n      sanitizedData: errors.length === 0 ? sanitizedData : undefined\n    };\n  }\n\n  /**\n   * Validate medical record data\n   */\n  validateMedicalRecord(data: {\n    title: string;\n    description?: string;\n    recordType: string;\n    patientId: string;\n  }): ValidationResult {\n    const errors: string[] = [];\n    const sanitizedData: any = {};\n\n    // Title validation\n    if (!data.title || data.title.trim().length < 3) {\n      errors.push('Record title must be at least 3 characters long');\n    } else if (data.title.length > 200) {\n      errors.push('Record title must be less than 200 characters');\n    } else {\n      sanitizedData.title = sanitizeInput(data.title);\n    }\n\n    // Description validation (optional)\n    if (data.description) {\n      if (data.description.length > 2000) {\n        errors.push('Description must be less than 2000 characters');\n      } else {\n        sanitizedData.description = sanitizeInput(data.description);\n      }\n    }\n\n    // Record type validation\n    const validRecordTypes = ['lab_result', 'prescription', 'vital_signs', 'imaging', 'consultation', 'diagnosis'];\n    if (!data.recordType || !validRecordTypes.includes(data.recordType)) {\n      errors.push('Please select a valid record type');\n    } else {\n      sanitizedData.recordType = data.recordType;\n    }\n\n    // Patient ID validation\n    if (!data.patientId || !/^[a-zA-Z0-9-_]{10,50}$/.test(data.patientId)) {\n      errors.push('Invalid patient ID format');\n    } else {\n      sanitizedData.patientId = data.patientId;\n    }\n\n    return {\n      isValid: errors.length === 0,\n      errors,\n      sanitizedData: errors.length === 0 ? sanitizedData : undefined\n    };\n  }\n\n  /**\n   * Validate doctor profile data\n   */\n  validateDoctorProfile(data: {\n    fullName: string;\n    specialization: string;\n    licenseNumber: string;\n    yearsOfExperience: number;\n    hospitalAffiliation?: string;\n    bio?: string;\n  }): ValidationResult {\n    const errors: string[] = [];\n    const sanitizedData: any = {};\n\n    // Full name validation\n    if (!data.fullName || data.fullName.trim().length < 2) {\n      errors.push('Please enter your full name');\n    } else {\n      sanitizedData.fullName = sanitizeInput(data.fullName);\n    }\n\n    // Specialization validation\n    if (!data.specialization || data.specialization.trim().length < 2) {\n      errors.push('Please enter your medical specialization');\n    } else {\n      sanitizedData.specialization = sanitizeInput(data.specialization);\n    }\n\n    // License number validation\n    if (!data.licenseNumber || data.licenseNumber.trim().length < 5) {\n      errors.push('Please enter a valid medical license number');\n    } else {\n      sanitizedData.licenseNumber = sanitizeInput(data.licenseNumber);\n    }\n\n    // Years of experience validation\n    if (typeof data.yearsOfExperience !== 'number' || data.yearsOfExperience < 0 || data.yearsOfExperience > 60) {\n      errors.push('Please enter valid years of experience (0-60)');\n    } else {\n      sanitizedData.yearsOfExperience = data.yearsOfExperience;\n    }\n\n    // Hospital affiliation (optional)\n    if (data.hospitalAffiliation) {\n      sanitizedData.hospitalAffiliation = sanitizeInput(data.hospitalAffiliation);\n    }\n\n    // Bio (optional)\n    if (data.bio) {\n      if (data.bio.length > 1000) {\n        errors.push('Bio must be less than 1000 characters');\n      } else {\n        sanitizedData.bio = sanitizeInput(data.bio);\n      }\n    }\n\n    return {\n      isValid: errors.length === 0,\n      errors,\n      sanitizedData: errors.length === 0 ? sanitizedData : undefined\n    };\n  }\n\n  /**\n   * Validate hospital profile data\n   */\n  validateHospitalProfile(data: {\n    name: string;\n    type: string;\n    address: string;\n    phoneNumber: string;\n    email: string;\n    services: string[];\n    description?: string;\n  }): ValidationResult {\n    const errors: string[] = [];\n    const sanitizedData: any = {};\n\n    // Name validation\n    if (!data.name || data.name.trim().length < 3) {\n      errors.push('Hospital name must be at least 3 characters long');\n    } else {\n      sanitizedData.name = sanitizeInput(data.name);\n    }\n\n    // Type validation\n    const validTypes = ['General Hospital', 'Specialist Hospital', 'Teaching Hospital', 'Private Clinic', 'Medical Center'];\n    if (!data.type || !validTypes.includes(data.type)) {\n      errors.push('Please select a valid hospital type');\n    } else {\n      sanitizedData.type = data.type;\n    }\n\n    // Address validation\n    if (!data.address || data.address.trim().length < 10) {\n      errors.push('Please enter a complete address');\n    } else {\n      sanitizedData.address = sanitizeInput(data.address);\n    }\n\n    // Phone number validation\n    if (!validatePhoneNumber(data.phoneNumber)) {\n      errors.push('Please enter a valid Nigerian phone number');\n    } else {\n      sanitizedData.phoneNumber = sanitizeInput(data.phoneNumber);\n    }\n\n    // Email validation\n    if (!validateEmail(data.email)) {\n      errors.push('Please enter a valid email address');\n    } else {\n      sanitizedData.email = sanitizeInput(data.email.toLowerCase());\n    }\n\n    // Services validation\n    if (!Array.isArray(data.services) || data.services.length === 0) {\n      errors.push('Please select at least one service');\n    } else {\n      sanitizedData.services = data.services.map(service => sanitizeInput(service));\n    }\n\n    // Description (optional)\n    if (data.description) {\n      if (data.description.length > 2000) {\n        errors.push('Description must be less than 2000 characters');\n      } else {\n        sanitizedData.description = sanitizeInput(data.description);\n      }\n    }\n\n    return {\n      isValid: errors.length === 0,\n      errors,\n      sanitizedData: errors.length === 0 ? sanitizedData : undefined\n    };\n  }\n\n  /**\n   * Validate search query\n   */\n  validateSearchQuery(query: string): ValidationResult {\n    const errors: string[] = [];\n    const sanitizedData: any = {};\n\n    if (!query || query.trim().length < 2) {\n      errors.push('Search query must be at least 2 characters long');\n    } else if (query.length > 100) {\n      errors.push('Search query must be less than 100 characters');\n    } else {\n      sanitizedData.query = sanitizeInput(query);\n    }\n\n    return {\n      isValid: errors.length === 0,\n      errors,\n      sanitizedData: errors.length === 0 ? sanitizedData : undefined\n    };\n  }\n\n  /**\n   * Validate PIN (4 digits)\n   */\n  validatePIN(pin: string): ValidationResult {\n    const errors: string[] = [];\n    const sanitizedData: any = {};\n\n    if (!pin || !/^\d{4}$/.test(pin)) {\n      errors.push('PIN must be exactly 4 digits');\n    } else {\n      sanitizedData.pin = pin; // Don't sanitize PINs\n    }\n\n    return {\n      isValid: errors.length === 0,\n      errors,\n      sanitizedData: errors.length === 0 ? sanitizedData : undefined\n    };\n  }\n}
+﻿import { sanitizeInput, validateEmail, validatePhoneNumber } from '../utils/security';
+
+export interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+  sanitizedData?: any;
+}
+
+export class DataValidationService {
+  private static instance: DataValidationService;
+  
+  static getInstance(): DataValidationService {
+    if (!DataValidationService.instance) {
+      DataValidationService.instance = new DataValidationService();
+    }
+    return DataValidationService.instance;
+  }
+
+  /**
+   * Validate user registration data
+   */
+  validateRegistration(data: {
+    email: string;
+    password: string;
+    fullName: string;
+    phoneNumber?: string;
+    userType: string;
+  }): ValidationResult {
+    const errors: string[] = [];
+    const sanitizedData: any = {};
+
+    // Email validation
+    if (!data.email || !validateEmail(data.email)) {
+      errors.push('Please enter a valid email address');
+    } else {
+      sanitizedData.email = sanitizeInput(data.email.toLowerCase());
+    }
+
+    // Password validation
+    if (!data.password || data.password.length < 8) {
+      errors.push('Password must be at least 8 characters long');
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)/.test(data.password)) {
+      errors.push('Password must contain at least one uppercase letter, one lowercase letter, and one number');
+    } else {
+      sanitizedData.password = data.password; // Don't sanitize passwords
+    }
+
+    // Full name validation
+    if (!data.fullName || data.fullName.trim().length < 2) {
+      errors.push('Please enter your full name (at least 2 characters)');
+    } else if (data.fullName.length > 100) {
+      errors.push('Full name must be less than 100 characters');
+    } else {
+      sanitizedData.fullName = sanitizeInput(data.fullName);
+    }
+
+    // Phone number validation (optional)
+    if (data.phoneNumber) {
+      if (!validatePhoneNumber(data.phoneNumber)) {
+        errors.push('Please enter a valid Nigerian phone number');
+      } else {
+        sanitizedData.phoneNumber = sanitizeInput(data.phoneNumber);
+      }
+    }
+
+    // User type validation
+    const validUserTypes = ['patient', 'doctor', 'hospital_admin'];
+    if (!data.userType || !validUserTypes.includes(data.userType)) {
+      errors.push('Please select a valid user type');
+    } else {
+      sanitizedData.userType = data.userType;
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      sanitizedData: errors.length === 0 ? sanitizedData : undefined
+    };
+  }
+
+  /**
+   * Validate medical record data
+   */
+  validateMedicalRecord(data: {
+    title: string;
+    description?: string;
+    recordType: string;
+    patientId: string;
+  }): ValidationResult {
+    const errors: string[] = [];
+    const sanitizedData: any = {};
+
+    // Title validation
+    if (!data.title || data.title.trim().length < 3) {
+      errors.push('Record title must be at least 3 characters long');
+    } else if (data.title.length > 200) {
+      errors.push('Record title must be less than 200 characters');
+    } else {
+      sanitizedData.title = sanitizeInput(data.title);
+    }
+
+    // Description validation (optional)
+    if (data.description) {
+      if (data.description.length > 2000) {
+        errors.push('Description must be less than 2000 characters');
+      } else {
+        sanitizedData.description = sanitizeInput(data.description);
+      }
+    }
+
+    // Record type validation
+    const validRecordTypes = ['lab_result', 'prescription', 'vital_signs', 'imaging', 'consultation', 'diagnosis'];
+    if (!data.recordType || !validRecordTypes.includes(data.recordType)) {
+      errors.push('Please select a valid record type');
+    } else {
+      sanitizedData.recordType = data.recordType;
+    }
+
+    // Patient ID validation
+    if (!data.patientId || !/^[a-zA-Z0-9-_]{10,50}$/.test(data.patientId)) {
+      errors.push('Invalid patient ID format');
+    } else {
+      sanitizedData.patientId = data.patientId;
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      sanitizedData: errors.length === 0 ? sanitizedData : undefined
+    };
+  }
+
+  /**
+   * Validate doctor profile data
+   */
+  validateDoctorProfile(data: {
+    fullName: string;
+    specialization: string;
+    licenseNumber: string;
+    yearsOfExperience: number;
+    hospitalAffiliation?: string;
+    bio?: string;
+  }): ValidationResult {
+    const errors: string[] = [];
+    const sanitizedData: any = {};
+
+    // Full name validation
+    if (!data.fullName || data.fullName.trim().length < 2) {
+      errors.push('Please enter your full name');
+    } else {
+      sanitizedData.fullName = sanitizeInput(data.fullName);
+    }
+
+    // Specialization validation
+    if (!data.specialization || data.specialization.trim().length < 2) {
+      errors.push('Please enter your medical specialization');
+    } else {
+      sanitizedData.specialization = sanitizeInput(data.specialization);
+    }
+
+    // License number validation
+    if (!data.licenseNumber || data.licenseNumber.trim().length < 5) {
+      errors.push('Please enter a valid medical license number');
+    } else {
+      sanitizedData.licenseNumber = sanitizeInput(data.licenseNumber);
+    }
+
+    // Years of experience validation
+    if (typeof data.yearsOfExperience !== 'number' || data.yearsOfExperience < 0 || data.yearsOfExperience > 60) {
+      errors.push('Please enter valid years of experience (0-60)');
+    } else {
+      sanitizedData.yearsOfExperience = data.yearsOfExperience;
+    }
+
+    // Hospital affiliation (optional)
+    if (data.hospitalAffiliation) {
+      sanitizedData.hospitalAffiliation = sanitizeInput(data.hospitalAffiliation);
+    }
+
+    // Bio (optional)
+    if (data.bio) {
+      if (data.bio.length > 1000) {
+        errors.push('Bio must be less than 1000 characters');
+      } else {
+        sanitizedData.bio = sanitizeInput(data.bio);
+      }
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      sanitizedData: errors.length === 0 ? sanitizedData : undefined
+    };
+  }
+
+  /**
+   * Validate hospital profile data
+   */
+  validateHospitalProfile(data: {
+    name: string;
+    type: string;
+    address: string;
+    phoneNumber: string;
+    email: string;
+    services: string[];
+    description?: string;
+  }): ValidationResult {
+    const errors: string[] = [];
+    const sanitizedData: any = {};
+
+    // Name validation
+    if (!data.name || data.name.trim().length < 3) {
+      errors.push('Hospital name must be at least 3 characters long');
+    } else {
+      sanitizedData.name = sanitizeInput(data.name);
+    }
+
+    // Type validation
+    const validTypes = ['General Hospital', 'Specialist Hospital', 'Teaching Hospital', 'Private Clinic', 'Medical Center'];
+    if (!data.type || !validTypes.includes(data.type)) {
+      errors.push('Please select a valid hospital type');
+    } else {
+      sanitizedData.type = data.type;
+    }
+
+    // Address validation
+    if (!data.address || data.address.trim().length < 10) {
+      errors.push('Please enter a complete address');
+    } else {
+      sanitizedData.address = sanitizeInput(data.address);
+    }
+
+    // Phone number validation
+    if (!validatePhoneNumber(data.phoneNumber)) {
+      errors.push('Please enter a valid Nigerian phone number');
+    } else {
+      sanitizedData.phoneNumber = sanitizeInput(data.phoneNumber);
+    }
+
+    // Email validation
+    if (!validateEmail(data.email)) {
+      errors.push('Please enter a valid email address');
+    } else {
+      sanitizedData.email = sanitizeInput(data.email.toLowerCase());
+    }
+
+    // Services validation
+    if (!Array.isArray(data.services) || data.services.length === 0) {
+      errors.push('Please select at least one service');
+    } else {
+      sanitizedData.services = data.services.map(service => sanitizeInput(service));
+    }
+
+    // Description (optional)
+    if (data.description) {
+      if (data.description.length > 2000) {
+        errors.push('Description must be less than 2000 characters');
+      } else {
+        sanitizedData.description = sanitizeInput(data.description);
+      }
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      sanitizedData: errors.length === 0 ? sanitizedData : undefined
+    };
+  }
+
+  /**
+   * Validate search query
+   */
+  validateSearchQuery(query: string): ValidationResult {
+    const errors: string[] = [];
+    const sanitizedData: any = {};
+
+    if (!query || query.trim().length < 2) {
+      errors.push('Search query must be at least 2 characters long');
+    } else if (query.length > 100) {
+      errors.push('Search query must be less than 100 characters');
+    } else {
+      sanitizedData.query = sanitizeInput(query);
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      sanitizedData: errors.length === 0 ? sanitizedData : undefined
+    };
+  }
+
+  /**
+   * Validate PIN (4 digits)
+   */
+  validatePIN(pin: string): ValidationResult {
+    const errors: string[] = [];
+    const sanitizedData: any = {};
+
+    if (!pin || !/^\d{4}$/.test(pin)) {
+      errors.push('PIN must be exactly 4 digits');
+    } else {
+      sanitizedData.pin = pin; // Don't sanitize PINs
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      sanitizedData: errors.length === 0 ? sanitizedData : undefined
+    };
+  }
+}

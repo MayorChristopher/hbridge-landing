@@ -7,7 +7,7 @@ export default function FadeScreen({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     Animated.timing(opacity, {
       toValue: 1,
-      duration: 130,
+      duration: 220,
       useNativeDriver: true,
     }).start();
   }, []);

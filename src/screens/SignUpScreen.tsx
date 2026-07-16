@@ -7,6 +7,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Svg, { Path, Rect } from 'react-native-svg';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastProvider';
 import { NetworkDiagnostic } from '../utils/networkDiagnostic';
@@ -19,6 +20,25 @@ const C = {
 };
 
 type Role = 'patient' | 'doctor' | 'hospital_admin';
+
+const PROFESSIONS = [
+  { id: 'doctor',              label: 'Doctor',                         title: 'Dr.',     body: 'MDCN',    format: 'MDCN/YYYY/000000',      matIcon: 'stethoscope'       },
+  { id: 'dentist',             label: 'Dentist',                        title: 'Dr.',     body: 'MDCN',    format: 'MDCN/YYYY/000000',      matIcon: 'tooth-outline'     },
+  { id: 'nurse',               label: 'Nurse / Midwife',                title: 'Nurse',   body: 'NMCN',    format: 'NMCN/YYYY/000000',      matIcon: 'heart-pulse'       },
+  { id: 'pharmacist',          label: 'Pharmacist',                     title: 'Pharm.',  body: 'PCN',     format: 'PCN/REN/YYYY/000',      matIcon: 'pill'              },
+  { id: 'med_lab_scientist',   label: 'Medical Laboratory Scientist',   title: 'MLS',     body: 'MLSCN',   format: 'MLSCN/YYYY/000000',     matIcon: 'flask-outline'     },
+  { id: 'physiotherapist',     label: 'Physiotherapist',                title: 'Physio.', body: 'MRTB',    format: 'MRTB/YYYY/000000',      matIcon: 'human-handsup'     },
+  { id: 'radiographer',        label: 'Radiographer',                   title: 'Rad.',    body: 'RRBN',    format: 'RRBN/YYYY/000000',      matIcon: 'radioactive'       },
+  { id: 'optometrist',         label: 'Optometrist',                    title: 'Optom.',  body: 'OBON',    format: 'OBON/YYYY/000000',      matIcon: 'eye-outline'       },
+  { id: 'community_health',    label: 'Community Health Officer',       title: 'CHO',     body: 'CHPRBN',  format: 'CHPRBN/YYYY/000000',    matIcon: 'home-heart'        },
+  { id: 'dietitian',           label: 'Dietitian / Nutritionist',       title: 'Diet.',   body: 'NDRBCN',  format: 'NDRBCN/YYYY/000000',    matIcon: 'food-apple-outline'},
+  { id: 'occupational_therapist', label: 'Occupational Therapist',     title: 'OT',      body: 'MRTB',    format: 'MRTB/YYYY/000000',      matIcon: 'briefcase-outline' },
+  { id: 'prosthetics',         label: 'Prosthetist / Orthotist',        title: 'P&O',     body: 'POBN',    format: 'POBN/YYYY/000000',      matIcon: 'human-cane'        },
+  { id: 'medical_records',     label: 'Medical Records Officer',        title: 'MRO',     body: 'HROBN',   format: 'HROBN/YYYY/000000',     matIcon: 'file-document-outline'},
+  { id: 'env_health',          label: 'Environmental Health Officer',   title: 'EHO',     body: 'EHORECON',format: 'EHORECON/YYYY/000000',  matIcon: 'leaf-circle-outline'},
+  { id: 'other',               label: 'Other Health Professional',      title: '',        body: 'Other',   format: '',                      matIcon: 'dots-horizontal'   },
+] as const;
+type ProfessionId = typeof PROFESSIONS[number]['id'];
 
 function HBridgeMark({ size = 28 }: { size?: number }) {
   return (
@@ -53,11 +73,18 @@ export default function SignUpScreen({ navigation }: any) {
   const [role, setRole]                   = useState<Role>('patient');
   const [showPassword, setShowPassword]   = useState(false);
   const [loading, setLoading]             = useState(false);
+  const [profession, setProfession]         = useState<ProfessionId | ''>('');
   const [medicalLicense, setMedicalLicense] = useState('');
   const [specialization, setSpecialization] = useState('');
-  const [hospitalName, setHospitalName]   = useState('');
+
   const [emailTouched, setEmailTouched]   = useState(false);
   const [phoneTouched, setPhoneTouched]   = useState(false);
+  const [showProfPicker, setShowProfPicker]     = useState(false);
+  const [showAddRoleModal, setShowAddRoleModal] = useState(false);
+  const [addRolePassword, setAddRolePassword]   = useState('');
+  const [addRoleLoading, setAddRoleLoading]     = useState(false);
+  const [showAddRolePw, setShowAddRolePw]       = useState(false);
+  const addRoleSheetY = useRef(new Animated.Value(500)).current;
   const [showOTP, setShowOTP]             = useState(false);
   const [otp, setOtp]                     = useState(['', '', '', '', '', '']);
   const [verifying, setVerifying]         = useState(false);
@@ -94,6 +121,82 @@ export default function SignUpScreen({ navigation }: any) {
         return prev - 1;
       });
     }, 1000);
+  };
+
+  const openAddRoleSheet = () => {
+    setShowAddRoleModal(true);
+    addRoleSheetY.setValue(500);
+    Animated.spring(addRoleSheetY, { toValue: 0, tension: 180, friction: 22, useNativeDriver: true }).start();
+  };
+
+  const closeAddRoleSheet = () => {
+    Animated.timing(addRoleSheetY, { toValue: 500, duration: 260, easing: Easing.in(Easing.cubic), useNativeDriver: true }).start(() => {
+      setShowAddRoleModal(false);
+      setAddRolePassword('');
+    });
+  };
+
+  const handleAddRole = async () => {
+    if (!addRolePassword) { toast.showWarning('Password Required', 'Enter your account password to confirm.'); return; }
+    if (role === 'doctor' && !profession) { toast.showWarning('Profession Required', 'Please select your health profession first.'); return; }
+    if (role === 'doctor' && (!medicalLicense || !specialization)) { toast.showWarning('Credentials Required', 'Please fill in your licence and specialization first.'); return; }
+    setAddRoleLoading(true);
+    try {
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password: addRolePassword });
+      if (signInError) { toast.showError('Wrong Password', 'Incorrect password. Try again.'); return; }
+
+      const userId = signInData.user?.id;
+      if (!userId) return;
+
+      const { data: profile } = await supabase.from('profiles').select('user_types, user_type').eq('id', userId).maybeSingle();
+      const existingTypes: string[] = (profile?.user_types as string[] | null) || [profile?.user_type || 'patient'];
+
+      if (existingTypes.includes(role)) {
+        toast.showInfo('Already Active', `Your account already has the ${role === 'doctor' ? 'Practitioner' : role === 'hospital_admin' ? 'Hospital' : 'Patient'} role.`);
+        closeAddRoleSheet();
+        return;
+      }
+
+      const newTypes = [...existingTypes, role];
+      const profilePatch: any = { user_types: newTypes };
+      if (role === 'hospital_admin') profilePatch.hospital_name = fullName;
+      await supabase.from('profiles').update(profilePatch).eq('id', userId);
+
+      if (role === 'doctor') {
+        const selectedProf = PROFESSIONS.find(p => p.id === profession);
+        await supabase.from('doctors').upsert({
+          user_id: userId,
+          full_name: fullName.replace(/^(dr\.?|nurse\.?|prof\.?|pharm\.?|physio\.?|rad\.?)\s+/i, '').trim(),
+          specialization: specialization || 'General Practice',
+          medical_license: medicalLicense || 'PENDING',
+          title: selectedProf?.title || 'Dr.',
+          verification_status: 'verified', is_available: true,
+          average_rating: 0, total_reviews: 0,
+        }, { onConflict: 'user_id' });
+      }
+
+      if (role === 'hospital_admin') {
+        await AsyncStorage.setItem('hospital_spotlight_pending', 'true');
+        const hospName = fullName.trim();
+        if (hospName) {
+          const { data: existing } = await supabase
+            .from('hospitals').select('id').ilike('name', hospName).maybeSingle();
+          if (!existing) {
+            await supabase.from('hospitals').insert({
+              name: hospName, is_active: true, rating: 0, total_reviews: 0,
+            });
+          }
+        }
+      }
+
+      closeAddRoleSheet();
+      const roleLabel = role === 'doctor' ? 'Practitioner' : role === 'hospital_admin' ? 'Hospital Admin' : 'Patient';
+      toast.showSuccess('Role Added!', `${roleLabel} access added. Switch roles from your Profile after signing in.`);
+    } catch (e: any) {
+      toast.showError('Error', e.message || 'Something went wrong. Please try again.');
+    } finally {
+      setAddRoleLoading(false);
+    }
   };
 
   const openOTPSheet = () => {
@@ -157,13 +260,15 @@ export default function SignUpScreen({ navigation }: any) {
         const profilePayload: any = {
           id: userId,
           email,
-          full_name: fullName.replace(/^(dr\.?|nurse\.?|prof\.?)\s+/i, '').trim(),
+          full_name: fullName.replace(/^(dr\.?|nurse\.?|prof\.?|pharm\.?|physio\.?|rad\.?)\s+/i, '').trim(),
           user_type: role,
+          user_types: [role],
           phone: phone?.trim() || null,
           medical_license: role === 'doctor' ? medicalLicense : null,
           specialization: role === 'doctor' ? specialization : null,
-          hospital_name: role === 'hospital_admin' ? hospitalName : null,
-          onboarding_complete: false,
+          hospital_name: role === 'hospital_admin' ? fullName : null,
+          // Hospital admins skip the patient/doctor questionnaire — mark complete immediately
+          onboarding_complete: role === 'hospital_admin' ? true : false,
           updated_at: new Date().toISOString(),
         };
 
@@ -175,23 +280,43 @@ export default function SignUpScreen({ navigation }: any) {
           // Fallback: update existing row
           await supabase.from('profiles')
             .update({
-              full_name: fullName.replace(/^(dr\.?|nurse\.?|prof\.?)\s+/i, '').trim(),
+              full_name: fullName.replace(/^(dr\.?|nurse\.?|prof\.?|pharm\.?|physio\.?|rad\.?)\s+/i, '').trim(),
               user_type: role,
               phone: phone?.trim() || null,
-              onboarding_complete: false,
+              hospital_name: role === 'hospital_admin' ? fullName : null,
+              onboarding_complete: role === 'hospital_admin' ? true : false,
               updated_at: new Date().toISOString(),
             })
             .eq('id', userId);
         }
 
         if (role === 'doctor') {
+          const selectedProf = PROFESSIONS.find(p => p.id === profession);
           await supabase.from('doctors').upsert({
-            user_id: userId, full_name: fullName.replace(/^(dr\.?|nurse\.?|prof\.?)\s+/i, '').trim(),
+            user_id: userId,
+            full_name: fullName.replace(/^(dr\.?|nurse\.?|prof\.?|pharm\.?|physio\.?|rad\.?)\s+/i, '').trim(),
             specialization: specialization || 'General Practice',
             medical_license: medicalLicense || 'PENDING',
+            title: selectedProf?.title || 'Dr.',
             verification_status: 'verified', is_available: true,
             average_rating: 0, total_reviews: 0,
           }, { onConflict: 'user_id' });
+        }
+
+        // Queue the spotlight tour for the role-specific home screen
+        if (role === 'hospital_admin') {
+          await AsyncStorage.setItem('hospital_spotlight_pending', 'true');
+          // Create hospital row so the facility appears in search and explore
+          const hospName = fullName.trim();
+          if (hospName) {
+            const { data: existing } = await supabase
+              .from('hospitals').select('id').ilike('name', hospName).maybeSingle();
+            if (!existing) {
+              await supabase.from('hospitals').insert({
+                name: hospName, is_active: true, rating: 0, total_reviews: 0,
+              });
+            }
+          }
         }
       }
 
@@ -237,14 +362,15 @@ export default function SignUpScreen({ navigation }: any) {
       toast.showError('Weak Password', 'Password must be at least 8 characters.');
       return;
     }
+    if (role === 'doctor' && !profession) {
+      toast.showWarning('Profession Required', 'Please select your health profession.');
+      return;
+    }
     if (role === 'doctor' && (!medicalLicense || !specialization)) {
-      toast.showWarning('Doctor Info Required', 'Please provide medical license and specialization.');
+      toast.showWarning('Credentials Required', 'Please provide your licence number and specialization/department.');
       return;
     }
-    if (role === 'hospital_admin' && !hospitalName) {
-      toast.showWarning('Hospital Info Required', 'Please provide hospital name.');
-      return;
-    }
+
 
     setLoading(true);
     try {
@@ -255,7 +381,7 @@ export default function SignUpScreen({ navigation }: any) {
 
       if (error) {
         if (error.message.includes('already registered')) {
-          toast.showWarning('Account Exists', 'This email is already registered. Sign in instead.');
+          openAddRoleSheet();
         } else if (error.message?.includes('Network') || error.message?.includes('timeout')) {
           toast.showError('Connection Error', 'Please check your internet connection and try again.');
         } else {
@@ -264,6 +390,11 @@ export default function SignUpScreen({ navigation }: any) {
         return;
       }
 
+      if (data.user?.identities?.length === 0) {
+        // Supabase silently "succeeds" for existing confirmed emails — no code is sent
+        openAddRoleSheet();
+        return;
+      }
       if (data.user) {
         startCooldown();
         openOTPSheet();
@@ -281,7 +412,7 @@ export default function SignUpScreen({ navigation }: any) {
 
   const roleOptions = [
     { value: 'patient',        label: 'Patient',  ionIcon: 'person-outline',   matIcon: null,           description: 'Get medical care' },
-    { value: 'doctor',         label: 'Doctor',   ionIcon: null,               matIcon: 'stethoscope',  description: 'Provide care' },
+    { value: 'doctor',         label: 'Medical Practitioner', ionIcon: null,               matIcon: 'stethoscope',  description: 'Provide care' },
     { value: 'hospital_admin', label: 'Hospital', ionIcon: 'business-outline', matIcon: null,           description: 'Manage hospital' },
   ] as const;
 
@@ -316,20 +447,60 @@ export default function SignUpScreen({ navigation }: any) {
             </View>
           </View>
 
-          {/* Full Name */}
+          {/* Role divider — moved to top so form adapts before user types */}
+          <View style={s.divider}>
+            <View style={s.dividerLine} />
+            <Text style={s.dividerText}>I am a</Text>
+            <View style={s.dividerLine} />
+          </View>
+
+          <View style={[s.roleRow, { marginBottom: 20 }]}>
+            {roleOptions.map(opt => {
+              const active = role === opt.value;
+              return (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[s.roleCard, active && s.roleCardActive]}
+                  onPress={() => setRole(opt.value)}
+                  activeOpacity={0.8}
+                >
+                  <View style={[s.roleIconBox, active && s.roleIconBoxActive]}>
+                    {opt.ionIcon
+                      ? <Ionicons name={opt.ionIcon as any} size={20} color={active ? '#fff' : C.muted2} />
+                      : <MaterialCommunityIcons name={opt.matIcon as any} size={20} color={active ? '#fff' : C.muted2} />}
+                  </View>
+                  <Text style={[s.roleLabel, active && s.roleLabelActive]}>{opt.label}</Text>
+                  <Text style={s.roleDesc}>{opt.description}</Text>
+                  {active && (
+                    <View style={s.roleCheck}>
+                      <Ionicons name="checkmark" size={10} color="#fff" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Name field — label and icon adapt to role */}
           <View style={s.fieldGroup}>
-            <Text style={s.fieldLabel}>Full Name <Text style={s.required}>*</Text></Text>
+            <Text style={s.fieldLabel}>
+              {role === 'hospital_admin' ? 'Hospital Name' : 'Full Name'}{' '}
+              <Text style={s.required}>*</Text>
+            </Text>
             <View style={s.fieldRow}>
-              <Ionicons name="person-outline" size={19} color={C.teal} />
+              {role === 'hospital_admin'
+                ? <Ionicons name="business-outline" size={19} color={C.teal} />
+                : <Ionicons name="person-outline" size={19} color={C.teal} />}
               <TextInput
                 style={s.fieldInput}
                 value={fullName} onChangeText={setFullName}
-                placeholder="Your full name" placeholderTextColor={C.muted2}
+                placeholder={role === 'hospital_admin' ? 'e.g. Lagos General Hospital' : 'Your full name'}
+                placeholderTextColor={C.muted2}
                 autoCapitalize="words"
               />
             </View>
             {role === 'doctor' && (
-              <Text style={s.fieldHint}>Enter your name only — your title will be added automatically</Text>
+              <Text style={s.fieldHint}>Enter your name only — your professional title will be added automatically</Text>
             )}
           </View>
 
@@ -412,89 +583,72 @@ export default function SignUpScreen({ navigation }: any) {
             )}
           </View>
 
-          {/* Role divider */}
-          <View style={s.divider}>
-            <View style={s.dividerLine} />
-            <Text style={s.dividerText}>I am a</Text>
-            <View style={s.dividerLine} />
-          </View>
+          {/* Medical Practitioner — profession dropdown + credentials */}
+          {role === 'doctor' && (() => {
+            const selectedProf = PROFESSIONS.find(p => p.id === profession);
+            return (
+              <View style={s.extraFields}>
+                {/* Profession dropdown trigger */}
+                <View style={s.fieldGroup}>
+                  <Text style={s.fieldLabel}>My Profession <Text style={s.required}>*</Text></Text>
+                  <TouchableOpacity style={[s.fieldRow, s.dropdownRow]} onPress={() => setShowProfPicker(true)} activeOpacity={0.8}>
+                    {selectedProf
+                      ? <MaterialCommunityIcons name={selectedProf.matIcon as any} size={19} color={C.teal} />
+                      : <Ionicons name="medical-outline" size={19} color={C.muted2} />}
+                    <Text style={[s.fieldInput, { color: selectedProf ? C.textPrimary : C.muted2, paddingVertical: 0 }]} numberOfLines={1}>
+                      {selectedProf ? selectedProf.label : 'Select your health profession'}
+                    </Text>
+                    {selectedProf && (
+                      <View style={s.profBodyBadge}>
+                        <Text style={s.profBodyBadgeText}>{selectedProf.body}</Text>
+                      </View>
+                    )}
+                    <Ionicons name="chevron-down" size={17} color={C.muted2} />
+                  </TouchableOpacity>
+                </View>
 
-          {/* Role cards */}
-          <View style={s.roleRow}>
-            {roleOptions.map(opt => {
-              const active = role === opt.value;
-              return (
-                <TouchableOpacity
-                  key={opt.value}
-                  style={[s.roleCard, active && s.roleCardActive]}
-                  onPress={() => setRole(opt.value)}
-                  activeOpacity={0.8}
-                >
-                  <View style={[s.roleIconBox, active && s.roleIconBoxActive]}>
-                    {opt.ionIcon
-                      ? <Ionicons name={opt.ionIcon as any} size={20} color={active ? '#fff' : C.muted2} />
-                      : <MaterialCommunityIcons name={opt.matIcon as any} size={20} color={active ? '#fff' : C.muted2} />}
-                  </View>
-                  <Text style={[s.roleLabel, active && s.roleLabelActive]}>{opt.label}</Text>
-                  <Text style={s.roleDesc}>{opt.description}</Text>
-                  {active && (
-                    <View style={s.roleCheck}>
-                      <Ionicons name="checkmark" size={10} color="#fff" />
+                {/* Licence + specialization — only when profession is selected */}
+                {selectedProf && (
+                  <>
+                    <View style={[s.fieldGroup, { marginTop: 4 }]}>
+                      <Text style={s.fieldLabel}>{selectedProf.body} Licence Number <Text style={s.required}>*</Text></Text>
+                      {selectedProf.format ? (
+                        <Text style={{ fontSize: 10, fontFamily: 'SpaceGrotesk_400Regular', color: C.teal, marginBottom: 5 }}>Format: {selectedProf.format}</Text>
+                      ) : null}
+                      <View style={s.fieldRow}>
+                        <Ionicons name="document-text-outline" size={19} color={C.teal} />
+                        <TextInput
+                          style={s.fieldInput}
+                          value={medicalLicense} onChangeText={text => setMedicalLicense(text.toUpperCase())}
+                          placeholder={selectedProf.format || 'Enter licence number'} placeholderTextColor={C.muted2}
+                          autoCapitalize="characters"
+                        />
+                      </View>
                     </View>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {/* Doctor extra fields */}
-          {role === 'doctor' && (
-            <View style={s.extraFields}>
-              <View style={s.fieldGroup}>
-                <Text style={s.fieldLabel}>Medical License (NMA) <Text style={s.required}>*</Text></Text>
-                <Text style={{ fontSize: 10, fontFamily: 'SpaceGrotesk_400Regular', color: C.teal, marginBottom: 5 }}>Format: NMA/YYYY/000000</Text>
-                <View style={s.fieldRow}>
-                  <Ionicons name="document-text-outline" size={19} color={C.teal} />
-                  <TextInput
-                    style={s.fieldInput}
-                    value={medicalLicense} onChangeText={text => setMedicalLicense(text.toUpperCase())}
-                    placeholder="NMA/YYYY/000000" placeholderTextColor={C.muted2}
-                    autoCapitalize="characters"
-                  />
-                </View>
+                    <View style={s.fieldGroup}>
+                      <Text style={s.fieldLabel}>Specialization / Department <Text style={s.required}>*</Text></Text>
+                      <View style={s.fieldRow}>
+                        <Ionicons name="medkit-outline" size={19} color={C.teal} />
+                        <TextInput
+                          style={s.fieldInput}
+                          value={specialization} onChangeText={setSpecialization}
+                          placeholder={
+                            profession === 'nurse' ? 'e.g. ICU, Midwifery' :
+                            profession === 'pharmacist' ? 'e.g. Hospital, Community' :
+                            profession === 'med_lab_scientist' ? 'e.g. Haematology, Microbiology' :
+                            profession === 'community_health' ? 'e.g. Primary Care, PHC' :
+                            'e.g. Cardiology, General Practice'
+                          }
+                          placeholderTextColor={C.muted2}
+                          autoCapitalize="words"
+                        />
+                      </View>
+                    </View>
+                  </>
+                )}
               </View>
-              <View style={s.fieldGroup}>
-                <Text style={s.fieldLabel}>Specialization <Text style={s.required}>*</Text></Text>
-                <View style={s.fieldRow}>
-                  <Ionicons name="medkit-outline" size={19} color={C.teal} />
-                  <TextInput
-                    style={s.fieldInput}
-                    value={specialization} onChangeText={setSpecialization}
-                    placeholder="e.g. Cardiology" placeholderTextColor={C.muted2}
-                    autoCapitalize="words"
-                  />
-                </View>
-              </View>
-            </View>
-          )}
-
-          {/* Hospital extra fields */}
-          {role === 'hospital_admin' && (
-            <View style={s.extraFields}>
-              <View style={s.fieldGroup}>
-                <Text style={s.fieldLabel}>Hospital Name <Text style={s.required}>*</Text></Text>
-                <View style={s.fieldRow}>
-                  <Ionicons name="business-outline" size={19} color={C.teal} />
-                  <TextInput
-                    style={s.fieldInput}
-                    value={hospitalName} onChangeText={setHospitalName}
-                    placeholder="Enter hospital name" placeholderTextColor={C.muted2}
-                    autoCapitalize="words"
-                  />
-                </View>
-              </View>
-            </View>
-          )}
+            );
+          })()}
 
           {/* Terms */}
           <TouchableOpacity
@@ -536,6 +690,95 @@ export default function SignUpScreen({ navigation }: any) {
 
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Add Role to existing account modal */}
+      <Modal visible={showAddRoleModal} transparent animationType="none" statusBarTranslucent onRequestClose={closeAddRoleSheet}>
+        <View style={s.otpScrim}>
+          <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={closeAddRoleSheet} />
+          <Animated.View style={[s.otpSheet, { transform: [{ translateY: addRoleSheetY }], paddingBottom: Math.max(44, kbHeight + 16) }]}>
+            <View style={s.otpHandle} />
+
+            <View style={[s.otpIconWrap, { backgroundColor: 'rgba(212,168,67,0.12)' }]}>
+              <Ionicons name="person-add-outline" size={28} color={C.gold} />
+            </View>
+
+            <Text style={s.otpTitle}>Add to existing account</Text>
+            <Text style={s.otpSub}>
+              <Text style={s.otpEmail}>{email}</Text>
+              {'\n'}already has an account. Enter your password to add{' '}
+              <Text style={{ fontFamily: 'Montserrat_600SemiBold', color: C.teal }}>
+                {role === 'doctor' ? 'Practitioner' : role === 'hospital_admin' ? 'Hospital Admin' : 'Patient'}
+              </Text>
+              {' '}access.
+            </Text>
+
+            <View style={[s.fieldGroup, { width: '100%' }]}>
+              <Text style={s.fieldLabel}>Your Password</Text>
+              <View style={s.fieldRow}>
+                <Ionicons name="lock-closed-outline" size={19} color={C.teal} />
+                <TextInput
+                  style={[s.fieldInput, { flex: 1 }]}
+                  value={addRolePassword} onChangeText={setAddRolePassword}
+                  placeholder="Enter your password" placeholderTextColor={C.muted2}
+                  secureTextEntry={!showAddRolePw} autoCapitalize="none" autoCorrect={false}
+                />
+                <TouchableOpacity onPress={() => setShowAddRolePw(v => !v)}>
+                  <Ionicons name={showAddRolePw ? 'eye-outline' : 'eye-off-outline'} size={19} color={C.muted2} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[s.otpVerifyBtn, (addRoleLoading || !addRolePassword) && { opacity: 0.5 }]}
+              onPress={handleAddRole}
+              disabled={addRoleLoading || !addRolePassword}
+            >
+              <Text style={s.otpVerifyText}>{addRoleLoading ? 'Adding role…' : 'Confirm & Add Role'}</Text>
+              {!addRoleLoading && <Ionicons name="checkmark-circle" size={18} color="#fff" />}
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={closeAddRoleSheet} style={s.otpResendBtn}>
+              <Text style={[s.otpResendText, { color: C.muted }]}>Cancel</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      </Modal>
+
+      {/* Profession picker modal */}
+      <Modal visible={showProfPicker} transparent animationType="slide" statusBarTranslucent onRequestClose={() => setShowProfPicker(false)}>
+        <View style={s.pickerScrim}>
+          <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={() => setShowProfPicker(false)} />
+          <View style={s.pickerSheet}>
+            <View style={s.pickerHandle} />
+            <Text style={s.pickerTitle}>Select Your Profession</Text>
+            <Text style={s.pickerSub}>Regulated health professions in Nigeria</Text>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+              {PROFESSIONS.map((prof, idx) => {
+                const active = profession === prof.id;
+                return (
+                  <TouchableOpacity
+                    key={prof.id}
+                    style={[s.pickerItem, active && s.pickerItemActive, idx === 0 && { marginTop: 8 }]}
+                    onPress={() => { setProfession(prof.id); setShowProfPicker(false); }}
+                    activeOpacity={0.75}
+                  >
+                    <View style={[s.pickerIcon, active && s.pickerIconActive]}>
+                      <MaterialCommunityIcons name={prof.matIcon as any} size={20} color={active ? '#fff' : C.muted} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[s.pickerItemLabel, active && { color: C.teal }]}>{prof.label}</Text>
+                      <Text style={s.pickerItemBody}>{prof.body}</Text>
+                    </View>
+                    {active
+                      ? <Ionicons name="checkmark-circle" size={20} color={C.teal} />
+                      : <Ionicons name="chevron-forward" size={16} color={C.muted2} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {/* OTP Verification Modal */}
       <Modal visible={showOTP} transparent animationType="none" statusBarTranslucent onRequestClose={closeOTPSheet}>
@@ -648,6 +891,22 @@ const s = StyleSheet.create({
   roleCheck: { position: 'absolute', top: 6, right: 6, width: 18, height: 18, borderRadius: 9, backgroundColor: C.teal, alignItems: 'center', justifyContent: 'center' },
 
   extraFields: { gap: 0, marginBottom: 6 },
+
+  dropdownRow: { justifyContent: 'space-between' },
+  profBodyBadge: { backgroundColor: 'rgba(11,126,138,0.1)', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
+  profBodyBadgeText: { fontSize: 10, fontFamily: 'Montserrat_700Bold', color: C.teal },
+
+  pickerScrim: { flex: 1, backgroundColor: 'rgba(8,50,54,0.55)', justifyContent: 'flex-end' },
+  pickerSheet: { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '80%', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 0 },
+  pickerHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: C.cardBorder, marginBottom: 20, alignSelf: 'center' },
+  pickerTitle: { fontSize: 18, fontFamily: 'Montserrat_800ExtraBold', color: C.ink, marginBottom: 4 },
+  pickerSub: { fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted, marginBottom: 12 },
+  pickerItem: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 13, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: C.cardBorder },
+  pickerItemActive: { backgroundColor: 'rgba(11,126,138,0.05)', marginHorizontal: -4, paddingHorizontal: 8, borderRadius: 12, borderBottomColor: 'transparent' },
+  pickerIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: C.paperDark, alignItems: 'center', justifyContent: 'center' },
+  pickerIconActive: { backgroundColor: C.teal },
+  pickerItemLabel: { fontSize: 14, fontFamily: 'Montserrat_600SemiBold', color: C.textPrimary },
+  pickerItemBody: { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted, marginTop: 2 },
 
   termsBadge: { flexDirection: 'row', alignItems: 'flex-start', gap: 9, backgroundColor: C.goldBg, borderWidth: 1, borderColor: C.goldBorder, borderRadius: 12, padding: 12, marginBottom: 16 },
   termsText: { flex: 1, fontSize: 11.5, fontFamily: 'SpaceGrotesk_400Regular', color: '#8A6A1F', lineHeight: 17 },

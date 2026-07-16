@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   StyleSheet, Text, View, FlatList, TouchableOpacity,
-  RefreshControl, ActivityIndicator, Alert, StatusBar,
+  RefreshControl, ActivityIndicator, Modal, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
+import { useToast } from '../components/ToastProvider';
+import { drName } from '../utils/formatters';
 
-const C = { bg:'#FFFFFF', surface:'#F5F5F5', text:'#171717', muted:'#737373', border:'#E5E5E5', teal:'#0B7E8A' };
+const C = { bg:'#F5F3EE', surface:'#EDE9E0', card:'#FFFFFF', text:'#0C2E30', muted:'#6B7E7F', border:'#EAE5DA', teal:'#0B7E8A', tealLight:'rgba(11,126,138,0.09)' };
 
 const TYPE_LABELS: any = {
   lab_result:'Lab Result', imaging:'Imaging / Scan', prescription:'Prescription',
@@ -19,10 +21,12 @@ function formatDate(iso: string) {
 }
 
 export default function TransferredRecordsScreen({ navigation }: any) {
+  const toast = useToast();
   const [records, setRecords]       = useState<any[]>([]);
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab]               = useState<'sent'|'received'>('sent');
+  const [revokeId, setRevokeId]     = useState<string | null>(null);
 
   useEffect(() => { loadRecords(); }, []);
 
@@ -72,19 +76,20 @@ export default function TransferredRecordsScreen({ navigation }: any) {
 
   const onRefresh = async () => { setRefreshing(true); await loadRecords(); setRefreshing(false); };
 
-  const revokeAccess = (id: string) => {
-    Alert.alert('Revoke Access', 'Remove access to this record?', [
-      { text:'Cancel', style:'cancel' },
-      { text:'Revoke', style:'destructive', onPress: async () => {
-        await supabase.from('medical_record_access').update({ is_active: false }).eq('id', id);
-        loadRecords();
-      }},
-    ]);
+  const revokeAccess = (id: string) => setRevokeId(id);
+
+  const doRevoke = async () => {
+    if (!revokeId) return;
+    const id = revokeId;
+    setRevokeId(null);
+    await supabase.from('medical_record_access').update({ is_active: false }).eq('id', id);
+    toast.showSuccess('Access Revoked', 'The recipient can no longer view this record.');
+    loadRecords();
   };
 
   const getRecipientLabel = (item: any) => {
     if (tab === 'sent') {
-      if (item.doctor) return `Dr. ${item.doctor.full_name ?? ''} · ${item.doctor.specialization ?? ''}`;
+      if (item.doctor) return `${drName(item.doctor.full_name, item.doctor.title)} · ${item.doctor.specialization ?? ''}`;
       if (item.hospital) return `${item.hospital.name ?? ''} · ${item.hospital.city ?? ''}`;
       return 'Unknown recipient';
     }
@@ -95,7 +100,7 @@ export default function TransferredRecordsScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor="#0B7E8A" />
+      <StatusBar barStyle="light-content" backgroundColor="#083236" />
       {/* Teal Header */}
       <View style={s.header}>
         <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
@@ -182,19 +187,40 @@ export default function TransferredRecordsScreen({ navigation }: any) {
         />
       )}
       </View>
+
+      {/* Revoke Confirm Sheet */}
+      <Modal visible={!!revokeId} animationType="slide" transparent onRequestClose={() => setRevokeId(null)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40 }}>
+            <View style={{ width: 40, height: 4, backgroundColor: '#EAE5DA', borderRadius: 2, alignSelf: 'center', marginBottom: 20 }} />
+            <Text style={{ fontSize: 18, fontFamily: 'Montserrat_700Bold', color: '#0C2E30', marginBottom: 6 }}>Revoke Access?</Text>
+            <Text style={{ fontSize: 13.5, fontFamily: 'SpaceGrotesk_400Regular', color: '#7A8785', marginBottom: 24, lineHeight: 20 }}>
+              The recipient will no longer be able to view this record.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <TouchableOpacity onPress={() => setRevokeId(null)} style={{ flex: 1, padding: 14, borderRadius: 13, backgroundColor: '#EDE9E0', alignItems: 'center' }}>
+                <Text style={{ fontSize: 14, fontFamily: 'Montserrat_600SemiBold', color: '#7A8785' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={doRevoke} style={{ flex: 1, padding: 14, borderRadius: 13, backgroundColor: '#EF4444', alignItems: 'center' }}>
+                <Text style={{ fontSize: 14, fontFamily: 'Montserrat_700Bold', color: '#fff' }}>Revoke</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
-  container: { flex:1, backgroundColor:'#0B7E8A' },
+  container: { flex:1, backgroundColor:'#083236' },
   header: { flexDirection:'row', alignItems:'center', paddingHorizontal:20, paddingTop:12, paddingBottom:20, gap:14 },
-  backBtn: { width:40, height:40, borderRadius:20, backgroundColor:'rgba(255,255,255,0.2)', alignItems:'center', justifyContent:'center' },
+  backBtn: { width:36, height:36, borderRadius:18, backgroundColor:'rgba(255,255,255,0.15)', alignItems:'center', justifyContent:'center' },
   headerIconCircle: { width:56, height:56, borderRadius:28, backgroundColor:'rgba(255,255,255,0.2)', borderWidth:1, borderColor:'rgba(255,255,255,0.4)', alignItems:'center', justifyContent:'center' },
   headerCenter: { flex:1 },
-  headerTitle: { fontSize:26, fontWeight:'700', color:'#fff', letterSpacing:-0.3 },
+  headerTitle: { fontSize:26, fontFamily:'Montserrat_700Bold', color:'#fff', letterSpacing:-0.3 },
   headerSub: { fontSize:14, color:'rgba(255,255,255,0.75)', marginTop:2 },
-  whiteCard: { flex:1, backgroundColor:'#ffffff', borderTopLeftRadius:28, borderTopRightRadius:28, overflow:'hidden' },
+  whiteCard: { flex:1, backgroundColor:'#F5F3EE', borderTopLeftRadius:28, borderTopRightRadius:28, overflow:'hidden' },
   tabRow: { flexDirection:'row', marginHorizontal:16, marginVertical:12, backgroundColor:'#F5F5F5', borderRadius:10, padding:4 },
   tab: { flex:1, paddingVertical:9, borderRadius:8, alignItems:'center' },
   tabActive: { backgroundColor:C.teal },

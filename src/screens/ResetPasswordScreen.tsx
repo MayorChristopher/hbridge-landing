@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet, Text, View, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform, ScrollView, StatusBar, Image,
@@ -10,15 +10,32 @@ import { useToast } from '../components/ToastProvider';
 
 type Step = 'email' | 'otp' | 'password';
 
-export default function ResetPasswordScreen({ navigation }: any) {
-  const [email, setEmail]               = useState('');
-  const [otp, setOtp]                   = useState('');
+export default function ResetPasswordScreen({ route, navigation }: any) {
+  const initialEmail = route?.params?.initialEmail || '';
+  const [email, setEmail]               = useState(initialEmail);
+  const [otpDigits, setOtpDigits]       = useState(['', '', '', '', '', '']);
   const [newPassword, setNewPassword]   = useState('');
   const [confirmPassword, setConfirm]   = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading]           = useState(false);
   const [step, setStep]                 = useState<Step>('email');
+  const [cooldown, setCooldown]         = useState(0);
+  const otpRefs    = useRef<(TextInput | null)[]>([]);
+  const cooldownRef = useRef<any>(null);
   const toast = useToast();
+
+  useEffect(() => () => clearInterval(cooldownRef.current), []);
+
+  const startCooldown = () => {
+    setCooldown(60);
+    clearInterval(cooldownRef.current);
+    cooldownRef.current = setInterval(() => {
+      setCooldown(prev => {
+        if (prev <= 1) { clearInterval(cooldownRef.current); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+  };
 
   const validateEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
@@ -38,6 +55,26 @@ export default function ResetPasswordScreen({ navigation }: any) {
   };
   const strength = getPasswordStrength(newPassword);
 
+  const handleOtpChange = (val: string, idx: number) => {
+    if (val.length === 6 && /^\d{6}$/.test(val)) {
+      const digits = val.split('');
+      setOtpDigits(digits);
+      otpRefs.current[5]?.focus();
+      return;
+    }
+    const digit = val.replace(/\D/g, '').slice(-1);
+    const next = [...otpDigits];
+    next[idx] = digit;
+    setOtpDigits(next);
+    if (digit && idx < 5) otpRefs.current[idx + 1]?.focus();
+  };
+
+  const handleOtpKey = (key: string, idx: number) => {
+    if (key === 'Backspace' && !otpDigits[idx] && idx > 0) {
+      otpRefs.current[idx - 1]?.focus();
+    }
+  };
+
   const handleSendOtp = async (isResend = false) => {
     if (!email) { toast.showWarning('Required', 'Enter your email address.'); return; }
     if (!validateEmail(email)) { toast.showError('Invalid Email', 'Enter a valid email address.'); return; }
@@ -47,9 +84,11 @@ export default function ResetPasswordScreen({ navigation }: any) {
       if (error) {
         toast.showError('Error', error.message);
       } else {
-        toast.showSuccess(isResend ? 'New Code Sent' : 'Code Sent', 'Check your email for the reset code.');
-        setOtp('');
+        toast.showSuccess(isResend ? 'New Code Sent' : 'Code Sent', 'Check your email for the 6-digit reset code.');
+        setOtpDigits(['', '', '', '', '', '']);
+        startCooldown();
         setStep('otp');
+        setTimeout(() => otpRefs.current[0]?.focus(), 300);
       }
     } catch {
       toast.showError('Error', 'Unable to send code. Check your internet.');
@@ -59,15 +98,16 @@ export default function ResetPasswordScreen({ navigation }: any) {
   };
 
   const handleVerifyOtp = async () => {
-    if (!otp || otp.length < 6) {
-      toast.showWarning('Required', 'Enter the code from your email.');
+    const code = otpDigits.join('');
+    if (code.length < 6) {
+      toast.showWarning('Required', 'Enter all 6 digits from your email.');
       return;
     }
     setLoading(true);
     try {
-      const { error } = await supabase.auth.verifyOtp({ email, token: otp, type: 'recovery' });
+      const { error } = await supabase.auth.verifyOtp({ email, token: code, type: 'recovery' });
       if (error) {
-        toast.showError('Invalid Code', 'Code is incorrect or expired. Tap resend for a new one.');
+        toast.showError('Invalid Code', 'Code is incorrect or expired. Tap "Resend code" for a new one.');
       } else {
         setStep('password');
       }
@@ -119,7 +159,7 @@ export default function ResetPasswordScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor="#0B7E8A" />
+      <StatusBar barStyle="light-content" backgroundColor="#083236" />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -192,32 +232,36 @@ export default function ResetPasswordScreen({ navigation }: any) {
             {step === 'otp' && (
               <>
                 <View style={styles.otpHint}>
-                  <Ionicons name="information-circle-outline" size={18} color="#D4A843" />
+                  <Ionicons name="mail-outline" size={18} color="#0B7E8A" />
                   <Text style={styles.otpHintText}>
-                    Check your email. Copy the code at the end of the reset link (after <Text style={{ fontWeight: '700' }}>token=</Text>)
+                    We sent a 6-digit code to <Text style={{ fontWeight: '700', color: '#0B7E8A' }}>{email}</Text>. It expires in 10 minutes.
                   </Text>
                 </View>
 
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Reset Code</Text>
-                  <View style={styles.inputContainer}>
-                    <Ionicons name="keypad-outline" size={18} color="#0B7E8A" style={styles.inputIcon} />
-                    <TextInput
-                      style={[styles.input, styles.otpInput]}
-                      value={otp}
-                      onChangeText={setOtp}
-                      placeholder="Paste code here"
-                      placeholderTextColor="#a3a3a3"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                    />
+                  <View style={styles.otpRow}>
+                    {otpDigits.map((digit, idx) => (
+                      <TextInput
+                        key={idx}
+                        ref={r => { otpRefs.current[idx] = r; }}
+                        style={[styles.otpBox, digit && styles.otpBoxFilled]}
+                        value={digit}
+                        onChangeText={v => handleOtpChange(v, idx)}
+                        onKeyPress={({ nativeEvent }) => handleOtpKey(nativeEvent.key, idx)}
+                        keyboardType="number-pad"
+                        maxLength={idx === 0 ? 6 : 1}
+                        selectTextOnFocus
+                        textAlign="center"
+                      />
+                    ))}
                   </View>
                 </View>
 
                 <TouchableOpacity
-                  style={[styles.button, loading && styles.buttonDisabled]}
+                  style={[styles.button, (loading || otpDigits.join('').length < 6) && styles.buttonDisabled]}
                   onPress={handleVerifyOtp}
-                  disabled={loading}
+                  disabled={loading || otpDigits.join('').length < 6}
                   activeOpacity={0.85}
                 >
                   <View style={styles.buttonInner}>
@@ -227,11 +271,16 @@ export default function ResetPasswordScreen({ navigation }: any) {
                 </TouchableOpacity>
 
                 <View style={styles.linkRow}>
-                  <TouchableOpacity onPress={() => handleSendOtp(true)} disabled={loading}>
-                    <Text style={styles.linkText}>Resend code</Text>
+                  <TouchableOpacity
+                    onPress={() => cooldown === 0 && handleSendOtp(true)}
+                    disabled={loading || cooldown > 0}
+                  >
+                    <Text style={[styles.linkText, cooldown > 0 && { color: '#a3a3a3' }]}>
+                      {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend code'}
+                    </Text>
                   </TouchableOpacity>
                   <Text style={styles.linkSep}>·</Text>
-                  <TouchableOpacity onPress={() => setStep('email')}>
+                  <TouchableOpacity onPress={() => { setStep('email'); setCooldown(0); clearInterval(cooldownRef.current); }}>
                     <Text style={[styles.linkText, { color: '#737373' }]}>Change email</Text>
                   </TouchableOpacity>
                 </View>
@@ -319,14 +368,14 @@ export default function ResetPasswordScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B7E8A' },
+  container: { flex: 1, backgroundColor: '#083236' },
   scrollContent: { flexGrow: 1, paddingBottom: 40 },
 
   // Header
   header: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 28 },
   headerBranding: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 24 },
   backButton: {
-    width: 40, height: 40, borderRadius: 20,
+    width: 36, height: 36, borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center', justifyContent: 'center',
   },
@@ -340,8 +389,8 @@ const styles = StyleSheet.create({
 
   // Card
   card: {
-    flex: 1, backgroundColor: '#ffffff',
-    borderTopLeftRadius: 28, borderTopRightRadius: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28,
+    flex: 1, backgroundColor: '#F5F3EE',
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
     paddingHorizontal: 24, paddingTop: 32, paddingBottom: 16, gap: 20,
   },
 
@@ -358,16 +407,25 @@ const styles = StyleSheet.create({
   inputSuccess: { borderColor: '#0B7E8A', backgroundColor: '#E6F5F5' },
   inputIcon: { marginRight: 10 },
   input: { flex: 1, fontSize: 15, color: '#171717', paddingVertical: 0 },
-  otpInput: { fontSize: 15, letterSpacing: 2 },
   eyeButton: { padding: 4 },
 
   // OTP hint
   otpHint: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,
-    backgroundColor: '#fdf8ee', borderRadius: 12, padding: 14,
-    borderWidth: 1, borderColor: '#D4A84340',
+    backgroundColor: '#E6F5F5', borderRadius: 12, padding: 14,
+    borderWidth: 1, borderColor: 'rgba(11,126,138,0.25)',
   },
-  otpHintText: { flex: 1, fontSize: 13, color: '#525252', lineHeight: 19 },
+  otpHintText: { flex: 1, fontSize: 13, color: '#404040', lineHeight: 19 },
+
+  // OTP 6-box
+  otpRow: { flexDirection: 'row', gap: 8, justifyContent: 'center' },
+  otpBox: {
+    width: 46, height: 54, borderRadius: 12,
+    borderWidth: 1.5, borderColor: '#e5e5e5',
+    backgroundColor: '#f9f9f9',
+    fontSize: 22, fontWeight: '700', color: '#0C2E30',
+  },
+  otpBoxFilled: { borderColor: '#0B7E8A', backgroundColor: '#E6F5F5' },
 
   // Strength
   strengthContainer: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 },
