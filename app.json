@@ -17,7 +17,6 @@
       "backgroundColor": "#083236",
       "barStyle": "light-content"
     },
-
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -101,7 +100,8 @@
         {
           "photosPermission": "This app needs access to photos for profile pictures and medical documents."
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "extra": {
       "eas": {

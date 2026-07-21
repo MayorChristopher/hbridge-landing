@@ -39,27 +39,21 @@ export default function SubscriptionScreen({ route, navigation }: any) {
 
   const handlePaymentSuccess = async (response: any) => {
     const ref = response?.transactionRef?.reference || response?.data?.reference || `sub_${Date.now()}`;
+    const planId = selectedPlan;
     setSelectedPlan(null);
     try {
-      const plan = (plans as any)[selectedPlan?.replace(`${userType}_`, '') || ''];
-      await supabase.from('subscriptions').insert({
-        user_id: user.id,
-        plan_id: selectedPlan,
-        status: 'active',
-        amount: selectedAmount,
-        payment_reference: ref,
-        started_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      const { data, error } = await supabase.functions.invoke('paystack-verify', {
+        body: { reference: ref, kind: 'subscription', planId, userId: user.id },
       });
-      await supabase.from('profiles').update({
-        subscription_plan: selectedPlan,
-        subscription_status: 'active',
-      }).eq('id', user.id);
+      if (error || !data?.verified) {
+        Toast.showError('Subscription Failed', (data?.message || error?.message) + ' Contact support with ref: ' + ref);
+        return;
+      }
       Toast.showSuccess('Subscription Active', 'Your premium plan is now active!');
       navigation.goBack();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Subscription error:', error);
-      Toast.showError('Subscription Failed', 'Payment received but setup failed. Contact support with ref: ' + ref);
+      Toast.showError('Subscription Failed', 'Payment received but verification failed. Contact support with ref: ' + ref);
     }
   };
 
@@ -75,9 +69,6 @@ export default function SubscriptionScreen({ route, navigation }: any) {
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={22} color="#ffffff" />
         </TouchableOpacity>
-        <View style={styles.headerIconWrap}>
-          <Ionicons name="star" size={26} color="#ffffff" />
-        </View>
         <View style={styles.headerTitles}>
           <Text style={styles.headerTitle}>Upgrade Plan</Text>
           <Text style={styles.headerSubtitle}>Choose the plan that works for you</Text>

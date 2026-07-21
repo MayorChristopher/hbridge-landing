@@ -10,6 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../lib/supabase';
 import FadeScreen from '../components/FadeScreen';
 import { useToast } from '../components/ToastProvider';
+import { sendNotifications } from '../utils/notify';
 
 const C = {
   paper: '#F5F3EE', card: '#FFFFFF', border: '#EAE5DA',
@@ -58,6 +59,8 @@ export default function PatientDetailScreen({ navigation, route }: any) {
   const [prescribeModal, setPrescribeModal] = useState(false);
   const [rx, setRx] = useState({ name: '', dosage: '', frequency: '', start_date: '', end_date: '', notes: '' });
   const [savingRx, setSavingRx] = useState(false);
+  const [canPrescribe, setCanPrescribe] = useState(false);
+  const [prescribeBlockReason, setPrescribeBlockReason] = useState('');
 
   // Lab result modal
   const [labModal, setLabModal] = useState(false);
@@ -94,6 +97,30 @@ export default function PatientDetailScreen({ navigation, route }: any) {
       .eq('patient_id', pid).eq('doctor_id', did)
       .order('scheduled_at', { ascending: false }).limit(5);
     setConsultations(data || []);
+    await checkPrescribeEligibility(pid, did);
+  };
+
+  const GOV_HOSPITAL_TYPES = ['government', 'federal', 'state'];
+
+  const checkPrescribeEligibility = async (pid: string, did: string) => {
+    const [{ data: anyConsult }, { data: qualifyingConsult }, { data: affiliations }] = await Promise.all([
+      supabase.from('consultations').select('id').eq('patient_id', pid).eq('doctor_id', did).limit(1),
+      supabase.from('consultations').select('id').eq('patient_id', pid).eq('doctor_id', did)
+        .in('consultation_type', ['in_person', 'follow_up']).limit(1),
+      supabase.from('hospital_staff').select('hospital_id, hospitals!inner(type)').eq('doctor_id', did).eq('status', 'active'),
+    ]);
+
+    const isGovernmentAffiliated = (affiliations || []).some((a: any) => GOV_HOSPITAL_TYPES.includes(a.hospitals?.type));
+    const hasAnyConsultation = (anyConsult || []).length > 0;
+    const hasQualifyingConsultation = (qualifyingConsult || []).length > 0;
+    const eligible = hasAnyConsultation && (isGovernmentAffiliated || hasQualifyingConsultation);
+
+    setCanPrescribe(eligible);
+    setPrescribeBlockReason(
+      !hasAnyConsultation
+        ? 'You need at least one consultation on record with this patient before prescribing.'
+        : 'Prescribing requires an in-person or follow-up visit, unless you are affiliated with a government, federal, or state hospital.'
+    );
   };
 
   const loadSharedRecords = async (pid: string, did?: string) => {
@@ -181,12 +208,14 @@ export default function PatientDetailScreen({ navigation, route }: any) {
         }
       }
 
-      await supabase.from('notifications').insert({
-        user_id: patient.id,
-        title: 'New Prescription',
-        message: `Your doctor has prescribed ${rx.name.trim()}${rx.dosage ? ` (${rx.dosage})` : ''}${rx.frequency ? ' — ' + rx.frequency : ''}.`,
-        type: 'system', is_read: false,
-      });
+      try {
+        await sendNotifications([{
+          userId: patient.id,
+          title: 'New Prescription',
+          message: `Your doctor has prescribed ${rx.name.trim()}${rx.dosage ? ` (${rx.dosage})` : ''}${rx.frequency ? ' — ' + rx.frequency : ''}.`,
+          type: 'system', is_read: false,
+        }]);
+      } catch (e) { console.warn('Notification failed', e); }
 
       // Optimistic update — don't rely on a reload that RLS may block for the doctor
       const newMed = {
@@ -234,12 +263,14 @@ export default function PatientDetailScreen({ navigation, route }: any) {
         }
       }
 
-      await supabase.from('notifications').insert({
-        user_id: patient.id,
-        title: 'New Lab Result',
-        message: `Your doctor has shared a lab result: ${lab.title.trim()}`,
-        type: 'system',
-      });
+      try {
+        await sendNotifications([{
+          userId: patient.id,
+          title: 'New Lab Result',
+          message: `Your doctor has shared a lab result: ${lab.title.trim()}`,
+          type: 'system',
+        }]);
+      } catch (e) { console.warn('Notification failed', e); }
 
       // Optimistic update
       const newLab = {
@@ -314,7 +345,14 @@ export default function PatientDetailScreen({ navigation, route }: any) {
 
           {/* Action buttons */}
           <View style={s.actionsRow}>
-            <ActionBtn icon="medkit-outline" label="Prescribe" color="#D4A843" onPress={() => setPrescribeModal(true)} />
+            <ActionBtn
+              icon="medkit-outline" label="Prescribe" color="#D4A843"
+              disabled={!canPrescribe}
+              onPress={() => {
+                if (!canPrescribe) { toast.showWarning('Not Eligible', prescribeBlockReason); return; }
+                setPrescribeModal(true);
+              }}
+            />
             <ActionBtn icon="flask-outline" label="Lab Result" color="#1E9E5A" onPress={() => setLabModal(true)} />
           </View>
 
@@ -493,11 +531,11 @@ export default function PatientDetailScreen({ navigation, route }: any) {
   );
 }
 
-function ActionBtn({ icon, label, onPress, color }: { icon: string; label: string; onPress: () => void; color?: string }) {
+function ActionBtn({ icon, label, onPress, color, disabled }: { icon: string; label: string; onPress: () => void; color?: string; disabled?: boolean }) {
   const bg = color ? color + '18' : 'rgba(11,126,138,0.09)';
   const ic = color || C.teal;
   return (
-    <TouchableOpacity style={s.actionBtn} onPress={onPress}>
+    <TouchableOpacity style={[s.actionBtn, disabled && { opacity: 0.45 }]} onPress={onPress}>
       <View style={[s.actionIcon, { backgroundColor: bg }]}>
         <Ionicons name={icon as any} size={20} color={ic} />
       </View>

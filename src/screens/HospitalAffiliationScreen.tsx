@@ -9,6 +9,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastProvider';
+import { sendNotifications } from '../utils/notify';
+import { isHospitalSetupComplete } from '../utils/hospitalSetup';
 
 const C = {
   bg: '#F5F3EE', surface: '#EDE9E0', card: '#FFFFFF',
@@ -34,6 +36,7 @@ export default function HospitalAffiliationScreen({ navigation }: any) {
 
   // Link request modal
   const [showLink, setShowLink]         = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{ type: 'decline' | 'resign'; row: any } | null>(null);
   const [linkSearch, setLinkSearch]     = useState('');
   const [linkResults, setLinkResults]   = useState<any[]>([]);
   const [searching, setSearching]       = useState(false);
@@ -55,19 +58,21 @@ export default function HospitalAffiliationScreen({ navigation }: any) {
       if (!user) return;
       setMyUserId(user.id);
 
-      const { data: doc } = await supabase
+      const { data: doc, error: docError } = await supabase
         .from('doctors').select('id').eq('user_id', user.id).maybeSingle();
+      if (docError) { toast.showError('Error', docError.message); setLoading(false); setRefreshing(false); return; }
       if (!doc) { setLoading(false); setRefreshing(false); return; }
       setDoctorId(doc.id);
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('hospital_staff')
-        .select('id, status, role, requested_by, invited_at, joined_at, hospitals(id, name, type, city, state)')
+        .select('id, status, role, requested_by, invited_at, joined_at, on_duty, on_duty_requested_at, hospitals(id, name, type, city, state)')
         .eq('doctor_id', doc.id)
         .order('invited_at', { ascending: false });
 
+      if (error) { toast.showError('Error loading affiliations', error.message); }
       setAffiliations(data || []);
-    } catch (e) { console.error(e); }
+    } catch (e: any) { console.error(e); toast.showError('Error', e?.message ?? 'Something went wrong'); }
     finally { setLoading(false); setRefreshing(false); }
   };
 
@@ -90,80 +95,26 @@ export default function HospitalAffiliationScreen({ navigation }: any) {
     if (!q.trim()) { setLinkResults([]); return; }
     setSearching(true);
     try {
-      // Primary: hospitals table
+      // Only real, active facilities that have finished setup are
+      // discoverable — an admin who hasn't completed their profile simply
+      // doesn't appear yet, rather than showing a stub that fails to link.
       const { data: hospRows } = await supabase
         .from('hospitals')
-        .select('id, name, type, city, state')
+        .select('id, name, type, city, state, address')
         .ilike('name', `%${q}%`)
         .eq('is_active', true)
-        .limit(15);
+        .limit(20);
 
-      const results: any[] = [...(hospRows || [])];
-
-      // Fallback: profiles with hospital_name set — covers dual-role accounts and
-      // accounts registered before a hospitals table row was created.
-      // We do NOT insert here (may fail RLS in practitioner context) — insert
-      // happens lazily in requestLink when they actually tap Request.
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('hospital_name')
-        .not('hospital_name', 'is', null)
-        .ilike('hospital_name', `%${q}%`)
-        .limit(10);
-
-      for (const prof of profiles || []) {
-        const hospName = (prof.hospital_name || '').trim();
-        if (!hospName) continue;
-        const alreadyIn = results.some(r => r.name.toLowerCase() === hospName.toLowerCase());
-        if (!alreadyIn) {
-          results.push({ id: null, name: hospName, type: null, city: null, state: null });
-        }
-      }
-
-      setLinkResults(results);
+      setLinkResults((hospRows || []).filter(isHospitalSetupComplete));
     } catch {}
     finally { setSearching(false); }
   };
 
   const requestLink = async (hospital: any) => {
     if (!doctorId) return;
-    setRequesting(hospital.id || hospital.name);
+    setRequesting(hospital.id);
     try {
-      let hospitalId: string | null = hospital.id;
-
-      // Profile-only result (no hospitals row yet) — find or create the row now
-      if (!hospitalId) {
-        const { data: existingRow } = await supabase
-          .from('hospitals')
-          .select('id')
-          .ilike('name', hospital.name)
-          .maybeSingle();
-
-        if (existingRow?.id) {
-          hospitalId = existingRow.id;
-        } else {
-          const { data: created, error: insertErr } = await supabase
-            .from('hospitals')
-            .insert({
-              name: hospital.name,
-              type: 'General',
-              category: 'Private',
-              address: 'Pending',
-              city: 'Pending',
-              state: 'Pending',
-              is_active: true,
-              rating: 0,
-              total_reviews: 0,
-            })
-            .select('id')
-            .maybeSingle();
-          if (insertErr || !created?.id) {
-            toast.showWarning('Not Available', `${hospital.name} hasn't completed their facility setup yet. Ask the hospital admin to open their account first.`);
-            return;
-          }
-          hospitalId = created.id;
-        }
-      }
+      const hospitalId: string = hospital.id;
 
       const { data: existing } = await supabase
         .from('hospital_staff')
@@ -172,19 +123,28 @@ export default function HospitalAffiliationScreen({ navigation }: any) {
         .eq('doctor_id', doctorId)
         .maybeSingle();
 
-      if (existing) {
-        const st = existing.status;
-        toast.showWarning('Already exists', `You ${st === 'active' ? 'are already staff at' : st === 'pending' ? 'have a pending request at' : 'have a previous record with'} ${hospital.name}.`);
+      if (existing && (existing.status === 'active' || existing.status === 'pending')) {
+        toast.showWarning('Already exists', `You ${existing.status === 'active' ? 'are already staff at' : 'have a pending request at'} ${hospital.name}.`);
         return;
       }
 
-      await supabase.from('hospital_staff').insert({
-        hospital_id: hospitalId,
-        doctor_id: doctorId,
-        status: 'pending',
-        requested_by: 'doctor',
-        invited_at: new Date().toISOString(),
-      });
+      if (existing) {
+        // Previously resigned/declined — re-request by reviving the same row
+        // rather than blocking, so leaving/declining isn't permanent.
+        const { error: relinkError } = await supabase.from('hospital_staff')
+          .update({ status: 'pending', requested_by: 'doctor', invited_at: new Date().toISOString(), joined_at: null })
+          .eq('id', existing.id);
+        if (relinkError) throw relinkError;
+      } else {
+        const { error: linkError } = await supabase.from('hospital_staff').insert({
+          hospital_id: hospitalId,
+          doctor_id: doctorId,
+          status: 'pending',
+          requested_by: 'doctor',
+          invited_at: new Date().toISOString(),
+        });
+        if (linkError) throw linkError;
+      }
 
       // Try notify the hospital admin
       const { data: adminProfiles } = await supabase
@@ -194,15 +154,15 @@ export default function HospitalAffiliationScreen({ navigation }: any) {
         .limit(3);
 
       if (adminProfiles && adminProfiles.length > 0) {
-        await supabase.from('notifications').insert(
-          adminProfiles.map((p: any) => ({
-            user_id: p.id,
+        try {
+          await sendNotifications(adminProfiles.map((p: any) => ({
+            userId: p.id,
             title: 'New Staff Link Request',
             message: `A medical practitioner has requested to link their account to ${hospital.name}. Review it in your Staff screen.`,
             type: 'system',
             is_read: false,
-          }))
-        );
+          })));
+        } catch (e) { console.warn('Notification failed', e); }
       }
 
       toast.showSuccess('Request Sent', `Your request to join ${hospital.name} has been submitted. They will review and approve it.`);
@@ -217,9 +177,10 @@ export default function HospitalAffiliationScreen({ navigation }: any) {
 
   const acceptInvite = async (row: any) => {
     try {
-      await supabase.from('hospital_staff')
+      const { error } = await supabase.from('hospital_staff')
         .update({ status: 'active', joined_at: new Date().toISOString() })
         .eq('id', row.id);
+      if (error) throw error;
 
       // Notify hospital admin
       const hosp = row.hospitals;
@@ -231,15 +192,15 @@ export default function HospitalAffiliationScreen({ navigation }: any) {
           .or(`full_name.ilike.%${hosp.name}%,hospital_name.ilike.%${hosp.name}%`)
           .limit(3);
         if (admins && admins.length > 0) {
-          await supabase.from('notifications').insert(
-            admins.map((p: any) => ({
-              user_id: p.id,
+          try {
+            await sendNotifications(admins.map((p: any) => ({
+              userId: p.id,
               title: 'Staff Invitation Accepted',
               message: `A practitioner has accepted your staff invitation and is now part of your team.`,
               type: 'system',
               is_read: false,
-            }))
-          );
+            })));
+          } catch (e) { console.warn('Notification failed', e); }
         }
       }
 
@@ -252,7 +213,8 @@ export default function HospitalAffiliationScreen({ navigation }: any) {
 
   const declineInvite = async (row: any) => {
     try {
-      await supabase.from('hospital_staff').update({ status: 'rejected' }).eq('id', row.id);
+      const { error } = await supabase.from('hospital_staff').update({ status: 'rejected' }).eq('id', row.id);
+      if (error) throw error;
       toast.showInfo('Declined', 'Invitation declined.');
       loadAffiliations();
     } catch (e: any) {
@@ -260,14 +222,75 @@ export default function HospitalAffiliationScreen({ navigation }: any) {
     }
   };
 
+  const toggleOnDuty = async (row: any) => {
+    // Going OFF duty is self-service. Going ON duty requires hospital
+    // confirmation -- tapping while off requests it; tapping again while
+    // pending cancels the request.
+    if (row.on_duty) {
+      const { error } = await supabase.from('hospital_staff')
+        .update({ on_duty: false, on_duty_requested_at: null }).eq('id', row.id);
+      if (error) { toast.showError('Error', error.message); return; }
+      setAffiliations(prev => prev.map(a => a.id === row.id ? { ...a, on_duty: false, on_duty_requested_at: null } : a));
+      return;
+    }
+
+    if (row.on_duty_requested_at) {
+      const { error } = await supabase.from('hospital_staff')
+        .update({ on_duty_requested_at: null }).eq('id', row.id);
+      if (error) { toast.showError('Error', error.message); return; }
+      setAffiliations(prev => prev.map(a => a.id === row.id ? { ...a, on_duty_requested_at: null } : a));
+      return;
+    }
+
+    const requestedAt = new Date().toISOString();
+    const { error } = await supabase.from('hospital_staff')
+      .update({ on_duty_requested_at: requestedAt }).eq('id', row.id);
+    if (error) { toast.showError('Error', error.message); return; }
+    setAffiliations(prev => prev.map(a => a.id === row.id ? { ...a, on_duty_requested_at: requestedAt } : a));
+
+    try {
+      const { data: admins } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_type', 'hospital_admin')
+        .ilike('hospital_name', `%${row.hospitals?.name ?? ''}%`)
+        .limit(3);
+      if (admins && admins.length > 0) {
+        await sendNotifications(admins.map((p: any) => ({
+          userId: p.id,
+          title: 'On-Duty Request',
+          message: 'A staff member has requested to go on duty. Review it in your Shifts screen.',
+          type: 'system',
+          is_read: false,
+        })));
+      }
+    } catch (e) { console.warn('Notification failed', e); }
+  };
+
   const resign = async (row: any) => {
     try {
-      await supabase.from('hospital_staff').update({ status: 'resigned' }).eq('id', row.id);
+      const { error } = await supabase.from('hospital_staff').update({ status: 'resigned' }).eq('id', row.id);
+      if (error) throw error;
       toast.showInfo('Resigned', `You have left ${row.hospitals?.name || 'the hospital'}.`);
       loadAffiliations();
     } catch (e: any) {
       toast.showError('Error', e.message);
     }
+  };
+
+  const CONFIRM_COPY: Record<string, { title: string; body: (row: any) => string; confirmLabel: string; run: (row: any) => Promise<void> }> = {
+    decline: {
+      title: 'Decline Invitation?',
+      body: (row) => `You'll decline ${row.hospitals?.name ?? 'this hospital'}'s invitation to join their staff.`,
+      confirmLabel: 'Decline',
+      run: declineInvite,
+    },
+    resign: {
+      title: 'Resign From Hospital?',
+      body: (row) => `You'll immediately lose staff access to ${row.hospitals?.name ?? 'this hospital'}. You can request to rejoin later.`,
+      confirmLabel: 'Resign',
+      run: resign,
+    },
   };
 
   return (
@@ -342,6 +365,34 @@ export default function HospitalAffiliationScreen({ navigation }: any) {
                     <Text style={s.since}>Staff since {new Date(item.joined_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</Text>
                   )}
 
+                  {item.status === 'active' && (() => {
+                    const pending = !item.on_duty && !!item.on_duty_requested_at;
+                    const dotColor = item.on_duty ? C.green : pending ? C.gold : C.muted;
+                    const label = item.on_duty
+                      ? "You're on duty at this hospital"
+                      : pending
+                        ? 'Awaiting hospital confirmation…'
+                        : 'Request to go on duty';
+                    return (
+                      <TouchableOpacity
+                        style={[s.onDutyRow, item.on_duty && s.onDutyRowActive, pending && s.onDutyRowPending]}
+                        activeOpacity={0.8}
+                        onPress={() => toggleOnDuty(item)}
+                      >
+                        <View style={[s.onDutyDot, { backgroundColor: dotColor }]} />
+                        <Text style={[s.onDutyText, item.on_duty && { color: C.green }, pending && { color: '#8A6A1F' }]}>
+                          {label}
+                        </Text>
+                        {!pending && (
+                          <View style={[s.onDutySwitch, item.on_duty && s.onDutySwitchActive]}>
+                            <View style={[s.onDutyKnob, item.on_duty && s.onDutyKnobActive]} />
+                          </View>
+                        )}
+                        {pending && <Text style={s.onDutyCancelText}>Cancel</Text>}
+                      </TouchableOpacity>
+                    );
+                  })()}
+
                   {isPendingRequest && (
                     <Text style={s.pendingNote}>Your request is awaiting approval from the hospital.</Text>
                   )}
@@ -354,16 +405,25 @@ export default function HospitalAffiliationScreen({ navigation }: any) {
                           <Ionicons name="checkmark" size={15} color="#fff" />
                           <Text style={s.acceptBtnText}>Accept Invitation</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={s.declineBtn} onPress={() => declineInvite(item)}>
+                        <TouchableOpacity style={s.declineBtn} onPress={() => setConfirmAction({ type: 'decline', row: item })}>
                           <Text style={s.declineBtnText}>Decline</Text>
                         </TouchableOpacity>
                       </>
                     )}
                     {item.status === 'active' && (
-                      <TouchableOpacity style={s.resignBtn} onPress={() => resign(item)}>
-                        <Ionicons name="exit-outline" size={15} color={C.red} />
-                        <Text style={s.resignBtnText}>Resign</Text>
-                      </TouchableOpacity>
+                      <>
+                        <TouchableOpacity
+                          style={s.acceptBtn}
+                          onPress={() => navigation.navigate('HospitalTeamChat', { hospitalId: hosp?.id, hospitalName: hosp?.name })}
+                        >
+                          <Ionicons name="chatbubbles-outline" size={15} color="#fff" />
+                          <Text style={s.acceptBtnText}>Team Chat</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={s.resignBtn} onPress={() => setConfirmAction({ type: 'resign', row: item })}>
+                          <Ionicons name="exit-outline" size={15} color={C.red} />
+                          <Text style={s.resignBtnText}>Resign</Text>
+                        </TouchableOpacity>
+                      </>
                     )}
                   </View>
                 </View>
@@ -431,6 +491,40 @@ export default function HospitalAffiliationScreen({ navigation }: any) {
           </Animated.View>
         </View>
       </Modal>
+
+      {/* Confirm destructive action */}
+      <Modal visible={!!confirmAction} animationType="slide" transparent onRequestClose={() => setConfirmAction(null)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40 }}>
+            <View style={{ width: 40, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: 'center', marginBottom: 20 }} />
+            {confirmAction && (
+              <>
+                <Text style={{ fontSize: 18, fontFamily: 'Montserrat_700Bold', color: C.text, marginBottom: 6 }}>
+                  {CONFIRM_COPY[confirmAction.type].title}
+                </Text>
+                <Text style={{ fontSize: 13.5, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted, marginBottom: 24, lineHeight: 20 }}>
+                  {CONFIRM_COPY[confirmAction.type].body(confirmAction.row)}
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <TouchableOpacity onPress={() => setConfirmAction(null)} style={{ flex: 1, padding: 14, borderRadius: 13, backgroundColor: C.surface, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 14, fontFamily: 'Montserrat_600SemiBold', color: C.muted }}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={async () => {
+                      const action = confirmAction;
+                      setConfirmAction(null);
+                      if (action) await CONFIRM_COPY[action.type].run(action.row);
+                    }}
+                    style={{ flex: 1, padding: 14, borderRadius: 13, backgroundColor: C.red, alignItems: 'center' }}
+                  >
+                    <Text style={{ fontSize: 14, fontFamily: 'Montserrat_700Bold', color: '#fff' }}>{CONFIRM_COPY[confirmAction.type].confirmLabel}</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -459,6 +553,19 @@ const s = StyleSheet.create({
   statusBadge: { borderRadius: 8, paddingHorizontal: 9, paddingVertical: 4 },
   statusText:  { fontSize: 11, fontFamily: 'Montserrat_700Bold' },
   since:        { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted, marginBottom: 8 },
+  onDutyRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.surface,
+    borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12,
+  },
+  onDutyRowActive: { backgroundColor: 'rgba(30,158,90,0.08)' },
+  onDutyRowPending: { backgroundColor: 'rgba(212,168,67,0.10)' },
+  onDutyCancelText: { fontSize: 11, fontFamily: 'Montserrat_600SemiBold', color: '#8A6A1F' },
+  onDutyDot:  { width: 8, height: 8, borderRadius: 4 },
+  onDutyText: { flex: 1, fontSize: 12.5, fontFamily: 'Montserrat_600SemiBold', color: C.text },
+  onDutySwitch: { width: 38, height: 22, borderRadius: 11, backgroundColor: C.border, padding: 2, justifyContent: 'center' },
+  onDutySwitchActive: { backgroundColor: C.green },
+  onDutyKnob: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#fff', alignSelf: 'flex-start' },
+  onDutyKnobActive: { alignSelf: 'flex-end' },
   pendingNote:  { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: C.gold, marginBottom: 8 },
 
   cardActions: { flexDirection: 'row', gap: 8, marginTop: 4 },

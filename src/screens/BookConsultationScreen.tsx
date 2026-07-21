@@ -12,6 +12,7 @@ import { supabase } from '../lib/supabase';
 import { useNotificationBadge } from '../context/NotificationBadgeContext';
 import { useToast } from '../components/ToastProvider';
 import FadeScreen from '../components/FadeScreen';
+import { sendNotifications } from '../utils/notify';
 
 const C = {
   bg: '#F5F3EE', card: '#FFFFFF', border: '#EAE5DA',
@@ -71,6 +72,17 @@ export default function BookConsultationScreen({ route, navigation }: any) {
   // ── Doctor data (loaded fresh from DB) ───────────────────────────────────
   const [doctor, setDoctor]           = useState<any>(navDoctor);
   const [loadingDoctor, setLoadingDoctor] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
+  }, []);
+
+  // A practitioner (or anyone) can never book a consultation with themselves
+  // — no legitimate use case, and it would otherwise trigger a nonsensical
+  // self-payment split. Checked against the doctor row's own user_id, not
+  // just wherever a link to this screen happens to originate from.
+  const isSelfBooking = !!currentUserId && !!doctor?.user_id && currentUserId === doctor.user_id;
 
   // ── Form state ────────────────────────────────────────────────────────────
   const [type, setType]         = useState<string>(existingData?.type || 'audio');
@@ -246,23 +258,27 @@ export default function BookConsultationScreen({ route, navigation }: any) {
     const { data: docProfile } = await supabase
       .from('profiles').select('id').eq('id', doctor.user_id || doctor.id).maybeSingle();
     if (docProfile?.id) {
-      await supabase.from('notifications').insert({
-        user_id: docProfile.id,
-        title: 'New Consultation Request',
-        message: `A patient has requested a ${selectedType?.label} on ${fmtDate(date)} at ${selectedSlot!.label}. Review and approve or reschedule.`,
-        type: 'booking',
-      });
+      try {
+        await sendNotifications([{
+          userId: docProfile.id,
+          title: 'New Consultation Request',
+          message: `A patient has requested a ${selectedType?.label} on ${fmtDate(date)} at ${selectedSlot!.label}. Review and approve or reschedule.`,
+          type: 'booking',
+        }]);
+      } catch (e) { console.warn('Notification failed', e); }
     }
 
     // Notify the patient
-    await supabase.from('notifications').insert({
-      user_id: userId,
-      title: reschedule ? 'Reschedule Requested' : 'Request Sent!',
-      message: reschedule
-        ? `Your reschedule request for ${fmtDate(date)} at ${selectedSlot!.label} is awaiting approval.`
-        : `Your ${selectedType?.label} request with ${drName(doctor)} on ${fmtDate(date)} at ${selectedSlot!.label} is awaiting approval.`,
-      type: 'booking',
-    });
+    try {
+      await sendNotifications([{
+        userId,
+        title: reschedule ? 'Reschedule Requested' : 'Request Sent!',
+        message: reschedule
+          ? `Your reschedule request for ${fmtDate(date)} at ${selectedSlot!.label} is awaiting approval.`
+          : `Your ${selectedType?.label} request with ${drName(doctor)} on ${fmtDate(date)} at ${selectedSlot!.label} is awaiting approval.`,
+        type: 'booking',
+      }]);
+    } catch (e) { console.warn('Notification failed', e); }
 
     refreshUnreadCount();
     toast.showSuccess(
@@ -285,6 +301,7 @@ export default function BookConsultationScreen({ route, navigation }: any) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { toast.showError('Error', 'Please sign in first'); return; }
+      if (user.id === doctor?.user_id) { toast.showError('Not Allowed', 'You cannot book a consultation with yourself.'); return; }
       await createConsultation(user.id);
     } catch (e: any) {
       toast.showError('Booking Failed', e.message || 'Something went wrong');
@@ -310,6 +327,13 @@ export default function BookConsultationScreen({ route, navigation }: any) {
 
         {/* Cream card */}
         <View style={s.paperCard}>
+          {isSelfBooking ? (
+            <View style={s.emptyState}>
+              <Ionicons name="alert-circle-outline" size={40} color={C.muted} />
+              <Text style={s.emptyTitle}>You can't book yourself</Text>
+              <Text style={s.emptyBody}>This is your own practitioner profile — consultations can only be booked with another practitioner.</Text>
+            </View>
+          ) : (
           <KeyboardAvoidingView style={{ flex: 1 }} behavior="height">
             <ScrollView
               showsVerticalScrollIndicator={false}
@@ -501,6 +525,7 @@ export default function BookConsultationScreen({ route, navigation }: any) {
               </TouchableOpacity>
             </ScrollView>
           </KeyboardAvoidingView>
+          )}
         </View>
       </View>
     </FadeScreen>

@@ -10,6 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastProvider';
 import SpotlightTour, { SpotlightStep } from '../components/SpotlightTour';
+import { getOrCreateHospitalRow, isHospitalSetupComplete } from '../utils/hospitalSetup';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
@@ -81,17 +82,10 @@ export default function HospitalHomeScreen({ navigation }: any) {
       const hospitalName = prof?.hospital_name || prof?.full_name;
       let hospitalId: string | null = null;
       if (hospitalName) {
-        let { data: hosp } = await supabase
-          .from('hospitals')
-          .select('id, name, type, city, state, rating')
-          .ilike('name', `%${hospitalName}%`)
-          .maybeSingle();
-        if (!hosp) {
-          const { data: created } = await supabase.from('hospitals')
-            .insert({ name: hospitalName.trim(), is_active: true, rating: 0, total_reviews: 0 })
-            .select('id, name, type, city, state, rating').maybeSingle();
-          hosp = created;
-        }
+        let hosp: any = null;
+        try {
+          hosp = await getOrCreateHospitalRow(hospitalName);
+        } catch (e) { console.warn('Hospital row creation failed', e); }
         setHospital(hosp);
         hospitalId = hosp?.id ?? null;
       }
@@ -108,11 +102,10 @@ export default function HospitalHomeScreen({ navigation }: any) {
             .eq('is_active', true)
             .order('granted_at', { ascending: false })
             .limit(20),
-          supabase.from('medical_record_access')
+          supabase.from('hospital_staff')
             .select('doctor_id')
             .eq('hospital_id', hospitalId)
-            .eq('is_active', true)
-            .not('doctor_id', 'is', null),
+            .eq('status', 'active'),
           supabase.from('medical_record_access')
             .select('patient_id')
             .eq('hospital_id', hospitalId)
@@ -199,12 +192,25 @@ export default function HospitalHomeScreen({ navigation }: any) {
               </View>
             )}
 
-            {!profile?.hospital_name && (
+            {!profile?.hospital_name ? (
               <TouchableOpacity style={s.linkBanner} activeOpacity={0.8} onPress={() => navigation.navigate('Profile')}>
                 <Ionicons name="warning-outline" size={18} color={C.gold} />
                 <Text style={s.linkBannerText}>
                   Hospital name not set. Tap here → go to Profile → Edit to enter your hospital name.
                 </Text>
+              </TouchableOpacity>
+            ) : !isHospitalSetupComplete(hospital) && (
+              <TouchableOpacity style={s.setupBanner} activeOpacity={0.85} onPress={() => navigation.navigate('Profile')}>
+                <View style={s.setupBannerIcon}>
+                  <Ionicons name="business-outline" size={19} color={C.gold} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.setupBannerTitle}>Complete Your Facility Profile</Text>
+                  <Text style={s.setupBannerSub}>
+                    Add your address so practitioners can find and join your hospital
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={C.gold} />
               </TouchableOpacity>
             )}
 
@@ -368,6 +374,18 @@ const s = StyleSheet.create({
 
   linkBanner: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: 'rgba(212,168,67,0.10)', borderWidth: 1, borderColor: 'rgba(212,168,67,0.3)', borderRadius: 12, padding: 12, marginBottom: 16 },
   linkBannerText: { flex: 1, fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: '#8A6A1F', lineHeight: 18 },
+
+  setupBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: 'rgba(212,168,67,0.10)', borderWidth: 1, borderColor: 'rgba(212,168,67,0.3)',
+    borderRadius: 14, padding: 13, marginBottom: 16,
+  },
+  setupBannerIcon: {
+    width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(212,168,67,0.16)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  setupBannerTitle: { fontSize: 13.5, fontFamily: 'Montserrat_600SemiBold', color: '#8A6A1F' },
+  setupBannerSub: { fontSize: 11.5, fontFamily: 'SpaceGrotesk_400Regular', color: '#8A6A1F', opacity: 0.85, marginTop: 1, lineHeight: 15 },
 
   dashboardBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(11,126,138,0.07)', borderWidth: 1, borderColor: 'rgba(11,126,138,0.18)', borderRadius: 12, padding: 12, marginBottom: 16 },
   dashboardBannerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },

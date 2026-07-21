@@ -10,6 +10,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastProvider';
+import { sendNotifications } from '../utils/notify';
+import { isCallExpired } from '../utils/callDuration';
 
 const C = { bg: '#F5F3EE', surface: '#EDE9E0', card: '#FFFFFF', text: '#0C2E30', muted: '#6B7E7F', border: '#EAE5DA', teal: '#0B7E8A', tealLight: 'rgba(11,126,138,0.09)' };
 
@@ -62,13 +64,15 @@ export default function DoctorAppointmentRequestsScreen({ navigation }: any) {
       const appt = appointments.find(a => a.id === id);
       await supabase.from('consultations').update({ status: 'completed', updated_at: new Date().toISOString() }).eq('id', id);
       if (appt?.patient_id) {
-        await supabase.from('notifications').insert({
-          user_id: appt.patient_id,
-          title: 'Consultation Completed',
-          message: 'Your consultation has been marked as completed by your doctor.',
-          type: 'system',
-          is_read: false,
-        });
+        try {
+          await sendNotifications([{
+            userId: appt.patient_id,
+            title: 'Consultation Completed',
+            message: 'Your consultation has been marked as completed by your doctor.',
+            type: 'system',
+            is_read: false,
+          }]);
+        } catch (e) { console.warn('Notification failed', e); }
       }
       toast.showSuccess('Completed', 'Consultation marked as completed.');
       loadAppointments();
@@ -94,9 +98,9 @@ export default function DoctorAppointmentRequestsScreen({ navigation }: any) {
           },
         };
         if (notifMap[status]) {
-          await supabase.from('notifications').insert({
-            user_id: appt.patient_id, ...notifMap[status], type: 'booking', is_read: false,
-          });
+          try {
+            await sendNotifications([{ userId: appt.patient_id, ...notifMap[status], type: 'booking', is_read: false }]);
+          } catch (e) { console.warn('Notification failed', e); }
         }
       }
       toast.showSuccess('Updated', status === 'confirmed' ? 'Approved. Patient notified to pay.' : `Status set to ${status}.`);
@@ -113,12 +117,14 @@ export default function DoctorAppointmentRequestsScreen({ navigation }: any) {
       }).eq('id', id);
       const appt = appointments.find(a => a.id === id);
       if (appt?.patient_id) {
-        await supabase.from('notifications').insert({
-          user_id: appt.patient_id,
-          title: 'Consultation Rescheduled',
-          message: `Your practitioner has proposed a new time: ${formatDate(newDate)}. Please pay to confirm.`,
-          type: 'booking', is_read: false,
-        });
+        try {
+          await sendNotifications([{
+            userId: appt.patient_id,
+            title: 'Consultation Rescheduled',
+            message: `Your practitioner has proposed a new time: ${formatDate(newDate)}. Please pay to confirm.`,
+            type: 'booking', is_read: false,
+          }]);
+        } catch (e) { console.warn('Notification failed', e); }
       }
       toast.showSuccess('Rescheduled', 'Patient notified of the new time.');
       setRescheduleId(null);
@@ -146,10 +152,17 @@ export default function DoctorAppointmentRequestsScreen({ navigation }: any) {
     } catch { toast.showError('Error', 'Could not open chat'); }
   };
 
-  const joinCall = async (id: string, type: string) => {
-    // Mark in_progress + record start time
+  const joinCall = async (item: any) => {
+    const { id, consultation_type: type, status, started_at } = item;
+    if (status === 'in_progress' && isCallExpired(started_at ?? null, type)) {
+      await supabase.from('consultations').update({ status: 'completed' }).eq('id', id);
+      loadAppointments();
+      toast.showInfo('Time Ended', 'This consultation\'s allotted time has ended.');
+      return;
+    }
+    // Mark in_progress + record start time (preserve original start on rejoin)
     await supabase.from('consultations')
-      .update({ status: 'in_progress', started_at: new Date().toISOString() })
+      .update({ status: 'in_progress', started_at: started_at ?? new Date().toISOString() })
       .eq('id', id)
       .neq('status', 'completed');
     loadAppointments();
@@ -173,13 +186,15 @@ export default function DoctorAppointmentRequestsScreen({ navigation }: any) {
           ended_at: new Date().toISOString(),
         }).eq('id', id);
         if (appt?.patient_id) {
-          await supabase.from('notifications').insert({
-            user_id: appt.patient_id,
-            title: 'Consultation Completed',
-            message: 'Your consultation has been marked as completed by your doctor.',
-            type: 'system',
-            is_read: false,
-          });
+          try {
+            await sendNotifications([{
+              userId: appt.patient_id,
+              title: 'Consultation Completed',
+              message: 'Your consultation has been marked as completed by your doctor.',
+              type: 'system',
+              is_read: false,
+            }]);
+          } catch (e) { console.warn('Notification failed', e); }
         }
         toast.showSuccess('Done', 'Consultation marked as completed.');
       } catch {
@@ -285,7 +300,7 @@ export default function DoctorAppointmentRequestsScreen({ navigation }: any) {
                       <Text style={s.primaryBtnText}>Start Session</Text>
                     </TouchableOpacity>
                     {(item.consultation_type === 'video' || item.consultation_type === 'audio') && (
-                      <TouchableOpacity style={s.callBtn} onPress={() => joinCall(item.id, item.consultation_type)}>
+                      <TouchableOpacity style={s.callBtn} onPress={() => joinCall(item)}>
                         <Ionicons name={item.consultation_type === 'audio' ? 'call' : 'videocam'} size={15} color="#fff" />
                         <Text style={s.callBtnText}>Join Call</Text>
                       </TouchableOpacity>
@@ -299,7 +314,7 @@ export default function DoctorAppointmentRequestsScreen({ navigation }: any) {
                 {item.status === 'in_progress' && (
                   <View style={s.actions}>
                     {(item.consultation_type === 'video' || item.consultation_type === 'audio') && (
-                      <TouchableOpacity style={s.callBtn} onPress={() => joinCall(item.id, item.consultation_type)}>
+                      <TouchableOpacity style={s.callBtn} onPress={() => joinCall(item)}>
                         <Ionicons name={item.consultation_type === 'audio' ? 'call' : 'videocam'} size={15} color="#fff" />
                         <Text style={s.callBtnText}>Join Call</Text>
                       </TouchableOpacity>

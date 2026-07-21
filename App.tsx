@@ -43,6 +43,9 @@ import DoctorDetailScreen from './src/screens/DoctorDetailScreen';
 import SupportScreen from './src/screens/SupportScreen';
 import BookConsultationScreen from './src/screens/BookConsultationScreen';
 import SubscriptionScreen from './src/screens/SubscriptionScreen';
+import DoctorVerificationScreen from './src/screens/DoctorVerificationScreen';
+import HospitalShiftsScreen from './src/screens/HospitalShiftsScreen';
+import HospitalTeamChatScreen from './src/screens/HospitalTeamChatScreen';
 import MedicalHistoryScreen from './src/screens/MedicalHistoryScreen';
 import AppointmentsScreen from './src/screens/AppointmentsScreen';
 import NotificationSettingsScreen from './src/screens/NotificationSettingsScreen';
@@ -1262,6 +1265,9 @@ export default function App() {
             <Stack.Screen name="Support" component={SupportScreen} />
             <Stack.Screen name="BookConsultation" component={BookConsultationScreen} />
             <Stack.Screen name="Subscription" component={SubscriptionScreen} />
+            <Stack.Screen name="DoctorVerification" component={DoctorVerificationScreen} />
+            <Stack.Screen name="HospitalShifts" component={HospitalShiftsScreen} />
+            <Stack.Screen name="HospitalTeamChat" component={HospitalTeamChatScreen} />
             <Stack.Screen name="MedicalHistory" component={MedicalHistoryScreen} />
             <Stack.Screen name="MedicalRecords" component={MedicalRecordsScreen} />
             <Stack.Screen name="HospitalRecords" component={HospitalRecordsScreen} />

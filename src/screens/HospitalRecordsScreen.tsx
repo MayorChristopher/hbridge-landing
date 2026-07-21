@@ -12,6 +12,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastProvider';
 import { drName } from '../utils/formatters';
+import { getSignedFileUrl } from '../utils/recordAccess';
+import SignedImage from '../components/SignedImage';
 
 const { width: SW } = Dimensions.get('window');
 const C = { bg:'#F5F3EE', surface:'#EDE9E0', card:'#FFFFFF', text:'#0C2E30', muted:'#6B7E7F', border:'#EAE5DA', teal:'#0B7E8A', tealLight:'rgba(11,126,138,0.09)', ink:'#0C2E30' };
@@ -60,8 +62,26 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
   // Records the doctor sent to this patient
   const [receivedRecords, setReceivedRecords] = useState<any[]>([]);
 
+  // When viewed by someone other than the folder's owner (e.g. hospital
+  // staff looking up a patient by folder number), the header should show
+  // whose folder this is, not just the folder's own display name.
+  const [ownerName, setOwnerName] = useState<string | null>(null);
+
   // In-app viewer
   const [viewerRecord, setViewerRecord]     = useState<any>(null);
+  const [signedViewerUrl, setSignedViewerUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!viewerRecord || !(viewerRecord.file_url || viewerRecord.attachment_url)) {
+      setSignedViewerUrl(null);
+      return;
+    }
+    let cancelled = false;
+    getSignedFileUrl({ context: 'medical_record', recordId: viewerRecord.id })
+      .then((u) => { if (!cancelled) setSignedViewerUrl(u); })
+      .catch((e) => { if (!cancelled) toast.showError('Error', e.message); });
+    return () => { cancelled = true; };
+  }, [viewerRecord]);
 
   // Action menu
   const [actionItem, setActionItem]     = useState<any>(null);
@@ -75,11 +95,19 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
 
   useEffect(() => {
     loadRecords();
+    loadOwnerNameIfNotSelf();
     // Mark this folder as seen — MedicalRecordsScreen reads this to clear the badge
     if (folderId && folderId !== 'personal') {
       AsyncStorage.setItem(`folder_seen_${folderId}`, new Date().toISOString()).catch(() => {});
     }
   }, []);
+
+  const loadOwnerNameIfNotSelf = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || user.id === userId) return;
+    const { data } = await supabase.from('profiles').select('full_name').eq('id', userId).maybeSingle();
+    if (data?.full_name) setOwnerName(data.full_name);
+  };
 
   const loadRecords = async () => {
     setLoading(true);
@@ -271,6 +299,13 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
     setViewerRecord(item);
   };
 
+  const fileKind = (url?: string) => {
+    if (!url) return 'No attachment';
+    if (isImage(url)) return 'Image';
+    if (/\.pdf(\?|$)/i.test(url)) return 'PDF';
+    return 'Document';
+  };
+
   const renderRecord = ({ item }: any) => {
     const fileUrl = item.file_url || item.attachment_url;
     const hasImage = isImage(fileUrl);
@@ -279,7 +314,7 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
         {/* Image preview thumbnail */}
         {hasImage && (
           <TouchableOpacity onPress={() => openRecord(item)} activeOpacity={0.85}>
-            <Image source={{ uri: fileUrl }} style={s.cardPreview} resizeMode="cover" />
+            <SignedImage request={{ context: 'medical_record', recordId: item.id }} style={s.cardPreview} resizeMode="cover" />
           </TouchableOpacity>
         )}
         <View style={s.cardTop}>
@@ -289,8 +324,18 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
             </View>
           )}
           <View style={{ flex:1 }}>
-            <Text style={s.cardTitle} numberOfLines={1}>{item.title}</Text>
-            <Text style={s.cardMeta}>{TYPE_LABELS[item.record_type] || item.record_type} · {formatDate(item.created_at)}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+              <Text style={s.cardTitle} numberOfLines={1}>{item.title}</Text>
+              {item._fromDoctor && (
+                <View style={s.attribTag}>
+                  <Ionicons name="medkit" size={9} color="#fff" />
+                  <Text style={s.attribTagText}>From Practitioner</Text>
+                </View>
+              )}
+            </View>
+            <Text style={s.cardMeta}>
+              {TYPE_LABELS[item.record_type] || item.record_type} · {formatDate(item.created_at)} · {fileKind(fileUrl)}
+            </Text>
             {!!item.data?.notes && <Text style={s.cardDesc} numberOfLines={2}>{item.data.notes}</Text>}
           </View>
           <TouchableOpacity onPress={() => setActionItem(item)}>
@@ -323,7 +368,7 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
     return (
       <TouchableOpacity style={s.gridCard} onPress={() => openRecord(item)} activeOpacity={0.85} onLongPress={() => setActionItem(item)}>
         {hasImage
-          ? <Image source={{ uri: fileUrl }} style={s.gridThumb} resizeMode="cover" />
+          ? <SignedImage request={{ context: 'medical_record', recordId: item.id }} style={s.gridThumb} resizeMode="cover" />
           : <View style={s.gridIconBox}>
               <Ionicons name={(TYPE_ICONS[item.record_type] || 'document-outline') as any} size={22} color={C.teal} />
             </View>}
@@ -355,9 +400,11 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
         <View style={s.headerCenter}>
-          <Text style={s.headerTitle} numberOfLines={1}>{folderName}</Text>
+          <Text style={s.headerTitle} numberOfLines={1}>{ownerName || folderName}</Text>
           <Text style={s.headerSub}>
-            {isPersonal ? 'Personal folder' : folderType === 'doctor' ? 'Medical Practitioner folder' : 'Hospital folder'}
+            {ownerName
+              ? `${folderName} · Folder`
+              : isPersonal ? 'Personal folder' : folderType === 'doctor' ? 'Medical Practitioner folder' : 'Hospital folder'}
           </Text>
         </View>
         <TouchableOpacity onPress={() => setViewMode(v => v === 'list' ? 'grid' : 'list')}>
@@ -542,7 +589,13 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
             {[
               { icon: 'person-outline', label: 'Share with Doctor', onPress: () => { setActionItem(null); openShare(actionItem, 'doctor'); } },
               { icon: 'business-outline', label: 'Transfer to Hospital', onPress: () => { setActionItem(null); openShare(actionItem, 'hospital'); } },
-              ...(actionItem?.file_url ? [{ icon: 'open-outline', label: 'Open File', onPress: () => { setActionItem(null); Linking.openURL(actionItem.file_url); } }] : []),
+              ...(actionItem?.file_url ? [{ icon: 'open-outline', label: 'Open File', onPress: async () => {
+                setActionItem(null);
+                try {
+                  const url = await getSignedFileUrl({ context: 'medical_record', recordId: actionItem.id });
+                  Linking.openURL(url);
+                } catch (e: any) { toast.showError('Error', e.message); }
+              } }] : []),
             ].map(a => (
               <TouchableOpacity key={a.label} onPress={a.onPress} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#EAE5DA' }}>
                 <Ionicons name={a.icon as any} size={20} color="#0B7E8A" />
@@ -595,21 +648,26 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
           </View>
 
           {viewerRecord && (() => {
-            const url = viewerRecord.file_url || viewerRecord.attachment_url;
-            if (!url) return (
+            const hasFile = !!(viewerRecord.file_url || viewerRecord.attachment_url);
+            if (!hasFile) return (
               <View style={{ flex:1, alignItems:'center', justifyContent:'center' }}>
                 <Ionicons name="document-outline" size={64} color="#555" />
                 <Text style={{ color:'#888', marginTop:12 }}>No file attached</Text>
               </View>
             );
-            if (isImage(url)) return (
-              <Image source={{ uri: url }} style={{ flex:1 }} resizeMode="contain" />
+            if (!signedViewerUrl) return (
+              <View style={{ flex:1, alignItems:'center', justifyContent:'center' }}>
+                <ActivityIndicator size="large" color="#0B7E8A" />
+              </View>
+            );
+            if (isImage(signedViewerUrl)) return (
+              <Image source={{ uri: signedViewerUrl }} style={{ flex:1 }} resizeMode="contain" />
             );
             // PDF and all other types — render via WebView using Google Docs viewer
-            const viewerUrl = `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(url)}`;
+            const docViewerUrl = `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(signedViewerUrl)}`;
             return (
               <WebView
-                source={{ uri: viewerUrl }}
+                source={{ uri: docViewerUrl }}
                 style={{ flex:1, backgroundColor:'#f5f5f5' }}
                 startInLoadingState
                 renderLoading={() => (
@@ -706,4 +764,6 @@ const s = StyleSheet.create({
   gridDate:{fontSize:10,color:C.muted},
   gridNotes:{fontSize:10,color:C.muted,marginTop:2,fontStyle:'italic'},
   fromDoctorBadge:{position:'absolute',top:6,right:6,width:18,height:18,borderRadius:9,backgroundColor:C.teal,alignItems:'center',justifyContent:'center'},
+  attribTag:{flexDirection:'row',alignItems:'center',gap:3,backgroundColor:C.teal,borderRadius:6,paddingHorizontal:6,paddingVertical:2},
+  attribTagText:{fontSize:9,fontWeight:'700',color:'#fff'},
 });

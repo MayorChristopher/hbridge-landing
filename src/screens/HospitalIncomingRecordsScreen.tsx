@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
+import { getOrCreateHospitalRow } from '../utils/hospitalSetup';
 
 const C = {
   bg: '#F5F3EE', surface: '#EDE9E0', card: '#FFFFFF',
@@ -49,6 +50,10 @@ export default function HospitalIncomingRecordsScreen({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch]         = useState('');
   const [filter, setFilter]         = useState('all');
+  const [hospitalId, setHospitalId] = useState<string | null>(null);
+  const [folderNumberInput, setFolderNumberInput] = useState('');
+  const [folderLookupResult, setFolderLookupResult] = useState<any>(null);
+  const [lookingUp, setLookingUp] = useState(false);
 
   useFocusEffect(useCallback(() => { loadRecords(); }, []));
 
@@ -66,19 +71,12 @@ export default function HospitalIncomingRecordsScreen({ navigation }: any) {
       const hospitalName = prof?.hospital_name || prof?.full_name;
       if (!hospitalName) { setLoading(false); setRefreshing(false); return; }
 
-      let { data: hosp } = await supabase
-        .from('hospitals')
-        .select('id')
-        .ilike('name', `%${hospitalName}%`)
-        .maybeSingle();
-
-      if (!hosp?.id) {
-        const { data: created } = await supabase.from('hospitals')
-          .insert({ name: hospitalName.trim(), is_active: true, rating: 0, total_reviews: 0 })
-          .select('id').maybeSingle();
-        hosp = created;
-      }
+      let hosp: any = null;
+      try {
+        hosp = await getOrCreateHospitalRow(hospitalName);
+      } catch (e) { console.warn('Hospital row creation failed', e); }
       if (!hosp?.id) { setLoading(false); setRefreshing(false); return; }
+      setHospitalId(hosp.id);
 
       const { data } = await supabase
         .from('medical_record_access')
@@ -97,6 +95,26 @@ export default function HospitalIncomingRecordsScreen({ navigation }: any) {
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const lookupFolderNumber = async () => {
+    if (!folderNumberInput.trim() || !hospitalId) return;
+    setLookingUp(true);
+    setFolderLookupResult(null);
+    try {
+      const { data } = await supabase
+        .from('record_folders')
+        .select('id, folder_name, folder_number, folder_type, linked_id, owner_id, profiles!owner_id(full_name, profile_image)')
+        .eq('folder_type', 'hospital')
+        .eq('linked_id', hospitalId)
+        .eq('folder_number', folderNumberInput.trim())
+        .maybeSingle();
+      setFolderLookupResult(data || 'not_found');
+    } catch (e) {
+      setFolderLookupResult('not_found');
+    } finally {
+      setLookingUp(false);
     }
   };
 
@@ -145,6 +163,55 @@ export default function HospitalIncomingRecordsScreen({ navigation }: any) {
             </TouchableOpacity>
           )}
         </View>
+
+        {/* Find by Folder Number */}
+        <View style={s.searchWrap}>
+          <Ionicons name="key-outline" size={15} color={C.muted} />
+          <TextInput
+            style={s.searchInput}
+            value={folderNumberInput} onChangeText={setFolderNumberInput}
+            placeholder="Find patient by folder number…"
+            placeholderTextColor={C.muted}
+            autoCorrect={false}
+            keyboardType="number-pad"
+            onSubmitEditing={lookupFolderNumber}
+          />
+          <TouchableOpacity onPress={lookupFolderNumber} disabled={lookingUp}>
+            {lookingUp
+              ? <ActivityIndicator size="small" color={C.teal} />
+              : <Ionicons name="arrow-forward-circle" size={20} color={C.teal} />}
+          </TouchableOpacity>
+        </View>
+
+        {folderLookupResult === 'not_found' && (
+          <View style={s.lookupResultRow}>
+            <Ionicons name="alert-circle-outline" size={16} color={C.muted} />
+            <Text style={s.lookupResultText}>No folder found with that number.</Text>
+          </View>
+        )}
+        {folderLookupResult && folderLookupResult !== 'not_found' && (
+          <TouchableOpacity
+            style={s.lookupResultCard}
+            onPress={() => navigation.navigate('HospitalRecords', {
+              folderId: folderLookupResult.id,
+              folderName: folderLookupResult.folder_name,
+              userId: folderLookupResult.owner_id,
+              linkedId: folderLookupResult.linked_id,
+              folderType: folderLookupResult.folder_type,
+            })}
+          >
+            <View style={s.lookupAvatar}>
+              {folderLookupResult.profiles?.profile_image
+                ? <Image source={{ uri: folderLookupResult.profiles.profile_image }} style={{ width: 36, height: 36, borderRadius: 18 }} />
+                : <Ionicons name="person" size={18} color={C.teal} />}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.lookupResultName}>{folderLookupResult.profiles?.full_name || 'Patient'}</Text>
+              <Text style={s.lookupResultSub}>Folder #{folderLookupResult.folder_number}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={C.muted} />
+          </TouchableOpacity>
+        )}
 
         {/* Type filters */}
         <View style={s.chipRow}>
@@ -244,6 +311,19 @@ const s = StyleSheet.create({
   searchWrap:  { flexDirection: 'row', alignItems: 'center', gap: 8, margin: 16, marginBottom: 4, backgroundColor: C.card, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 9, borderWidth: 1.5, borderColor: C.border },
   chipRow:     { height: 34 },
   searchInput: { flex: 1, fontSize: 14, fontFamily: 'SpaceGrotesk_400Regular', color: C.text, paddingVertical: 0 },
+
+  lookupResultRow:  { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, marginBottom: 8, paddingHorizontal: 4 },
+  lookupResultText: { fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted },
+  lookupResultCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.tealLight,
+    borderRadius: 14, marginHorizontal: 16, marginBottom: 12, padding: 12, borderWidth: 1, borderColor: C.teal,
+  },
+  lookupAvatar: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: C.card,
+    alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+  },
+  lookupResultName: { fontSize: 14, fontFamily: 'Montserrat_600SemiBold', color: C.text },
+  lookupResultSub:  { fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: C.teal, marginTop: 1 },
 
   chip:          { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999, backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.border },
   chipActive:    { backgroundColor: C.tealLight, borderColor: C.teal },

@@ -13,6 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { Toast } from '../utils/toast';
 import { useToast } from '../components/ToastProvider';
+import { getOrCreateHospitalRow, HOSPITAL_TYPE_DEFAULT, HOSPITAL_CATEGORY_DEFAULT, isHospitalSetupComplete } from '../utils/hospitalSetup';
 import { shareApp, shareDoctor } from '../utils/share';
 
 const C = {
@@ -36,7 +37,7 @@ export default function ProfileScreen({ navigation }: any) {
     full_name: '', phone: '', date_of_birth: '', gender: '', address: '', state: '',
     hospital_name: '',
     hosp_type: '', hosp_phone: '', hosp_emergency_phone: '',
-    hosp_address: '', hosp_city: '', hosp_lga: '', hosp_state: '',
+    hosp_address: '', hosp_city: '', hosp_lga: '', hosp_state: '', hosp_folder_fee: '',
     hosp_emergency_services: false, hosp_services: [] as string[],
     title: '', specialization: '', medical_license: '', consultation_fee: '', years_experience: '', bio: '',
     consultation_fees: {} as Record<string, string>,
@@ -54,6 +55,7 @@ export default function ProfileScreen({ navigation }: any) {
   const [signOutVisible, setSignOutVisible] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [activeRole, setActiveRole] = useState<string>('patient');
+  const [expandedGroup, setExpandedGroup] = useState<string | null>('Account');
 
   // ── Feedback modal ────────────────────────────────────────────────────────
   const [feedbackVisible, setFeedbackVisible]     = useState(false);
@@ -105,24 +107,19 @@ export default function ProfileScreen({ navigation }: any) {
       } else if (role === 'hospital_admin') {
         const hospitalName = prof?.hospital_name || prof?.full_name;
         if (hospitalName) {
-          let { data: hosp } = await supabase.from('hospitals').select('*').ilike('name', `%${hospitalName}%`).maybeSingle();
-          if (!hosp) {
-            // Auto-create hospital row for admins who registered before this was implemented
-            const { data: created } = await supabase.from('hospitals').insert({
-              name: hospitalName.trim(), is_active: true, rating: 0, total_reviews: 0,
-              type: 'General', category: 'Private', address: 'Pending', city: 'Pending', state: 'Pending',
-            }).select().maybeSingle();
-            hosp = created;
-          }
+          let hosp: any = null;
+          try {
+            hosp = await getOrCreateHospitalRow(hospitalName);
+          } catch (e) { console.warn('Hospital row creation failed', e); }
           setHospitalRow(hosp || null);
           if (hosp?.id) {
-            const [{ data: accessRows }, { data: doctors }, { data: patients }] = await Promise.all([
+            const [{ data: accessRows }, { data: staff }, { data: patients }] = await Promise.all([
               supabase.from('medical_record_access').select('id, medical_records!inner(id)').eq('hospital_id', hosp.id).eq('is_active', true),
-              supabase.from('medical_record_access').select('doctor_id').eq('hospital_id', hosp.id).eq('is_active', true).not('doctor_id', 'is', null),
+              supabase.from('hospital_staff').select('doctor_id').eq('hospital_id', hosp.id).eq('status', 'active'),
               supabase.from('medical_record_access').select('patient_id').eq('hospital_id', hosp.id).eq('is_active', true),
             ]);
             const recCount = (accessRows || []).length;
-            const uniqueDoctors  = new Set((doctors  || []).map((r: any) => r.doctor_id).filter(Boolean)).size;
+            const uniqueDoctors  = new Set((staff    || []).map((r: any) => r.doctor_id).filter(Boolean)).size;
             const uniquePatients = new Set((patients || []).map((r: any) => r.patient_id).filter(Boolean)).size;
             setCounts({ appointments: uniquePatients, records: recCount || 0, doctors: uniqueDoctors });
           } else {
@@ -259,23 +256,25 @@ export default function ProfileScreen({ navigation }: any) {
         if (!user) return;
         const fileExt = asset.uri.split('.').pop() || 'jpg';
         const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-        const filePath = `profiles/${fileName}`;
         const formData = new FormData();
         formData.append('file', { uri: asset.uri, name: fileName, type: `image/${fileExt}` } as any);
         const { data: session } = await supabase.auth.getSession();
         const token = session?.session?.access_token;
         const supabaseUrl = (supabase as any).supabaseUrl as string;
-        const uploadResponse = await fetch(`${supabaseUrl}/storage/v1/object/attachments/${filePath}`, {
+        const uploadResponse = await fetch(`${supabaseUrl}/storage/v1/object/avatars/${fileName}`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}`, 'x-upsert': 'true' },
           body: formData,
         });
         if (!uploadResponse.ok) throw new Error('Upload failed');
-        const { data: { publicUrl } } = supabase.storage.from('attachments').getPublicUrl(filePath);
+        const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
         const { error } = await supabase.from('profiles').update({ profile_image: publicUrl, updated_at: new Date().toISOString() }).eq('id', user.id);
         if (error) throw error;
         if (activeRole === 'doctor') {
           await supabase.from('doctors').update({ profile_image: publicUrl }).eq('user_id', user.id);
+        }
+        if (activeRole === 'hospital_admin' && hospitalRow?.id) {
+          await supabase.from('hospitals').update({ logo_url: publicUrl }).eq('id', hospitalRow.id);
         }
         DeviceEventEmitter.emit('profile_image_updated', publicUrl);
         await loadProfile();
@@ -306,6 +305,7 @@ export default function ProfileScreen({ navigation }: any) {
       hosp_city: hospitalRow?.city || '',
       hosp_lga: hospitalRow?.lga || '',
       hosp_state: hospitalRow?.state || '',
+      hosp_folder_fee: hospitalRow?.folder_creation_fee ? String(hospitalRow.folder_creation_fee) : '',
       hosp_emergency_services: hospitalRow?.emergency_services || false,
       hosp_services: Array.isArray(hospitalRow?.services) ? hospitalRow.services : [],
       title: profile?.title || 'Dr.',
@@ -359,8 +359,8 @@ export default function ProfileScreen({ navigation }: any) {
         const hospName = editForm.hospital_name.trim() || profile?.hospital_name || '';
         const hospPayload = {
           name: hospName,
-          type: editForm.hosp_type || hospitalRow?.type || 'General',
-          category: hospitalRow?.category || 'Private',
+          type: editForm.hosp_type || hospitalRow?.type || HOSPITAL_TYPE_DEFAULT,
+          category: hospitalRow?.category || HOSPITAL_CATEGORY_DEFAULT,
           address: editForm.hosp_address.trim() || hospitalRow?.address || 'Pending',
           city: editForm.hosp_city.trim() || hospitalRow?.city || 'Pending',
           state: editForm.hosp_state.trim() || hospitalRow?.state || 'Pending',
@@ -368,6 +368,7 @@ export default function ProfileScreen({ navigation }: any) {
           lga: editForm.hosp_lga.trim() || null,
           emergency_services: editForm.hosp_emergency_services,
           services: editForm.hosp_services.length > 0 ? editForm.hosp_services : null,
+          folder_creation_fee: editForm.hosp_folder_fee.trim() ? parseFloat(editForm.hosp_folder_fee) : 0,
           is_active: true,
         };
         if (hospitalRow?.id) {
@@ -434,7 +435,7 @@ export default function ProfileScreen({ navigation }: any) {
           consultation_fee: editForm.consultation_fee ? parseInt(editForm.consultation_fee) : 0,
           years_experience: editForm.years_experience ? parseInt(editForm.years_experience) : 0,
           bio: editForm.bio.trim() || null, profile_image: profile?.profile_image || null,
-          verification_status: 'verified', is_available: true,
+          is_available: true,
           nma_number: editForm.nma_number.trim() || null,
           secondary_specialty: editForm.secondary_specialty.trim() || null,
           consultation_types: editForm.consultation_types.length > 0 ? editForm.consultation_types : null,
@@ -514,41 +515,63 @@ export default function ProfileScreen({ navigation }: any) {
     }
   };
 
-  const patientMenuItems = [
-    { icon: 'person-outline', label: 'Edit Profile', onPress: openEdit },
-    { icon: 'calendar-outline', label: 'My Appointments', onPress: () => navigation.navigate('Appointments') },
-    { icon: 'documents-outline', label: 'Medical Records', onPress: () => navigation.navigate('Main', { screen: 'Records' }) },
-    { icon: 'notifications-outline', label: 'Notifications', onPress: () => navigation.navigate('Notifications') },
-    { icon: 'shield-checkmark-outline', label: 'Privacy Settings', onPress: () => navigation.navigate('PrivacySettings') },
-    { icon: 'shield-outline', label: 'Emergency SOS', onPress: () => navigation.navigate('Emergency') },
-    { icon: 'chatbox-ellipses-outline', label: 'Send Feedback', onPress: () => setFeedbackVisible(true) },
-    { icon: 'share-social-outline', label: 'Share Hbridge', onPress: shareApp },
+  const patientMenuGroups = [
+    { title: 'Account', items: [
+      { icon: 'person-outline', label: 'Edit Profile', onPress: openEdit },
+      { icon: 'star-outline', label: 'Manage Subscription', onPress: () => navigation.navigate('Subscription', { userType: 'patient' }) },
+    ] },
+    { title: 'Health', items: [
+      { icon: 'calendar-outline', label: 'My Appointments', onPress: () => navigation.navigate('Appointments') },
+      { icon: 'documents-outline', label: 'Medical Records', onPress: () => navigation.navigate('Main', { screen: 'Records' }) },
+      { icon: 'shield-outline', label: 'Emergency SOS', onPress: () => navigation.navigate('Emergency') },
+    ] },
+    { title: 'Settings & Support', items: [
+      { icon: 'notifications-outline', label: 'Notifications', onPress: () => navigation.navigate('Notifications') },
+      { icon: 'shield-checkmark-outline', label: 'Privacy Settings', onPress: () => navigation.navigate('PrivacySettings') },
+      { icon: 'chatbox-ellipses-outline', label: 'Send Feedback', onPress: () => setFeedbackVisible(true) },
+      { icon: 'share-social-outline', label: 'Share Hbridge', onPress: shareApp },
+    ] },
   ];
 
-  const doctorMenuItems = [
-    { icon: 'person-outline', label: 'Edit Profile', onPress: openEdit },
-    { icon: 'calendar-outline', label: 'Appointments', onPress: () => navigation.navigate('DoctorAppointmentRequests') },
-    { icon: 'people-outline', label: 'My Patients', onPress: () => navigation.navigate('Patients') },
-    { icon: 'documents-outline', label: 'Shared Records', onPress: () => navigation.navigate('Main', { screen: 'DoctorCaseFiles' }) },
-    { icon: 'business-outline', label: 'Hospital Affiliations', onPress: () => navigation.navigate('HospitalAffiliation') },
-    { icon: 'notifications-outline', label: 'Notifications', onPress: () => navigation.navigate('Notifications') },
-    { icon: 'shield-checkmark-outline', label: 'Privacy Settings', onPress: () => navigation.navigate('PrivacySettings') },
-    { icon: 'chatbox-ellipses-outline', label: 'Send Feedback', onPress: () => setFeedbackVisible(true) },
-    { icon: 'share-social-outline', label: 'Share My Profile', onPress: () => shareDoctor(profile) },
-    { icon: 'share-outline', label: 'Share Hbridge', onPress: shareApp },
+  const doctorMenuGroups = [
+    { title: 'Account', items: [
+      { icon: 'person-outline', label: 'Edit Profile', onPress: openEdit },
+      { icon: 'shield-checkmark-outline', label: 'Verification', onPress: () => navigation.navigate('DoctorVerification') },
+      { icon: 'star-outline', label: 'Manage Subscription', onPress: () => navigation.navigate('Subscription', { userType: 'doctor' }) },
+    ] },
+    { title: 'Practice', items: [
+      { icon: 'calendar-outline', label: 'Appointments', onPress: () => navigation.navigate('DoctorAppointmentRequests') },
+      { icon: 'people-outline', label: 'My Patients', onPress: () => navigation.navigate('Patients') },
+      { icon: 'documents-outline', label: 'Shared Records', onPress: () => navigation.navigate('Main', { screen: 'DoctorCaseFiles' }) },
+      { icon: 'business-outline', label: 'Hospital Affiliations', onPress: () => navigation.navigate('HospitalAffiliation') },
+      { icon: 'people-circle-outline', label: 'Practitioner Network', onPress: () => navigation.navigate('DoctorsList', { viewerIsDoctor: true }) },
+    ] },
+    { title: 'Settings & Support', items: [
+      { icon: 'notifications-outline', label: 'Notifications', onPress: () => navigation.navigate('Notifications') },
+      { icon: 'shield-checkmark-outline', label: 'Privacy Settings', onPress: () => navigation.navigate('PrivacySettings') },
+      { icon: 'chatbox-ellipses-outline', label: 'Send Feedback', onPress: () => setFeedbackVisible(true) },
+      { icon: 'share-social-outline', label: 'Share My Profile', onPress: () => shareDoctor(profile) },
+      { icon: 'share-outline', label: 'Share Hbridge', onPress: shareApp },
+    ] },
   ];
 
-  const hospitalMenuItems = [
-    { icon: 'person-outline', label: 'Edit Profile', onPress: openEdit },
-    { icon: 'folder-open-outline', label: 'Hospital Records', onPress: () => navigation.navigate('Main', { screen: 'HospitalRecords' }) },
-    { icon: 'people-outline', label: 'Staff Directory', onPress: () => navigation.navigate('Main', { screen: 'HospitalStaff' }) },
-    { icon: 'notifications-outline', label: 'Notifications', onPress: () => navigation.navigate('Notifications') },
-    { icon: 'shield-checkmark-outline', label: 'Privacy Settings', onPress: () => navigation.navigate('PrivacySettings') },
-    { icon: 'chatbox-ellipses-outline', label: 'Send Feedback', onPress: () => setFeedbackVisible(true) },
-    { icon: 'share-social-outline', label: 'Share Hbridge', onPress: shareApp },
+  const hospitalMenuGroups = [
+    { title: 'Account', items: [
+      { icon: 'person-outline', label: 'Edit Profile', onPress: openEdit },
+    ] },
+    { title: 'Facility', items: [
+      { icon: 'folder-open-outline', label: 'Hospital Records', onPress: () => navigation.navigate('Main', { screen: 'HospitalRecords' }) },
+      { icon: 'people-outline', label: 'Staff Directory', onPress: () => navigation.navigate('Main', { screen: 'HospitalStaff' }) },
+    ] },
+    { title: 'Settings & Support', items: [
+      { icon: 'notifications-outline', label: 'Notifications', onPress: () => navigation.navigate('Notifications') },
+      { icon: 'shield-checkmark-outline', label: 'Privacy Settings', onPress: () => navigation.navigate('PrivacySettings') },
+      { icon: 'chatbox-ellipses-outline', label: 'Send Feedback', onPress: () => setFeedbackVisible(true) },
+      { icon: 'share-social-outline', label: 'Share Hbridge', onPress: shareApp },
+    ] },
   ];
 
-  const menuItems = activeRole === 'doctor' ? doctorMenuItems : activeRole === 'hospital_admin' ? hospitalMenuItems : patientMenuItems;
+  const menuGroups = activeRole === 'doctor' ? doctorMenuGroups : activeRole === 'hospital_admin' ? hospitalMenuGroups : patientMenuGroups;
   const userTypeLabel = activeRole === 'doctor' ? 'Medical Practitioner' : activeRole === 'hospital_admin' ? 'Hospital Admin' : 'Patient';
   const GENDERS = ['male', 'female'];
   const HOSPITAL_TYPES = [
@@ -801,6 +824,14 @@ export default function ProfileScreen({ navigation }: any) {
                   </Text>
                   <Ionicons name="chevron-down" size={14} color={C.muted2} />
                 </TouchableOpacity>
+
+                <Text style={s.fieldLbl}>RECORD FOLDER CREATION FEE (₦)</Text>
+                <TextInput
+                  style={s.fieldInput} value={editForm.hosp_folder_fee}
+                  onChangeText={v => setEditForm(f => ({ ...f, hosp_folder_fee: v.replace(/[^0-9.]/g, '') }))}
+                  placeholder="Leave blank for free/instant folder creation" placeholderTextColor={C.muted2}
+                  keyboardType="numeric"
+                />
 
                 <Text style={s.fieldLbl}>24/7 EMERGENCY SERVICES</Text>
                 <TouchableOpacity
@@ -1347,6 +1378,46 @@ export default function ProfileScreen({ navigation }: any) {
           </View>
         )}
 
+        {/* ── Facility setup nudge banner (hospital_admin only) ── */}
+        {activeRole === 'hospital_admin' && !isHospitalSetupComplete(hospitalRow) && (
+          <TouchableOpacity style={s.setupBanner} onPress={openEdit} activeOpacity={0.85}>
+            <View style={s.setupBannerIcon}>
+              <Ionicons name="alert-circle-outline" size={18} color={C.gold} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.setupBannerTitle}>Complete Your Facility Profile</Text>
+              <Text style={s.setupBannerSub}>Practitioners can't find or join your hospital until your address and details are set</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={C.gold} />
+          </TouchableOpacity>
+        )}
+
+        {/* ── Hospital facility details card ── */}
+        {activeRole === 'hospital_admin' && (
+          <View style={s.doctorCard}>
+            {[
+              { icon: 'business-outline', label: 'Type', value: HOSPITAL_TYPES.find(t => t.key === hospitalRow?.type)?.label || 'Not set' },
+              { icon: 'call-outline', label: 'Phone', value: hospitalRow?.phone || 'Not set' },
+              hospitalRow?.emergency_phone && { icon: 'medkit-outline', label: 'Emergency Line', value: hospitalRow.emergency_phone },
+              { icon: 'location-outline', label: 'Address', value: [hospitalRow?.address, hospitalRow?.city, hospitalRow?.state].filter(v => v && v !== 'Pending').join(', ') || 'Pending' },
+              { icon: 'cash-outline', label: 'Folder Fee', value: hospitalRow?.folder_creation_fee ? `₦${Number(hospitalRow.folder_creation_fee).toLocaleString()}` : 'Free' },
+              { icon: 'pulse-outline', label: '24/7 Emergency', value: hospitalRow?.emergency_services ? 'Available' : 'Not available' },
+              Array.isArray(hospitalRow?.services) && hospitalRow.services.length > 0 && { icon: 'medical-outline', label: 'Services', value: hospitalRow.services.join(', '), last: true },
+            ].filter(Boolean).map((item: any, i, arr) => (
+              <View key={i}>
+                <View style={s.docInfoRow}>
+                  <View style={s.docInfoIcon}>
+                    <Ionicons name={item.icon} size={16} color={C.teal} />
+                  </View>
+                  <Text style={s.docInfoLabel}>{item.label}</Text>
+                  <Text style={[s.docInfoValue, { fontSize: item.value.length > 20 ? 11 : 13 }]} numberOfLines={2}>{item.value}</Text>
+                </View>
+                {i < arr.length - 1 && <View style={s.rowDiv} />}
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* ── Payout modal ── */}
         <Modal visible={payoutVisible} animationType="slide" transparent onRequestClose={() => setPayoutVisible(false)}>
           <View style={{ flex: 1, backgroundColor: 'rgba(8,50,54,0.55)', justifyContent: 'flex-end' }}>
@@ -1461,23 +1532,36 @@ export default function ProfileScreen({ navigation }: any) {
           </View>
         </Modal>
 
-        {/* ── Menu ── */}
-        <View style={s.menuCard}>
-          {menuItems.map((item, i) => (
-            <TouchableOpacity
-              key={i}
-              style={[s.menuItem, i === menuItems.length - 1 && { borderBottomWidth: 0 }]}
-              onPress={item.onPress}
-              activeOpacity={0.75}
-            >
-              <View style={s.menuIconBox}>
-                <Ionicons name={item.icon as any} size={19} color={C.teal} />
-              </View>
-              <Text style={s.menuLabel}>{item.label}</Text>
-              <Ionicons name="chevron-forward" size={17} color={C.muted2} />
-            </TouchableOpacity>
-          ))}
-        </View>
+        {/* ── Menu — grouped by function, accordion-style ── */}
+        {menuGroups.map(group => {
+          const isOpen = expandedGroup === group.title;
+          return (
+            <View key={group.title} style={s.menuCard}>
+              <TouchableOpacity
+                style={[s.menuGroupHeader, isOpen && s.menuGroupHeaderOpen]}
+                onPress={() => setExpandedGroup(isOpen ? null : group.title)}
+                activeOpacity={0.75}
+              >
+                <Text style={s.menuGroupHeaderText}>{group.title}</Text>
+                <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={18} color={C.muted} />
+              </TouchableOpacity>
+              {isOpen && group.items.map((item, i) => (
+                <TouchableOpacity
+                  key={i}
+                  style={[s.menuItem, i === group.items.length - 1 && { borderBottomWidth: 0 }]}
+                  onPress={item.onPress}
+                  activeOpacity={0.75}
+                >
+                  <View style={s.menuIconBox}>
+                    <Ionicons name={item.icon as any} size={19} color={C.teal} />
+                  </View>
+                  <Text style={s.menuLabel}>{item.label}</Text>
+                  <Ionicons name="chevron-forward" size={17} color={C.muted2} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          );
+        })}
 
         {/* ── Sign out ── */}
         <TouchableOpacity style={s.signOutBtn} onPress={() => setSignOutVisible(true)} activeOpacity={0.8}>
@@ -1489,7 +1573,7 @@ export default function ProfileScreen({ navigation }: any) {
           <Text style={s.versionText}>Hbridge v{Constants.expoConfig?.version ?? '1.0.0'}</Text>
         </View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 140 }} />
         </View>{/* end paperCard */}
       </ScrollView>
     </SafeAreaView>
@@ -1559,8 +1643,9 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.cardBorder,
     marginHorizontal: 20,
-    marginTop: 20,
+    marginTop: 32,
     paddingVertical: 16,
+    paddingHorizontal: 6,
     shadowColor: C.ink,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.07,
@@ -1613,6 +1698,19 @@ const s = StyleSheet.create({
   vitalVal: { fontSize: 15, fontFamily: 'Montserrat_700Bold', color: '#fff' },
   vitalLbl: { fontSize: 10, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(255,255,255,0.7)' },
 
+  // Facility setup nudge banner
+  setupBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginHorizontal: 20, marginTop: 14, padding: 14,
+    backgroundColor: C.goldBg, borderRadius: 14, borderWidth: 1, borderColor: C.goldBorder,
+  },
+  setupBannerIcon: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: 'rgba(212,168,67,0.15)', alignItems: 'center', justifyContent: 'center',
+  },
+  setupBannerTitle: { fontSize: 13, fontFamily: 'Montserrat_700Bold', color: C.ink },
+  setupBannerSub: { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted, marginTop: 2 },
+
   // Doctor card
   doctorCard: {
     marginHorizontal: 20,
@@ -1639,6 +1737,12 @@ const s = StyleSheet.create({
   rowDiv: { height: 1, backgroundColor: C.cardBorder, marginHorizontal: 14 },
 
   // Menu card
+  menuGroupHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 15,
+  },
+  menuGroupHeaderText: { fontSize: 14, fontFamily: 'Montserrat_700Bold', color: C.textPrimary },
+  menuGroupHeaderOpen: { borderBottomWidth: 1, borderBottomColor: C.cardBorder },
   menuCard: {
     marginHorizontal: 20,
     marginTop: 14,
@@ -1673,7 +1777,7 @@ const s = StyleSheet.create({
   },
   signOutText: { fontSize: 14.5, fontFamily: 'Montserrat_700Bold', color: C.red },
 
-  versionContainer: { alignItems: 'center', marginTop: 20, marginBottom: 4 },
+  versionContainer: { alignItems: 'center', marginTop: 28, marginBottom: 20 },
   versionText: { fontSize: 12, fontFamily: 'Montserrat_500Medium', color: C.muted, letterSpacing: 0.3 },
 
   // Edit modal

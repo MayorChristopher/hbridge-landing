@@ -11,6 +11,8 @@ import RatingModal from '../components/RatingModal';
 import { useToast } from '../components/ToastProvider';
 import { drName } from '../utils/formatters';
 import { usePaystack } from 'react-native-paystack-webview';
+import { sendNotifications } from '../utils/notify';
+import { isCallExpired, getRemainingSeconds, formatRemaining } from '../utils/callDuration';
 
 const C = {
   paper: '#F5F3EE', card: '#FFFFFF', cardBorder: '#EAE5DA',
@@ -20,7 +22,7 @@ const C = {
 };
 
 interface Consultation {
-  id: string; scheduled_at: string;
+  id: string; scheduled_at: string; started_at?: string | null;
   status: 'pending' | 'confirmed' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
   payment_status: string; consultation_type: string; consultation_fee: number;
   symptoms?: string; diagnosis?: string;
@@ -90,7 +92,7 @@ export default function AppointmentsScreen({ navigation }: any) {
       if (!user) return;
       const [{ data, error }, { data: myRatings }] = await Promise.all([
         supabase.from('consultations')
-          .select('id,scheduled_at,status,payment_status,consultation_type,consultation_fee,symptoms,diagnosis,doctors(id,user_id,full_name,specialization,profile_image,paystack_subaccount)')
+          .select('id,scheduled_at,started_at,status,payment_status,consultation_type,consultation_fee,symptoms,diagnosis,doctors(id,user_id,full_name,specialization,profile_image,paystack_subaccount)')
           .eq('patient_id', user.id).order('scheduled_at', { ascending: false }),
         supabase.from('ratings').select('doctor_id').eq('patient_id', user.id),
       ]);
@@ -141,21 +143,23 @@ export default function AppointmentsScreen({ navigation }: any) {
         } : {}),
         onSuccess: async (response: any) => {
           const ref = response?.reference || `paid_${Date.now()}`;
-          const { error } = await supabase.from('consultations').update({
-            status: 'scheduled',
-            payment_status: 'paid',
-            payment_reference: ref,
-            updated_at: new Date().toISOString(),
-          }).eq('id', c.id);
-          if (error) { toast.showError('Error', 'Payment received but booking update failed. Contact support: ' + ref); return; }
+          const { data, error } = await supabase.functions.invoke('paystack-verify', {
+            body: { reference: ref, kind: 'consultation', consultationId: c.id },
+          });
+          if (error || !data?.verified) {
+            toast.showError('Error', (data?.message || error?.message) + ' Contact support: ' + ref);
+            return;
+          }
           // Notify practitioner
           if (c.doctor.user_id) {
-            await supabase.from('notifications').insert({
-              user_id: c.doctor.user_id,
-              title: 'Consultation Paid',
-              message: `A patient has paid for their ${c.consultation_type} consultation. It is now confirmed.`,
-              type: 'booking',
-            });
+            try {
+              await sendNotifications([{
+                userId: c.doctor.user_id,
+                title: 'Consultation Paid',
+                message: `A patient has paid for their ${c.consultation_type} consultation. It is now confirmed.`,
+                type: 'booking',
+              }]);
+            } catch (e) { console.warn('Notification failed', e); }
           }
           toast.showSuccess('Confirmed!', 'Payment received. Your consultation is confirmed.');
           loadConsultations();
@@ -169,14 +173,22 @@ export default function AppointmentsScreen({ navigation }: any) {
     }
   };
 
-  const joinCall = async (id: string) => {
+  const joinCall = async (c: Consultation) => {
+    // If this call already started and its allotted time is up, don't
+    // reopen it — close it out instead.
+    if (c.status === 'in_progress' && isCallExpired(c.started_at ?? null, c.consultation_type)) {
+      await supabase.from('consultations').update({ status: 'completed' }).eq('id', c.id);
+      loadConsultations();
+      toast.showInfo('Time Ended', 'This consultation\'s allotted time has ended.');
+      return;
+    }
     // Mark as in_progress and record start time if not already started
     await supabase.from('consultations')
-      .update({ status: 'in_progress', started_at: new Date().toISOString() })
-      .eq('id', id)
+      .update({ status: 'in_progress', started_at: c.started_at ?? new Date().toISOString() })
+      .eq('id', c.id)
       .neq('status', 'completed');
     loadConsultations();
-    await WebBrowser.openBrowserAsync(`https://meet.jit.si/hbridge-${id.replace(/-/g, '').slice(0, 16)}`);
+    await WebBrowser.openBrowserAsync(`https://meet.jit.si/hbridge-${c.id.replace(/-/g, '').slice(0, 16)}`);
     // Browser closed — refresh to reflect any status change the doctor made
     loadConsultations();
   };
@@ -350,10 +362,21 @@ export default function AppointmentsScreen({ navigation }: any) {
                       ) : (
                         <>
                           {isVirtual && (
-                            <TouchableOpacity style={s.btnCall} onPress={() => joinCall(c.id)}>
-                              <Ionicons name="videocam" size={14} color="#fff" />
-                              <Text style={s.btnCallText}>Join Call</Text>
-                            </TouchableOpacity>
+                            <View>
+                              <TouchableOpacity style={s.btnCall} onPress={() => joinCall(c)}>
+                                <Ionicons name="videocam" size={14} color="#fff" />
+                                <Text style={s.btnCallText}>Join Call</Text>
+                              </TouchableOpacity>
+                              {c.status === 'in_progress' && (() => {
+                                const remaining = getRemainingSeconds(c.started_at ?? null, c.consultation_type);
+                                if (remaining === null) return null;
+                                return (
+                                  <Text style={{ fontSize: 11, color: remaining > 0 ? C.muted : C.red, marginTop: 4, textAlign: 'center' }}>
+                                    {remaining > 0 ? `${formatRemaining(remaining)} left` : 'Time ended'}
+                                  </Text>
+                                );
+                              })()}
+                            </View>
                           )}
                           <TouchableOpacity style={s.btnOutline} onPress={() => handleViewReport(c)}>
                             <Ionicons name="document-text-outline" size={14} color={C.teal} />
@@ -439,7 +462,7 @@ export default function AppointmentsScreen({ navigation }: any) {
                 <View style={s.sheetActions}>
                   {(reportSheet.consultation_type === 'video' || reportSheet.consultation_type === 'audio') &&
                     reportSheet.status !== 'completed' && reportSheet.status !== 'cancelled' && (
-                    <TouchableOpacity style={s.joinBtn} onPress={() => { setReportSheet(null); joinCall(reportSheet.id); }}>
+                    <TouchableOpacity style={s.joinBtn} onPress={() => { setReportSheet(null); joinCall(reportSheet); }}>
                       <Ionicons name="videocam" size={16} color="#fff" />
                       <Text style={s.joinBtnText}>Join Call</Text>
                     </TouchableOpacity>

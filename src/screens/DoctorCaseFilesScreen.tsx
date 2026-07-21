@@ -13,6 +13,8 @@ import { WebView } from 'react-native-webview';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastProvider';
 import { useRecordsBadge } from '../context/RecordsBadgeContext';
+import { getSignedFileUrl } from '../utils/recordAccess';
+import SignedImage from '../components/SignedImage';
 
 const C = {
   bg: '#F5F3EE', surface: '#EDE9E0', card: '#FFFFFF', text: '#0C2E30',
@@ -82,6 +84,17 @@ export default function DoctorCaseFilesScreen({ navigation }: any) {
   const [sendModal, setSendModal]       = useState<{ patient: any; title: string; type: string; notes: string; file: any; expiry: string } | null>(null);
   const [sending, setSending]           = useState(false);
   const [viewerRecord, setViewerRecord] = useState<any | null>(null);
+  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!viewerRecord) { setViewerUrl(null); return; }
+    if (!(viewerRecord.file_url || viewerRecord.attachment_url)) { setViewerUrl(null); return; }
+    let cancelled = false;
+    getSignedFileUrl({ context: 'medical_record', recordId: viewerRecord.id })
+      .then((u) => { if (!cancelled) setViewerUrl(u); })
+      .catch((e) => { if (!cancelled) toast.showError('Error', e.message); });
+    return () => { cancelled = true; };
+  }, [viewerRecord]);
 
   useEffect(() => { loadAll(); }, []);
 
@@ -323,7 +336,7 @@ export default function DoctorCaseFilesScreen({ navigation }: any) {
         {/* Top: thumbnail or icon + title + status */}
         <View style={s.cardTop}>
           {isImg ? (
-            <Image source={{ uri: fileUrl! }} style={s.thumb} resizeMode="cover" />
+            <SignedImage request={{ context: 'medical_record', recordId: rec.id }} style={s.thumb} resizeMode="cover" />
           ) : (
             <View style={[s.iconBox, { backgroundColor: expired ? C.surface : C.tealLight }]}>
               <Ionicons name={(TYPE_ICONS[rec?.record_type] || 'document-outline') as any} size={20} color={expired ? C.muted : C.teal} />
@@ -416,7 +429,7 @@ export default function DoctorCaseFilesScreen({ navigation }: any) {
       <View style={s.card}>
         <View style={s.cardTop}>
           {isImg ? (
-            <Image source={{ uri: fileUrl! }} style={s.thumb} resizeMode="cover" />
+            <SignedImage request={{ context: 'medical_record', recordId: rec.id }} style={s.thumb} resizeMode="cover" />
           ) : (
             <View style={[s.iconBox, { backgroundColor: expired ? C.surface : 'rgba(99,102,241,0.09)' }]}>
               <Ionicons name={(TYPE_ICONS[rec?.record_type] || 'document-outline') as any} size={20} color={expired ? C.muted : '#6366f1'} />
@@ -806,8 +819,8 @@ export default function DoctorCaseFilesScreen({ navigation }: any) {
           </View>
 
           {viewerRecord && (() => {
-            const url = viewerRecord.file_url || viewerRecord.attachment_url;
-            if (!url) {
+            const hasFile = !!(viewerRecord.file_url || viewerRecord.attachment_url);
+            if (!hasFile) {
               const d = viewerRecord.data ?? {};
               const rows = Object.entries(d).filter(([, v]) => v !== null && v !== '');
               return (
@@ -830,10 +843,17 @@ export default function DoctorCaseFilesScreen({ navigation }: any) {
                 </ScrollView>
               );
             }
-            if (isImageUrl(url)) return (
-              <Image source={{ uri: url }} style={{ flex: 1 }} resizeMode="contain" />
+            if (!viewerUrl) {
+              return (
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#000' }}>
+                  <ActivityIndicator size="large" color="#fff" />
+                </View>
+              );
+            }
+            if (isImageUrl(viewerUrl)) return (
+              <Image source={{ uri: viewerUrl }} style={{ flex: 1 }} resizeMode="contain" />
             );
-            const docViewerUrl = `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(url)}`;
+            const docViewerUrl = `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(viewerUrl)}`;
             return (
               <WebView
                 source={{ uri: docViewerUrl }}

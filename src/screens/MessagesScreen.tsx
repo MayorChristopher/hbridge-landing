@@ -23,6 +23,7 @@ export default function MessagesScreen({ navigation }: any) {
   const [searchFocused, setSearchFocused]   = useState(false);
   const [sortMode, setSortMode]             = useState<SortMode>('newest');
   const [filterMode, setFilterMode]         = useState<FilterMode>('all');
+  const [activeTab, setActiveTab]           = useState<'patients' | 'facility'>('patients');
   const [showSortMenu, setShowSortMenu]     = useState(false);
   const [markingRead, setMarkingRead]       = useState(false);
   const { refreshUnreadCount }              = useChatBadge();
@@ -74,21 +75,34 @@ export default function MessagesScreen({ navigation }: any) {
         ? `doctor_id.eq.${doctorData.id},patient_id.eq.${userId}`
         : `patient_id.eq.${userId}`;
 
-      const { data: convs, error } = await supabase
-        .from('conversations').select('id, updated_at, patient_id, doctor_id')
-        .or(conversationFilter).order('updated_at', { ascending: false });
+      // Both queries are gathered before any setConversations call below —
+      // calling it twice in sequence (once per query) caused the facility
+      // row to flash in and out on every reload/focus/realtime event.
+      const [{ data: convsData, error }, { data: hospConvsData }] = await Promise.all([
+        supabase.from('conversations').select('id, updated_at, patient_id, doctor_id')
+          .or(conversationFilter).is('hospital_id', null).order('updated_at', { ascending: false }),
+        supabase.from('conversations').select('id, hospital_id, updated_at')
+          .eq('patient_id', userId).not('hospital_id', 'is', null),
+      ]);
       if (error) throw error;
-      if (!convs || convs.length === 0) { setConversations([]); return; }
+      const convs = convsData || [];
+      const hospConvs = hospConvsData || [];
 
       const doctorIds  = [...new Set(convs.map((c: any) => c.doctor_id).filter(Boolean))];
       const patientIds = [...new Set(convs.map((c: any) => c.patient_id).filter(Boolean))];
+      const hospIds    = [...new Set(hospConvs.map((c: any) => c.hospital_id).filter(Boolean))];
 
-      const { data: doctorRows }     = doctorIds.length > 0
-        ? await supabase.from('doctors').select('id, user_id, full_name, profile_image, title').in('id', doctorIds)
-        : { data: [] };
-      const { data: patientProfiles } = patientIds.length > 0
-        ? await supabase.from('profiles').select('id, full_name, profile_image').in('id', patientIds)
-        : { data: [] };
+      const [{ data: doctorRows }, { data: patientProfiles }, { data: hosps }] = await Promise.all([
+        doctorIds.length > 0
+          ? supabase.from('doctors').select('id, user_id, full_name, profile_image, title').in('id', doctorIds)
+          : Promise.resolve({ data: [] as any[] }),
+        patientIds.length > 0
+          ? supabase.from('profiles').select('id, full_name, profile_image').in('id', patientIds)
+          : Promise.resolve({ data: [] as any[] }),
+        hospIds.length > 0
+          ? supabase.from('hospitals').select('id, name, logo_url').in('id', hospIds)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
 
       const doctorUserIds = (doctorRows || []).map((d: any) => d.user_id).filter(Boolean);
       const { data: doctorProfiles } = doctorUserIds.length > 0
@@ -103,16 +117,19 @@ export default function MessagesScreen({ navigation }: any) {
         return [d.id, { id: d.id, full_name: displayName, profile_image: profile?.profile_image || d.profile_image, title }];
       }));
       const patientMap = new Map((patientProfiles || []).map((p: any) => [p.id, p]));
+      const hospMap = new Map((hosps || []).map((h: any) => [h.id, h]));
 
       const getOtherUser = (conv: any) => {
         if (doctorData && conv.doctor_id === doctorData.id) return patientMap.get(conv.patient_id) || null;
         return doctorMap.get(conv.doctor_id) || null;
       };
 
-      const convIds = convs.map((c: any) => c.id);
-      const { data: lastMsgs } = await supabase
-        .from('messages').select('id, conversation_id, content, created_at, sender_id, read_at, attachment_type')
-        .in('conversation_id', convIds).order('created_at', { ascending: false });
+      const allConvIds = [...convs.map((c: any) => c.id), ...hospConvs.map((c: any) => c.id)];
+      const { data: lastMsgs } = allConvIds.length > 0
+        ? await supabase
+            .from('messages').select('id, conversation_id, content, created_at, sender_id, read_at, attachment_type')
+            .in('conversation_id', allConvIds).order('created_at', { ascending: false })
+        : { data: [] };
 
       const lastMsgMap = new Map<string, any>();
       const unreadMap  = new Map<string, number>();
@@ -130,65 +147,33 @@ export default function MessagesScreen({ navigation }: any) {
         currentUserId:      userId,
         isCurrentUserDoctor: doctorData && conv.doctor_id === doctorData.id,
       }));
-      convIdsRef.current = convs.map((c: any) => c.id);
-      setConversations(enriched);
+
+      const hospEnriched = hospConvs.map((conv: any) => ({
+        ...conv,
+        patient_id: userId,
+        doctor_id: null,
+        otherUser: {
+          id: conv.hospital_id,
+          full_name: hospMap.get(conv.hospital_id)?.name || 'Hospital',
+          profile_image: hospMap.get(conv.hospital_id)?.logo_url || null,
+          isHospital: true,
+        },
+        lastMessage: lastMsgMap.get(conv.id) || null,
+        unreadCount: unreadMap.get(conv.id) || 0,
+        currentUserId: userId,
+        isCurrentUserDoctor: false,
+        isHospitalConv: true,
+      }));
+
+      const combined = [...enriched, ...hospEnriched].sort((a: any, b: any) => {
+        const ta = new Date(a.lastMessage?.created_at || a.updated_at || 0).getTime();
+        const tb = new Date(b.lastMessage?.created_at || b.updated_at || 0).getTime();
+        return tb - ta;
+      });
+
+      convIdsRef.current = allConvIds;
+      setConversations(combined);
       refreshUnreadCount();
-
-      // Also show hospital-channel conversations for practitioners who are staff
-      try {
-        const { data: hospConvs } = await supabase
-          .from('conversations')
-          .select('id, hospital_id, updated_at')
-          .eq('patient_id', userId)
-          .not('hospital_id', 'is', null);
-
-        if (hospConvs?.length) {
-          const hospIds = [...new Set(hospConvs.map((c: any) => c.hospital_id))];
-          const { data: hosps } = await supabase.from('hospitals').select('id, name').in('id', hospIds);
-          const hospMap = new Map((hosps || []).map((h: any) => [h.id, h]));
-
-          const hConvIds = hospConvs.map((c: any) => c.id);
-          const hLastMsgMap = new Map<string, any>();
-          const hUnreadMap  = new Map<string, number>();
-          if (hConvIds.length > 0) {
-            const { data: hMsgs } = await supabase
-              .from('messages').select('id, conversation_id, content, created_at, sender_id, read_at, attachment_type')
-              .in('conversation_id', hConvIds).order('created_at', { ascending: false });
-            (hMsgs || []).forEach((m: any) => {
-              if (!hLastMsgMap.has(m.conversation_id)) hLastMsgMap.set(m.conversation_id, m);
-              if (m.sender_id !== userId && !m.read_at)
-                hUnreadMap.set(m.conversation_id, (hUnreadMap.get(m.conversation_id) || 0) + 1);
-            });
-          }
-
-          const hospEnriched = hospConvs.map((conv: any) => ({
-            ...conv,
-            patient_id: userId,
-            doctor_id: null,
-            otherUser: {
-              id: conv.hospital_id,
-              full_name: hospMap.get(conv.hospital_id)?.name || 'Hospital',
-              profile_image: null,
-              isHospital: true,
-            },
-            lastMessage: hLastMsgMap.get(conv.id) || null,
-            unreadCount: hUnreadMap.get(conv.id) || 0,
-            currentUserId: userId,
-            isCurrentUserDoctor: false,
-            isHospitalConv: true,
-          }));
-
-          convIdsRef.current = [...convIdsRef.current, ...hConvIds];
-          setConversations(prev => [...prev, ...hospEnriched].sort((a: any, b: any) => {
-            const ta = new Date(a.lastMessage?.created_at || a.updated_at || 0).getTime();
-            const tb = new Date(b.lastMessage?.created_at || b.updated_at || 0).getTime();
-            return tb - ta;
-          }));
-          refreshUnreadCount();
-        }
-      } catch {
-        // hospital_id column not yet added — skip silently
-      }
     } catch (e) { console.error('Load conversations error:', e); }
   };
 
@@ -305,6 +290,8 @@ export default function MessagesScreen({ navigation }: any) {
   };
 
   const totalUnread = conversations.reduce((s, c) => s + c.unreadCount, 0);
+  const facilityConvs = conversations.filter(c => c.isHospitalConv);
+  const patientConvs  = conversations.filter(c => !c.isHospitalConv);
 
   const formatTime = (iso: string) => {
     const d = new Date(iso), now = new Date();
@@ -313,7 +300,7 @@ export default function MessagesScreen({ navigation }: any) {
     return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
   };
 
-  const filtered = conversations
+  const filtered = (isDoctor ? (activeTab === 'facility' ? facilityConvs : patientConvs) : conversations)
     .filter(c => {
       const matchesSearch = !searchQuery.trim() ||
         (c.otherUser?.full_name || '').toLowerCase().includes(searchQuery.toLowerCase());
@@ -365,10 +352,14 @@ export default function MessagesScreen({ navigation }: any) {
         <View style={s.avatarWrap}>
           {item.otherUser?.profile_image
             ? <Image source={{ uri: item.otherUser.profile_image }} style={s.avatarImg} />
+            : item.otherUser?.isHospital
+            ? <View style={[s.avatarImg, s.avatarFallback]}>
+                <Text style={s.avatarInitials}>
+                  {(item.otherUser?.full_name || 'H').split(' ').filter(Boolean).slice(0, 2).map((w: string) => w[0]).join('').toUpperCase()}
+                </Text>
+              </View>
             : <View style={[s.avatarImg, s.avatarFallback]}>
-                {item.otherUser?.isHospital
-                  ? <Ionicons name="business-outline" size={22} color={C.teal} />
-                  : item.isCurrentUserDoctor
+                {item.isCurrentUserDoctor
                   ? <Ionicons name="person" size={22} color={C.teal} />
                   : <MaterialCommunityIcons name="stethoscope" size={22} color={C.teal} />}
               </View>}
@@ -376,7 +367,15 @@ export default function MessagesScreen({ navigation }: any) {
         </View>
         <View style={s.info}>
           <View style={s.infoTop}>
-            <Text style={s.name} numberOfLines={1}>{item.otherUser?.full_name || 'Unknown'}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
+              <Text style={s.name} numberOfLines={1}>{item.otherUser?.full_name || 'Unknown'}</Text>
+              {item.isHospitalConv && (
+                <View style={s.hospitalTag}>
+                  <Ionicons name="business" size={9} color={C.teal} />
+                  <Text style={s.hospitalTagText}>{item.otherUser?.isHospital ? 'FACILITY' : 'STAFF'}</Text>
+                </View>
+              )}
+            </View>
             {item.lastMessage && <Text style={s.time}>{formatTime(item.lastMessage.created_at)}</Text>}
           </View>
           <View style={s.infoBottom}>
@@ -443,6 +442,30 @@ export default function MessagesScreen({ navigation }: any) {
             </TouchableOpacity>
           )}
         </View>
+
+        {/* Patients / Facility tabs — practitioners only */}
+        {isDoctor && (
+          <View style={s.roleTabs}>
+            <TouchableOpacity
+              style={[s.roleTab, activeTab === 'patients' && s.roleTabActive]}
+              onPress={() => setActiveTab('patients')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="medkit-outline" size={14} color={activeTab === 'patients' ? '#fff' : C.muted} />
+              <Text style={[s.roleTabText, activeTab === 'patients' && s.roleTabTextActive]}>Patients</Text>
+              {patientConvs.some(c => c.unreadCount > 0) && activeTab !== 'patients' && <View style={s.roleTabDot} />}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[s.roleTab, activeTab === 'facility' && s.roleTabActive]}
+              onPress={() => setActiveTab('facility')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="business-outline" size={14} color={activeTab === 'facility' ? '#fff' : C.muted} />
+              <Text style={[s.roleTabText, activeTab === 'facility' && s.roleTabTextActive]}>Facility</Text>
+              {facilityConvs.some(c => c.unreadCount > 0) && activeTab !== 'facility' && <View style={s.roleTabDot} />}
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Filter + Sort toolbar */}
         <View style={s.toolbarWrap}>
@@ -513,7 +536,7 @@ export default function MessagesScreen({ navigation }: any) {
                     : <Ionicons name="chatbubbles-outline" size={40} color={C.teal} />}
                 </View>
                 <Text style={s.emptyText}>
-                  {isHospitalAdmin ? 'No staff yet' : searchQuery ? 'No results' : filterMode === 'unread' ? 'All read' : 'No conversations yet'}
+                  {isHospitalAdmin ? 'No staff yet' : searchQuery ? 'No results' : filterMode === 'unread' ? 'All read' : isDoctor && activeTab === 'facility' ? 'No facility conversations' : 'No conversations yet'}
                 </Text>
                 <Text style={s.emptySub}>
                   {isHospitalAdmin
@@ -522,6 +545,8 @@ export default function MessagesScreen({ navigation }: any) {
                     ? `Nothing matching "${searchQuery}"`
                     : filterMode === 'unread'
                     ? "You're all caught up — no unread messages"
+                    : isDoctor && activeTab === 'facility'
+                    ? 'Link to a hospital under Profile → Hospital Affiliations to chat with your facility.'
                     : 'Messages with doctors and patients appear here'}
                 </Text>
               </View>
@@ -537,7 +562,7 @@ export default function MessagesScreen({ navigation }: any) {
         <TouchableOpacity
           style={s.fab}
           activeOpacity={0.85}
-          onPress={() => navigation.navigate('DoctorsList')}
+          onPress={() => navigation.navigate('DoctorsList', { viewerIsDoctor: true })}
         >
           <Ionicons name="create-outline" size={22} color="#fff" />
         </TouchableOpacity>
@@ -556,6 +581,14 @@ const s = StyleSheet.create({
   headerSubtitle: { fontSize: 13, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(255,255,255,0.70)', marginTop: 2 },
   readAllBtn:   { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' },
   readAllText:  { fontSize: 12, fontFamily: 'Montserrat_600SemiBold', color: '#fff' },
+
+  // Role tabs (Patients / Facility)
+  roleTabs:     { flexDirection: 'row', gap: 8, marginHorizontal: 16, marginBottom: 4 },
+  roleTab:      { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: 12, backgroundColor: C.surface, position: 'relative' },
+  roleTabActive: { backgroundColor: C.teal },
+  roleTabText:  { fontSize: 13, fontFamily: 'Montserrat_600SemiBold', color: C.muted },
+  roleTabTextActive: { color: '#fff' },
+  roleTabDot:   { position: 'absolute', top: 6, right: 10, width: 7, height: 7, borderRadius: 3.5, backgroundColor: '#EF4444' },
 
   // Toolbar
   toolbarWrap:  { zIndex: 10 },
@@ -589,8 +622,11 @@ const s = StyleSheet.create({
   avatarWrap:  { position: 'relative' },
   avatarImg:   { width: 52, height: 52, borderRadius: 26 },
   avatarFallback: { backgroundColor: C.tealLight, alignItems: 'center', justifyContent: 'center' },
+  avatarInitials: { fontSize: 18, fontFamily: 'Montserrat_700Bold', color: C.teal },
   onlineDot:   { position: 'absolute', bottom: 1, right: 1, width: 13, height: 13, borderRadius: 7, backgroundColor: '#22C55E', borderWidth: 2, borderColor: C.bg },
   info:        { flex: 1, gap: 4 },
+  hospitalTag: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: C.tealLight, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, marginLeft: 8 },
+  hospitalTagText: { fontSize: 9, fontFamily: 'Montserrat_700Bold', color: C.teal, letterSpacing: 0.3 },
   infoTop:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   infoBottom:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   name:        { fontSize: 15, fontFamily: 'Montserrat_600SemiBold', color: C.text, flex: 1, marginRight: 8 },

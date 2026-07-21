@@ -359,7 +359,7 @@ export default function HomeScreen({ navigation }: any) {
       if (!authUser) return;
       const { data } = await supabase
         .from('profiles')
-        .select('id, full_name, user_type, profile_image')
+        .select('id, full_name, user_type, profile_image, subscription_status')
         .eq('id', authUser.id)
         .maybeSingle();
       setUser(data || { id: authUser.id, full_name: authUser.user_metadata?.full_name || 'User', user_type: 'patient' });
@@ -538,6 +538,23 @@ export default function HomeScreen({ navigation }: any) {
             </View>
           )}
         </View>
+
+        {user?.subscription_status !== 'active' && (
+          <TouchableOpacity
+            style={s.premiumBanner}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate('Subscription', { userType: 'patient' })}
+          >
+            <View style={s.premiumBannerIcon}>
+              <Ionicons name="star" size={18} color={C.gold} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.premiumBannerTitle}>Go Premium</Text>
+              <Text style={s.premiumBannerSub}>Unlimited AI chat, no platform fees, priority booking</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={C.gold} />
+          </TouchableOpacity>
+        )}
 
         <View style={s.paperCard}>
         {/* â"€â"€ QUICK ACTIONS â"€â"€ */}
@@ -775,6 +792,18 @@ export default function HomeScreen({ navigation }: any) {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#083236' },
   paperCard: { backgroundColor: '#F5F3EE', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 16, paddingBottom: NAV_PAD, flexGrow: 1 },
+
+  premiumBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 20, marginTop: 14,
+    backgroundColor: 'rgba(212,168,67,0.12)', borderWidth: 1, borderColor: 'rgba(212,168,67,0.35)',
+    borderRadius: 14, padding: 12,
+  },
+  premiumBannerIcon: {
+    width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(212,168,67,0.18)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  premiumBannerTitle: { fontSize: 13.5, fontFamily: 'Montserrat_600SemiBold', color: '#fff' },
+  premiumBannerSub: { fontSize: 11.5, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(255,255,255,0.7)', marginTop: 1 },
 
   // Brand bar
   brandBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8 },

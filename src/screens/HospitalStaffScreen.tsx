@@ -9,6 +9,8 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastProvider';
+import { sendNotifications } from '../utils/notify';
+import { getOrCreateHospitalRow, isHospitalSetupComplete } from '../utils/hospitalSetup';
 
 const C = {
   bg: '#F5F3EE', surface: '#EDE9E0', card: '#FFFFFF',
@@ -43,10 +45,13 @@ export default function HospitalStaffScreen({ navigation }: any) {
   const [loading, setLoading]           = useState(true);
   const [refreshing, setRefreshing]     = useState(false);
   const [hospitalId, setHospitalId]     = useState<string | null>(null);
+  const [hospitalName, setHospitalName] = useState<string>('');
+  const [setupComplete, setSetupComplete] = useState(true);
   const [myUserId, setMyUserId]         = useState<string | null>(null);
 
   // Invite modal
   const [showInvite, setShowInvite] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{ type: 'reject' | 'cancel' | 'remove'; row: any } | null>(null);
   const [inviteSearch, setInviteSearch] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching]   = useState(false);
@@ -74,16 +79,14 @@ export default function HospitalStaffScreen({ navigation }: any) {
       const name = prof?.hospital_name || prof?.full_name;
       if (!name) { setLoading(false); setRefreshing(false); return; }
 
-      let { data: hosp } = await supabase
-        .from('hospitals').select('id').ilike('name', `%${name}%`).maybeSingle();
-      if (!hosp?.id) {
-        const { data: created } = await supabase.from('hospitals')
-          .insert({ name: name.trim(), is_active: true, rating: 0, total_reviews: 0 })
-          .select('id').maybeSingle();
-        hosp = created;
-      }
+      let hosp: any = null;
+      try {
+        hosp = await getOrCreateHospitalRow(name);
+      } catch (e) { console.warn('Hospital row creation failed', e); }
       if (!hosp?.id) { setLoading(false); setRefreshing(false); return; }
       setHospitalId(hosp.id);
+      setHospitalName(name);
+      setSetupComplete(isHospitalSetupComplete(hosp));
 
       const { data: rows } = await supabase
         .from('hospital_staff')
@@ -100,6 +103,10 @@ export default function HospitalStaffScreen({ navigation }: any) {
   };
 
   const openInviteSheet = () => {
+    if (!setupComplete) {
+      toast.showWarning('Complete Your Facility Profile', 'Add your hospital\'s address before inviting staff — this is what makes your facility discoverable to practitioners.');
+      return;
+    }
     setShowInvite(true);
     inviteSheetY.setValue(600);
     Animated.spring(inviteSheetY, { toValue: 0, tension: 180, friction: 22, useNativeDriver: true }).start();
@@ -139,27 +146,39 @@ export default function HospitalStaffScreen({ navigation }: any) {
         .eq('doctor_id', doctor.id)
         .maybeSingle();
 
-      if (existing) {
+      if (existing && (existing.status === 'active' || existing.status === 'pending')) {
         toast.showWarning('Already exists', `${doctor.full_name} is already ${existing.status === 'active' ? 'on your staff' : 'has a pending invitation'}.`);
         return;
       }
 
-      await supabase.from('hospital_staff').insert({
-        hospital_id: hospitalId,
-        doctor_id: doctor.id,
-        status: 'pending',
-        requested_by: 'hospital',
-        invited_at: new Date().toISOString(),
-      });
+      if (existing) {
+        // Previously resigned/rejected — re-invite by reviving the same row
+        // rather than blocking, so leaving/declining isn't permanent.
+        const { error: reinviteError } = await supabase.from('hospital_staff')
+          .update({ status: 'pending', requested_by: 'hospital', invited_at: new Date().toISOString(), joined_at: null })
+          .eq('id', existing.id);
+        if (reinviteError) throw reinviteError;
+      } else {
+        const { error: inviteError } = await supabase.from('hospital_staff').insert({
+          hospital_id: hospitalId,
+          doctor_id: doctor.id,
+          status: 'pending',
+          requested_by: 'hospital',
+          invited_at: new Date().toISOString(),
+        });
+        if (inviteError) throw inviteError;
+      }
 
       // Notify the doctor
-      await supabase.from('notifications').insert({
-        user_id: doctor.user_id,
-        title: 'Hospital Staff Invitation',
-        message: 'A hospital has invited you to join their staff on Hbridge. Review it in your Hospital Affiliations.',
-        type: 'system',
-        is_read: false,
-      });
+      try {
+        await sendNotifications([{
+          userId: doctor.user_id,
+          title: 'Hospital Staff Invitation',
+          message: 'A hospital has invited you to join their staff on Hbridge. Review it in your Hospital Affiliations.',
+          type: 'system',
+          is_read: false,
+        }]);
+      } catch (e) { console.warn('Notification failed', e); }
 
       toast.showSuccess('Invitation Sent', `${doctor.title || 'Dr.'} ${doctor.full_name} has been invited.`);
       closeInviteSheet();
@@ -173,17 +192,20 @@ export default function HospitalStaffScreen({ navigation }: any) {
 
   const approveRequest = async (row: any) => {
     try {
-      await supabase.from('hospital_staff')
+      const { error } = await supabase.from('hospital_staff')
         .update({ status: 'active', joined_at: new Date().toISOString() })
         .eq('id', row.id);
+      if (error) throw error;
 
-      await supabase.from('notifications').insert({
-        user_id: row.doctors?.user_id,
-        title: 'Affiliation Approved',
-        message: 'Your request to join the hospital staff has been approved.',
-        type: 'system',
-        is_read: false,
-      });
+      try {
+        await sendNotifications([{
+          userId: row.doctors?.user_id,
+          title: 'Affiliation Approved',
+          message: 'Your request to join the hospital staff has been approved.',
+          type: 'system',
+          is_read: false,
+        }]);
+      } catch (e) { console.warn('Notification failed', e); }
 
       toast.showSuccess('Approved', `${row.doctors?.full_name} is now on your staff.`);
       loadData();
@@ -194,15 +216,18 @@ export default function HospitalStaffScreen({ navigation }: any) {
 
   const rejectRequest = async (row: any) => {
     try {
-      await supabase.from('hospital_staff').update({ status: 'rejected' }).eq('id', row.id);
+      const { error } = await supabase.from('hospital_staff').update({ status: 'rejected' }).eq('id', row.id);
+      if (error) throw error;
 
-      await supabase.from('notifications').insert({
-        user_id: row.doctors?.user_id,
-        title: 'Affiliation Declined',
-        message: 'Your request to join the hospital staff was not approved at this time.',
-        type: 'system',
-        is_read: false,
-      });
+      try {
+        await sendNotifications([{
+          userId: row.doctors?.user_id,
+          title: 'Affiliation Declined',
+          message: 'Your request to join the hospital staff was not approved at this time.',
+          type: 'system',
+          is_read: false,
+        }]);
+      } catch (e) { console.warn('Notification failed', e); }
 
       toast.showInfo('Declined', `Request from ${row.doctors?.full_name} declined.`);
       loadData();
@@ -213,7 +238,8 @@ export default function HospitalStaffScreen({ navigation }: any) {
 
   const cancelInvite = async (row: any) => {
     try {
-      await supabase.from('hospital_staff').update({ status: 'rejected' }).eq('id', row.id);
+      const { error } = await supabase.from('hospital_staff').update({ status: 'rejected' }).eq('id', row.id);
+      if (error) throw error;
       toast.showInfo('Cancelled', 'Invitation cancelled.');
       loadData();
     } catch (e: any) {
@@ -223,21 +249,45 @@ export default function HospitalStaffScreen({ navigation }: any) {
 
   const removeStaff = async (row: any) => {
     try {
-      await supabase.from('hospital_staff').update({ status: 'resigned' }).eq('id', row.id);
+      const { error } = await supabase.from('hospital_staff').update({ status: 'resigned' }).eq('id', row.id);
+      if (error) throw error;
 
-      await supabase.from('notifications').insert({
-        user_id: row.doctors?.user_id,
-        title: 'Staff Affiliation Removed',
-        message: 'Your hospital staff affiliation has been removed.',
-        type: 'system',
-        is_read: false,
-      });
+      try {
+        await sendNotifications([{
+          userId: row.doctors?.user_id,
+          title: 'Staff Affiliation Removed',
+          message: 'Your hospital staff affiliation has been removed.',
+          type: 'system',
+          is_read: false,
+        }]);
+      } catch (e) { console.warn('Notification failed', e); }
 
       toast.showInfo('Removed', `${row.doctors?.full_name} removed from staff.`);
       loadData();
     } catch (e: any) {
       toast.showError('Error', e.message);
     }
+  };
+
+  const CONFIRM_COPY: Record<string, { title: string; body: (row: any) => string; confirmLabel: string; run: (row: any) => Promise<void> }> = {
+    reject: {
+      title: 'Decline Request?',
+      body: (row) => `${row.doctors?.full_name ?? 'This practitioner'}'s request to join your staff will be declined.`,
+      confirmLabel: 'Decline',
+      run: rejectRequest,
+    },
+    cancel: {
+      title: 'Cancel Invitation?',
+      body: (row) => `Your invitation to ${row.doctors?.full_name ?? 'this practitioner'} will be withdrawn.`,
+      confirmLabel: 'Cancel Invite',
+      run: cancelInvite,
+    },
+    remove: {
+      title: 'Remove Staff Member?',
+      body: (row) => `${row.doctors?.full_name ?? 'This practitioner'} will lose staff access to your hospital immediately.`,
+      confirmLabel: 'Remove',
+      run: removeStaff,
+    },
   };
 
   const counts = { active: activeStaff.length, requests: requests.length, invites: invites.length };
@@ -273,18 +323,18 @@ export default function HospitalStaffScreen({ navigation }: any) {
                 <Ionicons name="checkmark" size={16} color="#fff" />
                 <Text style={s.approveBtnText}>Approve</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={s.rejectBtn} onPress={() => rejectRequest(item)}>
+              <TouchableOpacity style={s.rejectBtn} onPress={() => setConfirmAction({ type: 'reject', row: item })}>
                 <Ionicons name="close" size={16} color={C.red} />
               </TouchableOpacity>
             </>
           )}
           {tab === 'invites' && (
-            <TouchableOpacity style={s.rejectBtn} onPress={() => cancelInvite(item)}>
+            <TouchableOpacity style={s.rejectBtn} onPress={() => setConfirmAction({ type: 'cancel', row: item })}>
               <Text style={s.cancelText}>Cancel</Text>
             </TouchableOpacity>
           )}
           {tab === 'active' && (
-            <TouchableOpacity style={s.rejectBtn} onPress={() => removeStaff(item)}>
+            <TouchableOpacity style={s.rejectBtn} onPress={() => setConfirmAction({ type: 'remove', row: item })}>
               <Ionicons name="person-remove-outline" size={17} color={C.red} />
             </TouchableOpacity>
           )}
@@ -302,10 +352,22 @@ export default function HospitalStaffScreen({ navigation }: any) {
           <Text style={s.headerTitle}>Staff</Text>
           <Text style={s.headerSub}>{counts.active} active · {counts.requests} request{counts.requests !== 1 ? 's' : ''}</Text>
         </View>
-        <TouchableOpacity style={s.inviteBtn} onPress={openInviteSheet} activeOpacity={0.8}>
-          <Ionicons name="person-add-outline" size={17} color="#fff" />
-          <Text style={s.inviteBtnText}>Invite</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity
+            style={s.iconOnlyBtn}
+            onPress={() => navigation.navigate('HospitalTeamChat', { hospitalId, hospitalName })}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="chatbubbles-outline" size={18} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity style={s.iconOnlyBtn} onPress={() => navigation.navigate('HospitalShifts')} activeOpacity={0.8}>
+            <Ionicons name="calendar-outline" size={18} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity style={[s.inviteBtn, !setupComplete && { opacity: 0.5 }]} onPress={openInviteSheet} activeOpacity={0.8}>
+            <Ionicons name="person-add-outline" size={17} color="#fff" />
+            <Text style={s.inviteBtnText}>Invite</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={s.paper}>
@@ -408,6 +470,40 @@ export default function HospitalStaffScreen({ navigation }: any) {
           </View>
         </View>
       </Modal>
+
+      {/* Confirm destructive action */}
+      <Modal visible={!!confirmAction} animationType="slide" transparent onRequestClose={() => setConfirmAction(null)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40 }}>
+            <View style={{ width: 40, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: 'center', marginBottom: 20 }} />
+            {confirmAction && (
+              <>
+                <Text style={{ fontSize: 18, fontFamily: 'Montserrat_700Bold', color: C.text, marginBottom: 6 }}>
+                  {CONFIRM_COPY[confirmAction.type].title}
+                </Text>
+                <Text style={{ fontSize: 13.5, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted, marginBottom: 24, lineHeight: 20 }}>
+                  {CONFIRM_COPY[confirmAction.type].body(confirmAction.row)}
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <TouchableOpacity onPress={() => setConfirmAction(null)} style={{ flex: 1, padding: 14, borderRadius: 13, backgroundColor: C.surface, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 14, fontFamily: 'Montserrat_600SemiBold', color: C.muted }}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={async () => {
+                      const action = confirmAction;
+                      setConfirmAction(null);
+                      if (action) await CONFIRM_COPY[action.type].run(action.row);
+                    }}
+                    style={{ flex: 1, padding: 14, borderRadius: 13, backgroundColor: C.red, alignItems: 'center' }}
+                  >
+                    <Text style={{ fontSize: 14, fontFamily: 'Montserrat_700Bold', color: '#fff' }}>{CONFIRM_COPY[confirmAction.type].confirmLabel}</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -420,6 +516,7 @@ const s = StyleSheet.create({
   headerSub:    { fontSize: 13, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(255,255,255,0.6)', marginTop: 2 },
   inviteBtn:    { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.teal, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10 },
   inviteBtnText:{ fontSize: 13, fontFamily: 'Montserrat_700Bold', color: '#fff' },
+  iconOnlyBtn:  { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
 
   paper: { flex: 1, backgroundColor: C.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
 

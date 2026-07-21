@@ -38,6 +38,7 @@ export interface Doctor {
   languages: string[];
   verification_status: 'pending' | 'verified' | 'rejected';
   verification_documents: string[];
+  verification_notes?: string | null;
   created_at: string;
   updated_at: string;
 }

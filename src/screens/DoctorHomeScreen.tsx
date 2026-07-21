@@ -13,8 +13,6 @@ import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LoadingLogo from '../components/LoadingLogo';
 import FadeScreen from '../components/FadeScreen';
-import { useChatBadge } from '../context/ChatBadgeContext';
-import { useRecordsBadge } from '../context/RecordsBadgeContext';
 import SpotlightTour, { SpotlightStep } from '../components/SpotlightTour';
 import { useToast } from '../components/ToastProvider';
 
@@ -179,8 +177,6 @@ export default function DoctorHomeScreen({ navigation }: any) {
   const [isAvailable, setIsAvailable] = useState(true);
   const [togglingAvail, setTogglingAvail] = useState(false);
 
-  const { unreadCount } = useChatBadge();
-  const { newRecordsCount } = useRecordsBadge();
   const [showSpotlight, setShowSpotlight] = useState(false);
 
   const toggleScale = useRef(new Animated.Value(1)).current;
@@ -217,7 +213,7 @@ export default function DoctorHomeScreen({ navigation }: any) {
           user_id: user.id, full_name: prof?.full_name || '',
           specialization: prof?.specialization || 'General Practice',
           medical_license: prof?.medical_license || 'PENDING',
-          verification_status: 'verified', is_available: true, average_rating: 0, total_reviews: 0,
+          verification_status: 'pending', is_available: true, average_rating: 0, total_reviews: 0,
         }).select().single();
         doc = created;
       }
@@ -293,6 +289,9 @@ export default function DoctorHomeScreen({ navigation }: any) {
     .split(' ')[0] || 'Doctor';
   const workerTitleShort = (doctor?.title || 'Dr.').replace(/\.$/, '');
 
+  // My Patients, Records and Messages already have dedicated tabs in the
+  // bottom navbar — listing them again here would just duplicate navigation.
+  // Only Appointments and Practitioner Network have no tab of their own yet.
   const QUICK_ACTIONS = [
     {
       icon: 'calendar-outline', label: 'Appointments',
@@ -300,20 +299,9 @@ export default function DoctorHomeScreen({ navigation }: any) {
       onPress: () => navigation.navigate('DoctorAppointmentRequests'),
     },
     {
-      icon: 'people-outline', label: 'My Patients',
+      icon: 'people-circle-outline', label: 'Practitioner Network',
       badge: undefined,
-      onPress: () => tabNav.navigate('Patients'),
-    },
-    {
-      icon: 'folder-open-outline', label: 'Records',
-      badge: newRecordsCount > 0 ? newRecordsCount : undefined,
-      // tabNav switches to the DoctorCaseFiles TAB so the navbar stays visible
-      onPress: () => tabNav.navigate('DoctorCaseFiles'),
-    },
-    {
-      icon: 'chatbubble-ellipses-outline', label: 'Messages',
-      badge: unreadCount > 0 ? unreadCount : undefined,
-      onPress: () => tabNav.navigate('DoctorMessages'),
+      onPress: () => navigation.navigate('DoctorsList', { viewerIsDoctor: true }),
     },
   ];
 
@@ -369,11 +357,45 @@ export default function DoctorHomeScreen({ navigation }: any) {
               <Text style={s.credText} numberOfLines={1}>{doctor.specialization || 'General Practice'}</Text>
             </View>
           )}
+
+          {/* Stats — now inside the header, right after greeting/credentials */}
+          <View ref={statsRef} style={s.headerStatsRow}>
+            {STAT_ACTIONS.map(st => (
+              <TouchableOpacity key={st.key} style={s.headerStatCard} onPress={st.onPress} activeOpacity={0.75}>
+                <Text style={s.headerStatVal}>{(stats as any)[st.key]}</Text>
+                <Text style={s.headerStatLabel}>{st.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         {/* White card area */}
         <View style={s.contentCard}>
           <View style={s.handle} />
+
+          {/* Verification nudge banner */}
+          {doctor && doctor.verification_status !== 'verified' && (
+            <TouchableOpacity
+              style={s.payoutBanner}
+              onPress={() => navigation.navigate('DoctorVerification')}
+              activeOpacity={0.85}
+            >
+              <View style={s.payoutBannerIcon}>
+                <Ionicons name={doctor.verification_status === 'rejected' ? 'close-circle-outline' : 'shield-checkmark-outline'} size={18} color="#D4A843" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.payoutBannerTitle}>
+                  {doctor.verification_status === 'rejected' ? 'Verification not approved' : 'Verification pending'}
+                </Text>
+                <Text style={s.payoutBannerSub}>
+                  {doctor.verification_status === 'rejected'
+                    ? 'Tap to review and resubmit your document'
+                    : "You won't appear in patient search until your license is verified"}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#D4A843" />
+            </TouchableOpacity>
+          )}
 
           {/* Payout nudge banner */}
           {doctor && !doctor.paystack_subaccount && (
@@ -393,25 +415,38 @@ export default function DoctorHomeScreen({ navigation }: any) {
             </TouchableOpacity>
           )}
 
-          {/* Stats */}
-          <View ref={statsRef} style={s.statsRow}>
-            {STAT_ACTIONS.map(st => (
-              <TouchableOpacity key={st.key} style={s.statCard} onPress={st.onPress} activeOpacity={0.75}>
-                <Text style={s.statVal}>{(stats as any)[st.key]}</Text>
-                <Text style={s.statLabel}>{st.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          {/* Subscription nudge banner */}
+          {profile?.subscription_status !== 'active' && (
+            <TouchableOpacity
+              style={s.payoutBanner}
+              onPress={() => navigation.navigate('Subscription', { userType: 'doctor' })}
+              activeOpacity={0.85}
+            >
+              <View style={s.payoutBannerIcon}>
+                <Ionicons name="star-outline" size={18} color="#D4A843" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.payoutBannerTitle}>Upgrade to Pro</Text>
+                <Text style={s.payoutBannerSub}>Lower commission, verified badge, top listing priority</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#D4A843" />
+            </TouchableOpacity>
+          )}
 
           {/* Quick Actions */}
           <View style={s.section}>
             <Text style={s.sectionTitle}>Quick Actions</Text>
             <View ref={quickRef} style={s.actionsContainer}>
               {QUICK_ACTIONS.map((a, i) => (
-                <TouchableOpacity key={i} style={s.actionCard} onPress={a.onPress} activeOpacity={0.75}>
+                <TouchableOpacity
+                  key={i}
+                  style={[s.actionRow, i === QUICK_ACTIONS.length - 1 && { borderBottomWidth: 0 }]}
+                  onPress={a.onPress}
+                  activeOpacity={0.75}
+                >
                   <View style={{ position: 'relative' }}>
                     <View style={s.actionIcon}>
-                      <Ionicons name={a.icon as any} size={22} color={C.teal} />
+                      <Ionicons name={a.icon as any} size={20} color={C.teal} />
                     </View>
                     {!!a.badge && (
                       <View style={s.actionBadge}>
@@ -420,6 +455,7 @@ export default function DoctorHomeScreen({ navigation }: any) {
                     )}
                   </View>
                   <Text style={s.actionLabel}>{a.label}</Text>
+                  <Ionicons name="chevron-forward" size={16} color={C.muted} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -459,7 +495,7 @@ export default function DoctorHomeScreen({ navigation }: any) {
           },
           {
             title: 'Quick actions',
-            desc: 'Jump to appointments, patients, shared records, or messages in one tap.',
+            desc: 'Jump straight to your appointments or the Practitioner Network in one tap.',
             targetRef: quickRef,
             tooltipSide: 'below',
             padding: 12,
@@ -518,18 +554,21 @@ const s = StyleSheet.create({
   payoutBannerTitle: { fontSize: 13, fontFamily: 'Montserrat_700Bold', color: '#0C2E30' },
   payoutBannerSub: { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: '#6B7E7F', marginTop: 2 },
 
-  statsRow: { flexDirection: 'row', marginHorizontal: 20, gap: 8, marginBottom: 24 },
-  statCard: { flex: 1, backgroundColor: '#0C2E30', borderRadius: 14, padding: 12, alignItems: 'center', gap: 3 },
-  statVal: { fontSize: 20, fontFamily: 'Montserrat_800ExtraBold', color: '#fff' },
-  statLabel: { fontSize: 10, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(255,255,255,0.70)', textAlign: 'center' },
+  headerStatsRow: { flexDirection: 'row', marginTop: 14 },
+  headerStatCard: { flex: 1, alignItems: 'center', gap: 2 },
+  headerStatVal: { fontSize: 19, fontFamily: 'Montserrat_800ExtraBold', color: '#fff' },
+  headerStatLabel: { fontSize: 10, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(255,255,255,0.70)', textAlign: 'center' },
   section: { paddingHorizontal: 20, marginBottom: 24 },
   sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
   sectionTitle: { fontSize: 16, fontFamily: 'Montserrat_700Bold', color: C.text, marginBottom: 14 },
   seeAll: { fontSize: 13, fontFamily: 'SpaceGrotesk_500Medium', color: C.teal },
-  actionsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  actionCard: { width: '47%', backgroundColor: C.card, borderRadius: 16, padding: 16, gap: 10, borderWidth: 1, borderColor: C.border },
-  actionIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: C.tealLight, alignItems: 'center', justifyContent: 'center' },
-  actionLabel: { fontSize: 13, fontFamily: 'Montserrat_600SemiBold', color: C.text },
+  actionsContainer: { flexDirection: 'column' },
+  actionRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border,
+  },
+  actionIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: C.tealLight, alignItems: 'center', justifyContent: 'center' },
+  actionLabel: { flex: 1, fontSize: 14, fontFamily: 'Montserrat_600SemiBold', color: C.text },
   actionBadge: {
     position: 'absolute', top: -5, right: -5,
     minWidth: 18, height: 18, borderRadius: 9,

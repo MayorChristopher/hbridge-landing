@@ -11,6 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastProvider';
 import { NetworkDiagnostic } from '../utils/networkDiagnostic';
+import { getOrCreateHospitalRow } from '../utils/hospitalSetup';
 
 const C = {
   paper: '#F5F3EE', paperDark: '#EDE9E0', card: '#FFFFFF', cardBorder: '#EAE5DA',
@@ -170,7 +171,7 @@ export default function SignUpScreen({ navigation }: any) {
           specialization: specialization || 'General Practice',
           medical_license: medicalLicense || 'PENDING',
           title: selectedProf?.title || 'Dr.',
-          verification_status: 'verified', is_available: true,
+          verification_status: 'pending', is_available: true,
           average_rating: 0, total_reviews: 0,
         }, { onConflict: 'user_id' });
       }
@@ -179,13 +180,9 @@ export default function SignUpScreen({ navigation }: any) {
         await AsyncStorage.setItem('hospital_spotlight_pending', 'true');
         const hospName = fullName.trim();
         if (hospName) {
-          const { data: existing } = await supabase
-            .from('hospitals').select('id').ilike('name', hospName).maybeSingle();
-          if (!existing) {
-            await supabase.from('hospitals').insert({
-              name: hospName, is_active: true, rating: 0, total_reviews: 0,
-            });
-          }
+          try {
+            await getOrCreateHospitalRow(hospName);
+          } catch (e) { console.warn('Hospital row creation failed', e); }
         }
       }
 
@@ -298,7 +295,7 @@ export default function SignUpScreen({ navigation }: any) {
             specialization: specialization || 'General Practice',
             medical_license: medicalLicense || 'PENDING',
             title: selectedProf?.title || 'Dr.',
-            verification_status: 'verified', is_available: true,
+            verification_status: 'pending', is_available: true,
             average_rating: 0, total_reviews: 0,
           }, { onConflict: 'user_id' });
         }
@@ -309,13 +306,9 @@ export default function SignUpScreen({ navigation }: any) {
           // Create hospital row so the facility appears in search and explore
           const hospName = fullName.trim();
           if (hospName) {
-            const { data: existing } = await supabase
-              .from('hospitals').select('id').ilike('name', hospName).maybeSingle();
-            if (!existing) {
-              await supabase.from('hospitals').insert({
-                name: hospName, is_active: true, rating: 0, total_reviews: 0,
-              });
-            }
+            try {
+              await getOrCreateHospitalRow(hospName);
+            } catch (e) { console.warn('Hospital row creation failed', e); }
           }
         }
       }

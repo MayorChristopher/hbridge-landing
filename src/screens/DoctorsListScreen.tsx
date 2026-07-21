@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { usePresence } from '../context/PresenceContext';
+import { useToast } from '../components/ToastProvider';
 
 const C = {
   bg: '#F5F3EE', surface: '#EDE9E0', card: '#FFFFFF', cardBorder: '#EAE5DA',
@@ -16,7 +17,8 @@ const C = {
 
 const SPEC_FILTERS = ['All', 'General Practice', 'Cardiology', 'Pediatrics', 'Orthopedics', 'Dermatology', 'Gynecology', 'Neurology'];
 
-export default function DoctorsListScreen({ navigation }: any) {
+export default function DoctorsListScreen({ navigation, route }: any) {
+  const toast = useToast();
   const [search, setSearch]                           = useState('');
   const [doctors, setDoctors]                         = useState<any[]>([]);
   const [loading, setLoading]                         = useState(true);
@@ -24,8 +26,23 @@ export default function DoctorsListScreen({ navigation }: any) {
   const [activeSpec, setActiveSpec]                   = useState('All');
   const [messagingId, setMessagingId]                 = useState<string | null>(null);
   const [currentUserDoctorId, setCurrentUserDoctorId] = useState<string | null>(null);
+  const [isSubscribed, setIsSubscribed]               = useState(false);
   const searchTimeout = useRef<any>(null);
   const onlineUserIds = usePresence();
+
+  // Every entry point that only doctors can reach (Doctor Home, doctor's own
+  // Messages FAB, doctor's Profile menu) already knows for certain the viewer
+  // is a doctor and passes this hint — trusting it avoids a race where the
+  // async currentUserDoctorId lookup hasn't resolved yet if the user taps a
+  // card immediately after the list appears.
+  const isDoctorViewer = !!route?.params?.viewerIsDoctor || !!currentUserDoctorId;
+
+  // A practitioner should never find or message themselves in their own
+  // network — filtered client-side since currentUserDoctorId resolves async
+  // and may not be known yet at the moment doctors first load.
+  const visibleDoctors = currentUserDoctorId
+    ? doctors.filter(d => d.id !== currentUserDoctorId)
+    : doctors;
 
   useEffect(() => { getCurrentUser(); loadDoctors(''); }, []);
 
@@ -33,13 +50,25 @@ export default function DoctorsListScreen({ navigation }: any) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: doctorData } = await supabase.from('doctors').select('id').eq('user_id', user.id).maybeSingle();
+        const [{ data: doctorData }, { data: prof }] = await Promise.all([
+          supabase.from('doctors').select('id').eq('user_id', user.id).maybeSingle(),
+          supabase.from('profiles').select('subscription_status').eq('id', user.id).maybeSingle(),
+        ]);
         if (doctorData) setCurrentUserDoctorId(doctorData.id);
+        setIsSubscribed(prof?.subscription_status === 'active');
       }
     } catch {}
   };
 
   const openChat = async (d: any) => {
+    if (d.id === currentUserDoctorId) return; // can't message yourself — defensive, the card is already filtered out
+    // The Pro gate is a practitioner-to-practitioner networking perk — it
+    // must never block a patient from messaging a doctor to seek care.
+    if (isDoctorViewer && !isSubscribed) {
+      toast.showWarning('Pro Feature', 'Messaging other practitioners is part of Hbridge Pro. Upgrade to start networking.');
+      navigation.navigate('Subscription', { userType: 'doctor' });
+      return;
+    }
     setMessagingId(d.id);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -100,19 +129,22 @@ export default function DoctorsListScreen({ navigation }: any) {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.teal} colors={[C.teal]} />}
           contentContainerStyle={{ paddingBottom: 40 }}
         >
-          {/* Toggle */}
-          <View style={s.toggleWrap}>
-            <View style={s.toggle}>
-              <TouchableOpacity style={s.toggleBtn} onPress={() => navigation.replace('HospitalsList')}>
-                <MaterialCommunityIcons name="hospital-building" size={13} color={C.muted} />
-                <Text style={s.toggleTextInactive}>Hospitals</Text>
-              </TouchableOpacity>
-              <View style={[s.toggleBtn, s.toggleBtnActive]}>
-                <MaterialCommunityIcons name="stethoscope" size={13} color="#fff" />
-                <Text style={s.toggleTextActive}>Practitioners</Text>
+          {/* Toggle — only relevant to patients browsing to book; a doctor viewing
+              their own Practitioner Network has no reason to jump to Hospitals here */}
+          {!isDoctorViewer && (
+            <View style={s.toggleWrap}>
+              <View style={s.toggle}>
+                <TouchableOpacity style={s.toggleBtn} onPress={() => navigation.replace('HospitalsList')}>
+                  <MaterialCommunityIcons name="hospital-building" size={13} color={C.muted} />
+                  <Text style={s.toggleTextInactive}>Hospitals</Text>
+                </TouchableOpacity>
+                <View style={[s.toggleBtn, s.toggleBtnActive]}>
+                  <MaterialCommunityIcons name="stethoscope" size={13} color="#fff" />
+                  <Text style={s.toggleTextActive}>Practitioners</Text>
+                </View>
               </View>
             </View>
-          </View>
+          )}
 
           {/* Search */}
           <View style={s.searchWrap}>
@@ -141,10 +173,20 @@ export default function DoctorsListScreen({ navigation }: any) {
             ))}
           </ScrollView>
 
+          {isDoctorViewer && !isSubscribed && (
+            <TouchableOpacity style={s.proBanner} activeOpacity={0.85} onPress={() => navigation.navigate('Subscription', { userType: 'doctor' })}>
+              <Ionicons name="star" size={16} color={C.gold} />
+              <Text style={s.proBannerText}>
+                Browsing is free — upgrade to Hbridge Pro to message and network with other practitioners.
+              </Text>
+              <Ionicons name="chevron-forward" size={14} color={C.gold} />
+            </TouchableOpacity>
+          )}
+
           {/* Count */}
           <View style={s.resultsBar}>
             <Text style={s.resultsLabel}>
-              {loading ? 'Searching…' : `${doctors.length} practitioner${doctors.length !== 1 ? 's' : ''} found`}
+              {loading ? 'Searching…' : `${visibleDoctors.length} practitioner${visibleDoctors.length !== 1 ? 's' : ''} found`}
             </Text>
           </View>
 
@@ -152,7 +194,7 @@ export default function DoctorsListScreen({ navigation }: any) {
           <View style={s.list}>
             {loading ? (
               <ActivityIndicator size="large" color={C.teal} style={{ marginTop: 40 }} />
-            ) : doctors.length === 0 ? (
+            ) : visibleDoctors.length === 0 ? (
               <View style={s.empty}>
                 <View style={s.emptyIcon}>
                   <MaterialCommunityIcons name="stethoscope" size={32} color={C.teal} />
@@ -161,11 +203,11 @@ export default function DoctorsListScreen({ navigation }: any) {
                 <Text style={s.emptyHint}>Try adjusting the filter or search</Text>
               </View>
             ) : (
-              doctors.map(d => (
+              visibleDoctors.map(d => (
                 <TouchableOpacity
                   key={d.id}
                   style={s.docCard}
-                  onPress={() => navigation.navigate('DoctorDetail', { doctor: d })}
+                  onPress={() => navigation.navigate('DoctorDetail', { doctor: d, viewerIsDoctor: isDoctorViewer })}
                   activeOpacity={0.8}
                 >
                   <View style={s.docPhoto}>
@@ -177,7 +219,6 @@ export default function DoctorsListScreen({ navigation }: any) {
                     <View style={s.docNameRow}>
                       <Text style={s.docName} numberOfLines={1}>{d.title || 'Dr.'} {d.full_name}</Text>
                       {d.medical_license && <Ionicons name="checkmark-circle" size={14} color={C.gold} />}
-                      {currentUserDoctorId === d.id && <View style={s.youBadge}><Text style={s.youBadgeText}>You</Text></View>}
                     </View>
                     <Text style={s.docSpec} numberOfLines={1}>{d.specialization}{d.years_experience ? ` · ${d.years_experience} yrs` : ''}</Text>
                     <View style={s.docMeta}>
@@ -195,13 +236,13 @@ export default function DoctorsListScreen({ navigation }: any) {
                     <Text style={s.feeVal}>{d.consultation_fee ? `₦${Number(d.consultation_fee).toLocaleString()}` : '—'}</Text>
                     <Text style={s.feeLbl}>per visit</Text>
                     <TouchableOpacity
-                      style={s.msgBtn}
+                      style={[s.msgBtn, isDoctorViewer && !isSubscribed && s.msgBtnLocked]}
                       onPress={() => openChat(d)}
                       disabled={messagingId === d.id}
                     >
                       {messagingId === d.id
                         ? <ActivityIndicator size="small" color="#fff" />
-                        : <Ionicons name="chatbubble-outline" size={14} color="#fff" />}
+                        : <Ionicons name={isDoctorViewer && !isSubscribed ? 'lock-closed-outline' : 'chatbubble-outline'} size={14} color="#fff" />}
                     </TouchableOpacity>
                   </View>
                 </TouchableOpacity>
@@ -263,9 +304,11 @@ const s = StyleSheet.create({
   feeVal: { fontSize: 13, fontFamily: 'Montserrat_700Bold', color: C2.teal },
   feeLbl: { fontSize: 10, fontFamily: 'SpaceGrotesk_400Regular', color: C2.muted },
   msgBtn: { backgroundColor: C2.teal, borderRadius: 8, padding: 6, alignItems: 'center', justifyContent: 'center' },
+  msgBtnLocked: { backgroundColor: C2.gold },
 
-  youBadge: { backgroundColor: C2.teal, borderRadius: 100, paddingHorizontal: 7, paddingVertical: 2 },
-  youBadgeText: { fontSize: 10, fontFamily: 'Montserrat_700Bold', color: '#fff' },
+  proBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 20, marginBottom: 14, padding: 12, backgroundColor: 'rgba(212,168,67,0.10)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(212,168,67,0.3)' },
+  proBannerText: { flex: 1, fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: C2.text, lineHeight: 17 },
+
 
   empty: { alignItems: 'center', paddingVertical: 56, gap: 10 },
   emptyIcon: { width: 68, height: 68, borderRadius: 34, backgroundColor: C2.tealLight, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },

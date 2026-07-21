@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { usePaystack } from 'react-native-paystack-webview';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastProvider';
 import { drName } from '../utils/formatters';
@@ -113,6 +114,8 @@ function PinScreen({ setup, pinStep, currentVal, pinError, onNumpad, onBack, onF
 // â”€â”€ Main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function MedicalRecordsScreen({ navigation }: any) {
   const toast = useToast();
+  const { popup } = usePaystack();
+  const [creatingFolder, setCreatingFolder] = useState(false);
   const [isLocked, setIsLocked]         = useState(true);
   const [isSettingPin, setIsSettingPin] = useState(false);
   const [userPin, setUserPin]           = useState<string | null>(null);
@@ -383,8 +386,11 @@ export default function MedicalRecordsScreen({ navigation }: any) {
     setSearching(true);
     try {
       if (folderType === 'hospital') {
-        const { data } = await supabase.from('hospitals').select('id, name, city, state').ilike('name', `%${q}%`).limit(15);
-        setSearchResults((data || []).map((h: any) => ({ id: h.id, name: h.name, sub: `${h.city ?? ''}, ${h.state ?? ''}`, type: 'hospital' })));
+        const { data } = await supabase.from('hospitals').select('id, name, city, state, folder_creation_fee').ilike('name', `%${q}%`).limit(15);
+        setSearchResults((data || []).map((h: any) => ({
+          id: h.id, name: h.name, sub: `${h.city ?? ''}, ${h.state ?? ''}`, type: 'hospital',
+          fee: Number(h.folder_creation_fee) || 0,
+        })));
       } else {
         const { data } = await supabase.from('doctors').select('id, full_name, specialization, title').eq('verification_status', 'verified').ilike('full_name', `%${q}%`).limit(15);
         setSearchResults((data || []).map((d: any) => ({ id: d.id, name: drName(d.full_name, d.title), sub: d.specialization ?? '', type: 'doctor' })));
@@ -397,6 +403,39 @@ export default function MedicalRecordsScreen({ navigation }: any) {
     try {
       const { data: existing } = await supabase.from('record_folders').select('id').eq('owner_id', userId).eq('linked_id', target.id).maybeSingle();
       if (existing) { toast.showInfo('Folder exists', 'A folder for this entity already exists.'); return; }
+
+      if (target.type === 'hospital' && target.fee > 0) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user?.email) { toast.showError('Error', 'Could not find your account email.'); return; }
+        setCreatingFolder(true);
+        popup.checkout({
+          email: user.email,
+          amount: target.fee,
+          reference: `folder_${Date.now()}`,
+          onSuccess: async (response: any) => {
+            const ref = response?.reference || `folder_${Date.now()}`;
+            try {
+              const { data, error } = await supabase.functions.invoke('paystack-verify', {
+                body: { reference: ref, kind: 'folder', hospitalId: target.id, userId },
+              });
+              if (error || !data?.verified) {
+                toast.showError('Error', (data?.message || error?.message) + ' Contact support: ' + ref);
+                return;
+              }
+              setCreateVisible(false); setSearchQuery(''); setSearchResults([]);
+              loadFolders(userId);
+              toast.showSuccess('Folder Created', `${target.name} — Folder #${data.folder.folder_number}`);
+            } catch (e: any) {
+              toast.showError('Error', e.message);
+            } finally {
+              setCreatingFolder(false);
+            }
+          },
+          onCancel: () => { setCreatingFolder(false); toast.showInfo('Cancelled', 'No charge was made.'); },
+        });
+        return;
+      }
+
       await supabase.from('record_folders').insert({
         owner_id: userId, folder_name: target.name, folder_type: target.type, linked_id: target.id,
       });
@@ -586,7 +625,7 @@ export default function MedicalRecordsScreen({ navigation }: any) {
               </View>
             }
             renderItem={({ item }) => (
-              <TouchableOpacity style={s.resultRow} onPress={() => createFolder(item)}>
+              <TouchableOpacity style={s.resultRow} disabled={creatingFolder} onPress={() => createFolder(item)}>
                 <View style={[s.resultIcon, { backgroundColor: folderIconBg(item.type) }]}>
                   {item.type === 'hospital'
                     ? <MaterialCommunityIcons name="hospital-building" size={20} color={C.teal} />
@@ -594,9 +633,11 @@ export default function MedicalRecordsScreen({ navigation }: any) {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.resultName}>{item.name}</Text>
-                  <Text style={s.resultSub}>{item.sub}</Text>
+                  <Text style={s.resultSub}>{item.sub}{item.fee > 0 ? ` · ₦${item.fee.toLocaleString()} folder fee` : ''}</Text>
                 </View>
-                <Ionicons name="folder-open-outline" size={18} color={C.muted2} />
+                {creatingFolder
+                  ? <ActivityIndicator size="small" color={C.teal} />
+                  : <Ionicons name="folder-open-outline" size={18} color={C.muted2} />}
               </TouchableOpacity>
             )}
           />
@@ -760,9 +801,10 @@ export default function MedicalRecordsScreen({ navigation }: any) {
                 </TouchableOpacity>
               );
             }
-            const subLabel = item._count > 0
+            const subLabel = (item._count > 0
               ? `${item._count} record${item._count !== 1 ? 's' : ''}${item._newCount > 0 ? ` · ${item._newCount} new` : ''}`
-              : (item.folder_type === 'hospital' ? 'Hospital folder' : item.folder_type === 'doctor' ? 'Medical Practitioner folder' : 'Personal');
+              : (item.folder_type === 'hospital' ? 'Hospital folder' : item.folder_type === 'doctor' ? 'Medical Practitioner folder' : 'Personal'))
+              + (item.folder_number ? ` · Folder #${item.folder_number}` : '');
             return (
               <TouchableOpacity style={s.folderCard} onPress={nav}>
                 <View style={{ position: 'relative', marginRight: 2 }}>

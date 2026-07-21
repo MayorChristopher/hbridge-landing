@@ -10,6 +10,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastProvider';
+import { getSignedFileUrl } from '../utils/recordAccess';
 
 const C = {
   bg: '#F5F3EE', surface: '#EDE9E0', card: '#FFFFFF', text: '#0C2E30',
@@ -303,6 +304,14 @@ export default function DoctorIncomingRecordsScreen({ navigation }: any) {
               const patient = item.patient;
               const expired = isExpired(item);
               const fileUrl = rec?.file_url || rec?.attachment_url;
+              const viewRecord = async () => {
+                try {
+                  const url = await getSignedFileUrl({ context: 'medical_record', recordId: rec.id });
+                  Linking.openURL(url);
+                } catch (e: any) {
+                  toast.showError('Error', e.message);
+                }
+              };
               const approved = approvedIds.has(item.id) || item.access_type === 'approved';
               const note = localNotes[item.id];
 
@@ -345,7 +354,7 @@ export default function DoctorIncomingRecordsScreen({ navigation }: any) {
                   {/* Primary actions row */}
                   <View style={s.actions}>
                     {fileUrl && !expired && (
-                      <TouchableOpacity style={s.viewBtn} onPress={() => Linking.openURL(fileUrl)}>
+                      <TouchableOpacity style={s.viewBtn} onPress={viewRecord}>
                         <Ionicons name="eye-outline" size={14} color={C.teal} />
                         <Text style={s.viewBtnText}>View</Text>
                       </TouchableOpacity>

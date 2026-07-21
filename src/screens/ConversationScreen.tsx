@@ -12,6 +12,8 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastProvider';
+import { getSignedFileUrl } from '../utils/recordAccess';
+import SignedImage from '../components/SignedImage';
 
 const C = {
   bg: '#F5F3EE', surface: '#EDE9E0', card: '#FFFFFF', text: '#0C2E30',
@@ -208,13 +210,13 @@ const MessageBubble = React.memo(({
               <View style={[s.bubble, isMe ? s.bubbleMe : s.bubbleThem, bubbleExtras]}>
                 {/* Image */}
                 {item.attachment_type === 'image' && item.attachment_url && (
-                  <TouchableOpacity onPress={() => Linking.openURL(item.attachment_url!)}>
-                    <Image source={{ uri: item.attachment_url }} style={s.attachImg} resizeMode="cover" />
+                  <TouchableOpacity onPress={() => getSignedFileUrl({ context: 'conversation_attachment', messageId: item.id }).then(Linking.openURL).catch(() => {})}>
+                    <SignedImage request={{ context: 'conversation_attachment', messageId: item.id }} style={s.attachImg} resizeMode="cover" />
                   </TouchableOpacity>
                 )}
                 {/* File */}
                 {item.attachment_type === 'file' && item.attachment_url && (
-                  <TouchableOpacity style={s.fileCard} onPress={() => Linking.openURL(item.attachment_url!)}>
+                  <TouchableOpacity style={s.fileCard} onPress={() => getSignedFileUrl({ context: 'conversation_attachment', messageId: item.id }).then(Linking.openURL).catch(() => {})}>
                     <View style={[s.fileIconBox, isMe && { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
                       <Ionicons name="document-text" size={18} color={isMe ? '#fff' : C.teal} />
                     </View>
@@ -241,7 +243,12 @@ const MessageBubble = React.memo(({
                 )}
                 {/* Voice */}
                 {item.attachment_type === 'voice' && item.attachment_url && (
-                  <TouchableOpacity style={s.voiceCard} onPress={() => onPlay(item.attachment_url!, item.id)}>
+                  <TouchableOpacity style={s.voiceCard} onPress={() => {
+                    if (soundPlayingId === item.id) { onPlay(item.attachment_url!, item.id); return; }
+                    getSignedFileUrl({ context: 'conversation_attachment', messageId: item.id })
+                      .then((url) => onPlay(url, item.id))
+                      .catch(() => {});
+                  }}>
                     <Ionicons
                       name={soundPlayingId === item.id ? 'pause-circle' : 'play-circle'}
                       size={28} color={isMe ? '#fff' : C.teal}
@@ -310,6 +317,10 @@ export default function ConversationScreen({ route, navigation }: any) {
   const [soundPlayingId, setSoundPlayingId] = useState<string | null>(null);
   const [msgSearch, setMsgSearch] = useState('');
   const [showMsgSearch, setShowMsgSearch] = useState(false);
+  const [isPatient, setIsPatient] = useState(false);
+  const [conversationDoctorId, setConversationDoctorId] = useState<string | null>(null);
+  const [chatGated, setChatGated] = useState(false);
+  const [gateDoctorProfile, setGateDoctorProfile] = useState<any>(null);
 
   const flatRef = useRef<FlatList>(null);
   const hasInitialScrolled = useRef(false);
@@ -328,6 +339,7 @@ export default function ConversationScreen({ route, navigation }: any) {
   const recCancelProgress = useRef(new Animated.Value(0)).current;
   // Track IDs of messages present at initial load â€” only NEW ones animate
   const knownMsgIds = useRef<Set<string>>(new Set());
+  const messagesRef = useRef<Msg[]>([]);
 
   // Animation values
   const scrollFabAnim = useRef(new Animated.Value(0)).current;
@@ -372,6 +384,7 @@ export default function ConversationScreen({ route, navigation }: any) {
         if (msg.sender_id !== currentUserId) {
           supabase.from('messages').update({ read_at: new Date().toISOString() })
             .eq('id', msg.id).then(() => {});
+          checkGating([...messagesRef.current, msg]);
         }
       })
       .on('postgres_changes', {
@@ -411,6 +424,7 @@ export default function ConversationScreen({ route, navigation }: any) {
   }, []);
 
   useEffect(() => { recordDurationRef.current = recordDuration; }, [recordDuration]);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
 
   const loadMessages = async () => {
     const { data } = await supabase
@@ -428,6 +442,57 @@ export default function ConversationScreen({ route, navigation }: any) {
       .eq('conversation_id', conversationId)
       .neq('sender_id', currentUserId)
       .is('read_at', null);
+
+    await checkGating(data || []);
+  };
+
+  const checkGating = async (msgs: Msg[]) => {
+    const { data: conv } = await supabase
+      .from('conversations').select('patient_id, doctor_id, hospital_id').eq('id', conversationId).single();
+    if (!conv) return;
+
+    // Hospital-staff DMs and team channels repurpose patient_id to hold the
+    // staff member's own user id — never treat these as a patient/doctor
+    // consultation, regardless of who patient_id happens to match.
+    if (conv.hospital_id) {
+      setIsPatient(false);
+      setConversationDoctorId(conv.doctor_id);
+      setChatGated(false);
+      return;
+    }
+
+    // Practitioner-to-practitioner networking chat (DoctorsListScreen /
+    // DoctorDetailScreen "Message Practitioner") also repurposes patient_id
+    // to hold the initiating doctor's own user id. If that user is themselves
+    // a verified doctor, this is peer messaging, not a clinical consultation
+    // — never symptom-prompt or payment-gate it.
+    const { data: patientAsDoctor } = await supabase
+      .from('doctors').select('id').eq('user_id', conv.patient_id).maybeSingle();
+    if (patientAsDoctor) {
+      setIsPatient(false);
+      setConversationDoctorId(conv.doctor_id);
+      setChatGated(false);
+      return;
+    }
+
+    const amPatient = conv.patient_id === currentUserId;
+    setIsPatient(amPatient);
+    setConversationDoctorId(conv.doctor_id);
+    if (!amPatient) { setChatGated(false); return; }
+
+    const doctorHasReplied = msgs.some(m => m.sender_id !== currentUserId);
+    if (!doctorHasReplied) { setChatGated(false); return; }
+
+    const { data: paidConsult } = await supabase
+      .from('consultations').select('id')
+      .eq('patient_id', currentUserId).eq('doctor_id', conv.doctor_id)
+      .eq('payment_status', 'paid').limit(1).maybeSingle();
+
+    setChatGated(!paidConsult);
+    if (!paidConsult) {
+      const { data: doc } = await supabase.from('doctors').select('*').eq('id', conv.doctor_id).maybeSingle();
+      setGateDoctorProfile(doc);
+    }
   };
 
   // Throttled typing broadcast â€” max 1 event per 1.5s
@@ -783,10 +848,14 @@ export default function ConversationScreen({ route, navigation }: any) {
         <View style={s.headerAvatarWrap}>
           {other?.avatar_url
             ? <Image source={{ uri: other.avatar_url }} style={s.headerAvatar} />
+            : other?.isHospital
+            ? <View style={[s.headerAvatar, s.headerAvatarFallback]}>
+                <Text style={s.headerAvatarInitials}>
+                  {(other?.full_name || 'H').split(' ').filter(Boolean).slice(0, 2).map((w: string) => w[0]).join('').toUpperCase()}
+                </Text>
+              </View>
             : <View style={[s.headerAvatar, s.headerAvatarFallback]}>
-                {other?.isHospital
-                  ? <Ionicons name="business-outline" size={18} color={C.teal} />
-                  : other?.isDoctor
+                {other?.isDoctor
                   ? <MaterialCommunityIcons name="stethoscope" size={18} color={C.teal} />
                   : <Ionicons name="person" size={18} color={C.teal} />}
               </View>}
@@ -931,6 +1000,22 @@ export default function ConversationScreen({ route, navigation }: any) {
             </View>
           )}
 
+          {/* Consultation-gate banner replaces the input bar once the doctor
+               has replied and no paid consultation exists yet (patient only). */}
+          {chatGated && isPatient ? (
+            <View style={[s.inputBar, { paddingBottom: Math.max(insets.bottom, Platform.OS === 'ios' ? 20 : 12), flexDirection: 'column', alignItems: 'stretch', gap: 10 }]}>
+              <Text style={{ fontSize: 13, color: C.muted, fontFamily: 'SpaceGrotesk_400Regular', textAlign: 'center' }}>
+                {other?.full_name || 'The doctor'} has responded — book a consultation to continue this conversation.
+              </Text>
+              <TouchableOpacity
+                style={{ backgroundColor: C.teal, borderRadius: 14, paddingVertical: 13, alignItems: 'center' }}
+                onPress={() => gateDoctorProfile && navigation.navigate('BookConsultation', { doctor: gateDoctorProfile })}
+              >
+                <Text style={{ color: '#fff', fontSize: 14, fontFamily: 'Montserrat_600SemiBold' }}>Book Consultation</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+          <>
           {/* ── Unified input bar ────────────────────────────────────────────
                One bar, three states. The mic button stays mounted across
                normal↔hold so the pan gesture is never interrupted by a re-render. */}
@@ -977,7 +1062,7 @@ export default function ConversationScreen({ route, navigation }: any) {
                   style={s.input}
                   value={input}
                   onChangeText={(t) => { setInput(t); if (!editingMsg) broadcastTyping(); }}
-                  placeholder={editingMsg ? 'Edit message...' : 'Message...'}
+                  placeholder={editingMsg ? 'Edit message...' : (isPatient && messages.length === 0 ? 'Describe your symptoms or reason for reaching out…' : 'Message...')}
                   placeholderTextColor={C.muted}
                   multiline
                   maxLength={2000}
@@ -1022,6 +1107,8 @@ export default function ConversationScreen({ route, navigation }: any) {
               </View>
             )}
           </View>
+          </>
+          )}
         </View>{/* end inner flex:1 */}
 
         {/* Scroll-to-bottom FAB */}
@@ -1154,6 +1241,7 @@ const s = StyleSheet.create({
   headerAvatarWrap: { position: 'relative' },
   headerAvatar: { width: 42, height: 42, borderRadius: 21 },
   headerAvatarFallback: { backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
+  headerAvatarInitials: { fontSize: 15, fontFamily: 'Montserrat_700Bold', color: '#ffffff' },
   onlineDot: { position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, borderRadius: 5, backgroundColor: '#4ADE80', borderWidth: 2, borderColor: '#083236' },
   headerName: { fontSize: 15, fontFamily: 'Montserrat_700Bold', color: '#ffffff' },
   headerSub: { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(255,255,255,0.70)', marginTop: 1 },

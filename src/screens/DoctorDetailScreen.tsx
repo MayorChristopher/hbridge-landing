@@ -30,10 +30,11 @@ const drName = (title: string | null, name: string) => {
 
 export default function DoctorDetailScreen({ route, navigation }: any) {
   const toast = useToast();
-  const { doctor } = route.params;
+  const { doctor, viewerIsDoctor } = route.params;
   const [messaging, setMessaging] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserType, setCurrentUserType] = useState<string | null>(null);
+  const [isSubscribed, setIsSubscribed] = useState(false);
   const [ratingModal, setRatingModal] = useState(false);
   const [myRating, setMyRating] = useState(0);
   const [myReview, setMyReview] = useState('');
@@ -49,12 +50,13 @@ export default function DoctorDetailScreen({ route, navigation }: any) {
     if (!user) return;
     setCurrentUserId(user.id);
     const [{ data: prof }, { data: existing }, { data: doc }, { data: consult }] = await Promise.all([
-      supabase.from('profiles').select('user_type').eq('id', user.id).single(),
+      supabase.from('profiles').select('user_type,subscription_status').eq('id', user.id).single(),
       supabase.from('ratings').select('*').eq('patient_id', user.id).eq('doctor_id', doctor.id).maybeSingle(),
       supabase.from('doctors').select('average_rating,total_reviews,consultation_fee,years_experience,medical_license,title,consultation_types,availability_days').eq('id', doctor.id).single(),
       supabase.from('consultations').select('id').eq('patient_id', user.id).eq('doctor_id', doctor.id).eq('status', 'completed').limit(1),
     ]);
     setCurrentUserType(prof?.user_type || 'patient');
+    setIsSubscribed(prof?.subscription_status === 'active');
     if (existing) { setExistingRating(existing); setMyRating(existing.rating); setMyReview(existing.review || ''); }
     if (doc) setLiveDoctor((d: any) => ({ ...d, ...doc }));
     setHasCompletedConsult(!!(consult && consult.length > 0));
@@ -80,6 +82,11 @@ export default function DoctorDetailScreen({ route, navigation }: any) {
   };
 
   const openChat = async () => {
+    if (viewerIsDoctor && !isSubscribed) {
+      toast.showWarning('Pro Feature', 'Messaging other practitioners is part of Hbridge Pro. Upgrade to start networking.');
+      navigation.navigate('Subscription', { userType: 'doctor' });
+      return;
+    }
     setMessaging(true);
     try {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -182,7 +189,7 @@ export default function DoctorDetailScreen({ route, navigation }: any) {
               <TouchableOpacity style={s.heroActionBtn} onPress={openChat} disabled={messaging}>
                 {messaging
                   ? <ActivityIndicator size="small" color="#fff" />
-                  : <Ionicons name="chatbubble-outline" size={18} color="#fff" />}
+                  : <Ionicons name={viewerIsDoctor && !isSubscribed ? 'lock-closed-outline' : 'chatbubble-outline'} size={18} color="#fff" />}
               </TouchableOpacity>
             </View>
           </View>
@@ -253,17 +260,38 @@ export default function DoctorDetailScreen({ route, navigation }: any) {
             </>
           )}
 
-          {/* CTA — Book only (Message moved to hero) */}
-          <TouchableOpacity
-            style={s.bookBtnWrap}
-            onPress={() => navigation.navigate('BookConsultation', { doctor })}
-            activeOpacity={0.85}
-          >
-            <LinearGradient colors={[C.tealHero1, C.tealHero2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.bookBtn}>
-              <Text style={s.bookBtnText}>Book{feeStr ? ` · ${feeStr}` : ' Consultation'}</Text>
-              <Ionicons name="arrow-forward" size={15} color="#fff" />
-            </LinearGradient>
-          </TouchableOpacity>
+          {/* CTA — patients book a consultation; a fellow practitioner instead
+              gets a direct Message action, gated behind Hbridge Pro */}
+          {viewerIsDoctor ? (
+            <TouchableOpacity
+              style={s.bookBtnWrap}
+              onPress={openChat}
+              activeOpacity={0.85}
+              disabled={messaging}
+            >
+              <LinearGradient colors={[C.tealHero1, C.tealHero2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.bookBtn}>
+                {messaging ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name={isSubscribed ? 'chatbubble-outline' : 'lock-closed-outline'} size={16} color="#fff" />
+                    <Text style={s.bookBtnText}>{isSubscribed ? 'Message Practitioner' : 'Upgrade to Message'}</Text>
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={s.bookBtnWrap}
+              onPress={() => navigation.navigate('BookConsultation', { doctor })}
+              activeOpacity={0.85}
+            >
+              <LinearGradient colors={[C.tealHero1, C.tealHero2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.bookBtn}>
+                <Text style={s.bookBtnText}>Book{feeStr ? ` · ${feeStr}` : ' Consultation'}</Text>
+                <Ionicons name="arrow-forward" size={15} color="#fff" />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
 
         </View>
       </ScrollView>
@@ -354,19 +382,6 @@ const s = StyleSheet.create({
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8 },
   ratingText: { fontSize: 13, fontFamily: 'Montserrat_700Bold', color: '#fff' },
   ratingCount: { fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(255,255,255,0.65)' },
-  tapToRate: { fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: C.gold },
-  ratingPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginTop: 10,
-    backgroundColor: 'rgba(255,255,255,0.14)',
-    borderRadius: 100,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  ratingPillText: { fontSize: 13, fontFamily: 'Montserrat_700Bold', color: '#fff' },
-  ratingPillCount: { fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(255,255,255,0.7)' },
   tapToRate: { fontSize: 12, fontFamily: 'Montserrat_600SemiBold', color: C.gold },
 
   // Stat rail
