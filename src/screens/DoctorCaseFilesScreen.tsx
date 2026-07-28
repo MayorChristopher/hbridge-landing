@@ -16,6 +16,7 @@ import { shadows, borderRadius } from '../utils/design';
 import { useRecordsBadge } from '../context/RecordsBadgeContext';
 import { getSignedFileUrl } from '../utils/recordAccess';
 import SignedImage from '../components/SignedImage';
+import { logPhiView } from '../utils/auditLog';
 
 const C = {
   bg: '#F5F3EE', surface: '#EDE9E0', card: '#FFFFFF', text: '#0C2E30',
@@ -91,6 +92,7 @@ export default function DoctorCaseFilesScreen({ navigation }: any) {
   useEffect(() => {
     if (!viewerRecord) { setViewerUrl(null); return; }
     if (!(viewerRecord.file_url || viewerRecord.attachment_url)) { setViewerUrl(null); return; }
+    logPhiView('medical_records', viewerRecord.id, viewerRecord.__patientId);
     let cancelled = false;
     getSignedFileUrl({ context: 'medical_record', recordId: viewerRecord.id })
       .then((u) => { if (!cancelled) setViewerUrl(u); })
@@ -379,7 +381,7 @@ export default function DoctorCaseFilesScreen({ navigation }: any) {
         {/* Primary actions */}
         <View style={s.actions}>
           {fileUrl && !expired && (
-            <TouchableOpacity style={s.viewBtn} onPress={() => setViewerRecord(item.medical_records)}>
+            <TouchableOpacity style={s.viewBtn} onPress={() => setViewerRecord({ ...item.medical_records, __patientId: item.patient_id })}>
               <Ionicons name="eye-outline" size={14} color={C.teal} />
               <Text style={s.viewBtnText}>View</Text>
             </TouchableOpacity>
@@ -457,7 +459,7 @@ export default function DoctorCaseFilesScreen({ navigation }: any) {
 
         <View style={s.actions}>
           {fileUrl && !expired && (
-            <TouchableOpacity style={s.viewBtn} onPress={() => setViewerRecord(item.medical_records)}>
+            <TouchableOpacity style={s.viewBtn} onPress={() => setViewerRecord({ ...item.medical_records, __patientId: patient?.id })}>
               <Ionicons name="eye-outline" size={14} color={C.teal} />
               <Text style={s.viewBtnText}>View</Text>
             </TouchableOpacity>
