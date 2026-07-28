@@ -27,6 +27,7 @@ export default function SubscriptionScreen({ route, navigation }: any) {
   };
 
   const plans = userType === 'patient' ? SUBSCRIPTION_PLANS.patient : SUBSCRIPTION_PLANS.doctor;
+  const isPro = user?.subscription_status === 'active';
 
   const handleSubscribe = (planId: string, price: number) => {
     if (!user) { Toast.showError('Error', 'Please wait, loading your profile...'); return; }
@@ -106,7 +107,11 @@ export default function SubscriptionScreen({ route, navigation }: any) {
               ))}
             </View>
 
-            {plan.price > 0 ? (
+            {(plan.price > 0) === isPro ? (
+              <View style={styles.currentPlanButton}>
+                <Text style={styles.currentPlanText}>Current Plan</Text>
+              </View>
+            ) : plan.price > 0 ? (
               <TouchableOpacity
                 style={[styles.subscribeButton, subscribing && { opacity: 0.7 }]}
                 onPress={() => handleSubscribe(plan.id, plan.price)}
@@ -115,8 +120,8 @@ export default function SubscriptionScreen({ route, navigation }: any) {
                 <Text style={styles.subscribeButtonText}>{subscribing ? 'Processing…' : 'Subscribe Now'}</Text>
               </TouchableOpacity>
             ) : (
-              <View style={styles.currentPlanButton}>
-                <Text style={styles.currentPlanText}>Current Plan</Text>
+              <View style={[styles.currentPlanButton, { opacity: 0.5 }]}>
+                <Text style={styles.currentPlanText}>Included in Free</Text>
               </View>
             )}
           </View>

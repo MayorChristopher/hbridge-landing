@@ -15,6 +15,7 @@ import { ChatBadgeProvider, useChatBadge } from './src/context/ChatBadgeContext'
 import IncomingRequestAlert from './src/components/IncomingRequestAlert';
 import { NotificationBadgeProvider } from './src/context/NotificationBadgeContext';
 import { RecordsBadgeProvider, useRecordsBadge } from './src/context/RecordsBadgeContext';
+import { PendingAppointmentsBadgeProvider, usePendingAppointmentsBadge } from './src/context/PendingAppointmentsBadgeContext';
 import { PresenceProvider } from './src/context/PresenceContext';
 import TutorialOverlay from './src/components/TutorialOverlay';
 import { setGlobalToastInstance } from './src/utils/toast';
@@ -449,7 +450,7 @@ const updateStyles = StyleSheet.create({
   bannerBtnText: { fontSize: 12, fontFamily: 'Montserrat_700Bold', color: '#0B7E8A' },
 });
 
-function RolePickerScreen({ roles, onSelect, user }: { roles: UserType[]; onSelect: (r: UserType) => void; user?: { name: string; photo: string | null; email: string } | null }) {
+function RolePickerScreen({ roles, onSelect, user, currentRole }: { roles: UserType[]; onSelect: (r: UserType) => void; user?: { name: string; photo: string | null; email: string } | null; currentRole?: UserType | null }) {
   const ROLE_META: Record<string, {
     label: string; sub: string; desc: string;
     icon: string; mat?: boolean;
@@ -457,7 +458,7 @@ function RolePickerScreen({ roles, onSelect, user }: { roles: UserType[]; onSele
   }> = {
     patient: {
       label: 'Patient',        sub: 'Personal health',
-      desc:  'Access your records, book appointments\nand chat with your AI health assistant.',
+      desc:  'Access your records, book appointments\nand message your care team.',
       icon: 'person',          color: '#0B7E8A', dimColor: 'rgba(11,126,138,0.18)',
       tag: 'Health',
     },
@@ -522,72 +523,120 @@ function RolePickerScreen({ roles, onSelect, user }: { roles: UserType[]; onSele
             {user?.name || 'Welcome back'}
           </Text>
           <Text style={{ fontSize: 13, fontFamily: 'SpaceGrotesk_400Regular', color: '#5C6B69' }}>
-            Choose your workspace to continue
+            {currentRole ? "Here's what you're on, and what you can switch to" : 'Choose your workspace to continue'}
           </Text>
         </View>
 
-        {/* Role cards — SignIn field style */}
-        <View style={{ gap: 12 }}>
-          {roles.map((r, i) => {
-            const meta = ROLE_META[r];
-            if (!meta) return null;
-            return (
-              <Animated.View
-                key={r}
-                style={{
-                  opacity: anims[i],
-                  transform: [{ translateY: anims[i].interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) }],
-                }}
-              >
-                <TouchableOpacity
-                  activeOpacity={0.82}
-                  onPress={() => onSelect(r)}
-                  style={{
-                    flexDirection: 'row', alignItems: 'center',
-                    borderRadius: 15,
-                    borderWidth: 1,
-                    borderColor: '#EAE5DA',
-                    backgroundColor: '#FFFFFF',
-                    paddingVertical: 14, paddingHorizontal: 16, gap: 14,
-                    shadowColor: '#0C2E30',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.06,
-                    shadowRadius: 8,
-                    elevation: 2,
-                  }}
-                >
-                  <View style={{
-                    width: 46, height: 46, borderRadius: 13,
-                    backgroundColor: meta.dimColor,
-                    alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    {meta.mat
-                      ? <MaterialCommunityIcons name={meta.icon as any} size={23} color={meta.color} />
-                      : <Ionicons name={meta.icon as any} size={23} color={meta.color} />}
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 3 }}>
-                      <Text style={{ fontSize: 15, fontFamily: 'Montserrat_700Bold', color: '#0C2E30', letterSpacing: -0.2 }}>
-                        {meta.label}
-                      </Text>
-                      <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: meta.dimColor }}>
-                        <Text style={{ fontSize: 9, fontFamily: 'Montserrat_700Bold', color: meta.color, letterSpacing: 0.5 }}>
-                          {meta.tag}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={{ fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: '#6B7E7F', lineHeight: 17 }}>
-                      {meta.sub}
-                    </Text>
-                  </View>
-                  <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: meta.dimColor, alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons name="arrow-forward" size={15} color={meta.color} />
-                  </View>
-                </TouchableOpacity>
-              </Animated.View>
-            );
-          })}
-        </View>
+        {/* Current role — shown separately, not mixed in with switchable ones */}
+        {currentRole && ROLE_META[currentRole] && (() => {
+          const meta = ROLE_META[currentRole];
+          return (
+            <View style={{ marginBottom: 24 }}>
+              <Text style={{ fontSize: 11, fontFamily: 'Montserrat_700Bold', color: '#97A2A0', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 10 }}>
+                Currently on
+              </Text>
+              <View style={{
+                flexDirection: 'row', alignItems: 'center',
+                borderRadius: 15, borderWidth: 1.5, borderColor: meta.color,
+                backgroundColor: meta.dimColor, paddingVertical: 14, paddingHorizontal: 16, gap: 14,
+              }}>
+                <View style={{ width: 46, height: 46, borderRadius: 13, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
+                  {meta.mat
+                    ? <MaterialCommunityIcons name={meta.icon as any} size={23} color={meta.color} />
+                    : <Ionicons name={meta.icon as any} size={23} color={meta.color} />}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 15, fontFamily: 'Montserrat_700Bold', color: '#0C2E30', letterSpacing: -0.2, marginBottom: 3 }}>
+                    {meta.label}
+                  </Text>
+                  <Text style={{ fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: '#6B7E7F', lineHeight: 17 }}>
+                    {meta.sub}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: meta.color, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 }}>
+                  <Ionicons name="checkmark" size={13} color="#fff" />
+                  <Text style={{ fontSize: 11, fontFamily: 'Montserrat_700Bold', color: '#fff' }}>Active</Text>
+                </View>
+              </View>
+            </View>
+          );
+        })()}
+
+        {/* Switchable roles — SignIn field style */}
+        {(() => {
+          const switchable = currentRole ? roles.filter(r => r !== currentRole) : roles;
+          if (!switchable.length) return null;
+          return (
+            <>
+              {currentRole && (
+                <Text style={{ fontSize: 11, fontFamily: 'Montserrat_700Bold', color: '#97A2A0', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 10 }}>
+                  Switch to
+                </Text>
+              )}
+              <View style={{ gap: 12 }}>
+                {switchable.map((r, i) => {
+                  const meta = ROLE_META[r];
+                  if (!meta) return null;
+                  return (
+                    <Animated.View
+                      key={r}
+                      style={{
+                        opacity: anims[i],
+                        transform: [{ translateY: anims[i].interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) }],
+                      }}
+                    >
+                      <TouchableOpacity
+                        activeOpacity={0.82}
+                        onPress={() => onSelect(r)}
+                        style={{
+                          flexDirection: 'row', alignItems: 'center',
+                          borderRadius: 15,
+                          borderWidth: 1,
+                          borderColor: '#EAE5DA',
+                          backgroundColor: '#FFFFFF',
+                          paddingVertical: 14, paddingHorizontal: 16, gap: 14,
+                          shadowColor: '#0C2E30',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.06,
+                          shadowRadius: 8,
+                          elevation: 2,
+                        }}
+                      >
+                        <View style={{
+                          width: 46, height: 46, borderRadius: 13,
+                          backgroundColor: meta.dimColor,
+                          alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          {meta.mat
+                            ? <MaterialCommunityIcons name={meta.icon as any} size={23} color={meta.color} />
+                            : <Ionicons name={meta.icon as any} size={23} color={meta.color} />}
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 3 }}>
+                            <Text style={{ fontSize: 15, fontFamily: 'Montserrat_700Bold', color: '#0C2E30', letterSpacing: -0.2 }}>
+                              {meta.label}
+                            </Text>
+                            <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: meta.dimColor }}>
+                              <Text style={{ fontSize: 9, fontFamily: 'Montserrat_700Bold', color: meta.color, letterSpacing: 0.5 }}>
+                                {meta.tag}
+                              </Text>
+                            </View>
+                          </View>
+                          <Text style={{ fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: '#6B7E7F', lineHeight: 17 }}>
+                            {meta.sub}
+                          </Text>
+                        </View>
+                        <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: meta.dimColor, alignItems: 'center', justifyContent: 'center' }}>
+                          <Ionicons name="arrow-forward" size={15} color={meta.color} />
+                        </View>
+                      </TouchableOpacity>
+                    </Animated.View>
+                  );
+                })}
+              </View>
+            </>
+          );
+        })()}
 
         {/* Trust badge — matches SignIn bottom bar */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(212,168,67,0.10)', borderWidth: 1, borderColor: 'rgba(212,168,67,0.30)', borderRadius: 12, padding: 12, marginTop: 28 }}>
@@ -922,6 +971,7 @@ export default function App() {
   function TabNavigator() {
     const { unreadCount } = useChatBadge();
     const { newRecordsCount } = useRecordsBadge();
+    const { pendingCount } = usePendingAppointmentsBadge();
     const navigation = useNavigation();
     const [userType, setUserType] = useState<UserType | null>(null);
     const [userId, setUserId] = useState<string | undefined>(undefined);
@@ -1065,6 +1115,7 @@ export default function App() {
         <RolePickerScreen
           roles={availableRoles}
           user={welcomeUser}
+          currentRole={userType}
           onSelect={async (r) => {
             // Write role to storage FIRST so MessagesScreen and other screens
             // read the correct role when they mount on the incoming tab navigator
@@ -1120,6 +1171,7 @@ export default function App() {
                 tabs={PATIENT_TABS}
                 badges={{
                   Chat: unreadCount > 0 ? unreadCount : undefined,
+                  Home: pendingCount > 0 ? pendingCount : undefined,
                 }}
               />
             )}
@@ -1224,6 +1276,7 @@ export default function App() {
         <ToastProvider>
           <ChatBadgeProvider>
             <RecordsBadgeProvider>
+            <PendingAppointmentsBadgeProvider>
             <NotificationBadgeProvider>
               <ToastInitializer />
               <IncomingRequestAlert />
@@ -1333,6 +1386,7 @@ export default function App() {
         )}
 
         </NotificationBadgeProvider>
+        </PendingAppointmentsBadgeProvider>
         </RecordsBadgeProvider>
         </ChatBadgeProvider>
       </ToastProvider>

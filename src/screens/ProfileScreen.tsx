@@ -77,7 +77,19 @@ export default function ProfileScreen({ navigation }: any) {
   const [payoutSaving, setPayoutSaving]   = useState(false);
   const [bankSearch, setBankSearch]       = useState('');
 
-  useFocusEffect(useCallback(() => { loadProfile(); }, []));
+  // The tab navigator mounts every tab immediately at launch (lazy: false),
+  // but useFocusEffect's callback only ever RUNS while a screen is actually
+  // focused — so Profile was still sitting idle, un-fetched, until the user
+  // tapped the tab, even though the component itself was already alive.
+  // This plain effect fires once at mount (i.e. at app launch) so the data
+  // is already loading in the background before anyone taps Profile;
+  // useFocusEffect below still handles refreshing on every return visit.
+  const hasLoadedOnMount = React.useRef(false);
+  useEffect(() => { hasLoadedOnMount.current = true; loadProfile(); }, []);
+  useFocusEffect(useCallback(() => {
+    if (hasLoadedOnMount.current) { hasLoadedOnMount.current = false; return; }
+    loadProfile();
+  }, []));
 
   const loadProfile = async () => {
     try {
@@ -1636,24 +1648,25 @@ const s = StyleSheet.create({
   },
   heroBadgeText: { fontSize: 11.5, fontFamily: 'Montserrat_700Bold', color: '#fff' },
 
-  // Stats rail
+  // Stats rail — dark teal to match the app's brand hero surfaces, not a
+  // plain white card indistinguishable from the rest of the page.
   statsRail: {
     flexDirection: 'row',
-    backgroundColor: C.card,
+    backgroundColor: C.tealHero2,
     borderRadius: borderRadius.xl,
-    borderWidth: 1,
-    borderColor: C.cardBorder,
     marginHorizontal: 20,
     marginTop: 32,
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 6,
     ...shadows.md,
   },
   statItem: { flex: 1, alignItems: 'center', gap: 3 },
-  statVal: { fontSize: 20, fontFamily: 'Montserrat_800ExtraBold', color: C.ink },
-  statLabel: { fontSize: 10.5, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted2 },
-  statDiv: { width: 1, height: 36, backgroundColor: C.cardBorder },
+  statVal: { fontSize: 20, fontFamily: 'Montserrat_800ExtraBold', color: '#fff' },
+  statLabel: { fontSize: 10.5, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(255,255,255,0.6)' },
+  statDiv: { width: 1, height: 36, backgroundColor: 'rgba(255,255,255,0.15)' },
 
+  // Solid gold, not a 6%-opacity tint — the previous version was too faint
+  // to register as a real, tappable, important action.
   switchAccountCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1663,19 +1676,18 @@ const s = StyleSheet.create({
     marginBottom: 4,
     paddingVertical: 14,
     paddingHorizontal: 16,
-    backgroundColor: 'rgba(212,168,67,0.06)',
+    backgroundColor: C.gold,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(212,168,67,0.28)',
+    ...shadows.sm,
   },
   switchAccountLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   switchAccountIconRing: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: 'rgba(212,168,67,0.14)',
+    backgroundColor: 'rgba(43,33,7,0.14)',
     alignItems: 'center', justifyContent: 'center',
   },
-  switchAccountTitle: { fontSize: 13.5, fontFamily: 'Montserrat_700Bold', color: C.ink, marginBottom: 2 },
-  switchAccountSub: { fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted2 },
+  switchAccountTitle: { fontSize: 13.5, fontFamily: 'Montserrat_700Bold', color: '#2B2107', marginBottom: 2 },
+  switchAccountSub: { fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(43,33,7,0.7)' },
   switchAccountArrow: {
     width: 30, height: 30, borderRadius: 15,
     backgroundColor: 'rgba(212,168,67,0.14)',
