@@ -1,6 +1,6 @@
 export const CALL_DURATION_MINUTES: Record<string, number> = {
-  video: 20,
-  audio: 15,
+  video: 30,
+  audio: 30,
 };
 
 export function isTimeBoxed(consultationType: string): boolean {

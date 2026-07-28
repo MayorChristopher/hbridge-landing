@@ -11,6 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { usePaystack } from 'react-native-paystack-webview';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastProvider';
+import { shadows, borderRadius } from '../utils/design';
 import { drName } from '../utils/formatters';
 
 const C = {
@@ -954,9 +955,9 @@ const s = StyleSheet.create({
 
   folderCard: {
     flexDirection: 'row', alignItems: 'center', gap: 13,
-    backgroundColor: C.card, borderRadius: 16, borderWidth: 1, borderColor: C.cardBorder,
+    backgroundColor: C.card, borderRadius: borderRadius.xl, borderWidth: 1, borderColor: C.cardBorder,
     padding: 14, marginBottom: 10,
-    shadowColor: C.ink, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.04, shadowRadius: 10, elevation: 2,
+    ...shadows.sm,
   },
   folderIconBox: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   folderName: { fontSize: 14.5, fontFamily: 'Montserrat_700Bold', color: C.textPrimary, marginBottom: 2 },

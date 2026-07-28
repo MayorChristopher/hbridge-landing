@@ -11,6 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastProvider';
 import { shareDoctor } from '../utils/share';
+import { shadows, borderRadius } from '../utils/design';
 
 const C = {
   paper: '#F5F3EE', card: '#FFFFFF', cardBorder: '#EAE5DA',
@@ -388,17 +389,13 @@ const s = StyleSheet.create({
   statRail: {
     flexDirection: 'row',
     backgroundColor: C.card,
-    borderRadius: 18,
+    borderRadius: borderRadius.xl,
     borderWidth: 1,
     borderColor: C.cardBorder,
     marginHorizontal: 20,
     marginTop: -28,
     paddingVertical: 16,
-    shadowColor: C.ink,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    elevation: 6,
+    ...shadows.md,
   },
   statItem: { flex: 1, alignItems: 'center', gap: 3 },
   statVal: { fontSize: 19, fontFamily: 'Montserrat_800ExtraBold', color: C.teal },
@@ -431,15 +428,11 @@ const s = StyleSheet.create({
 
   infoCard: {
     backgroundColor: C.card,
-    borderRadius: 16,
+    borderRadius: borderRadius.xl,
     borderWidth: 1,
     borderColor: C.cardBorder,
     paddingVertical: 4,
-    shadowColor: C.ink,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    ...shadows.sm,
   },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 13 },
   infoIconBox: {
@@ -457,10 +450,11 @@ const s = StyleSheet.create({
 
   bioCard: {
     backgroundColor: C.card,
-    borderRadius: 16,
+    borderRadius: borderRadius.xl,
     borderWidth: 1,
     borderColor: C.cardBorder,
     padding: 16,
+    ...shadows.sm,
   },
   bioText: { fontSize: 13.5, fontFamily: 'SpaceGrotesk_400Regular', color: C.textBody, lineHeight: 21 },
 

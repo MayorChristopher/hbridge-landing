@@ -12,6 +12,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { WebView } from 'react-native-webview';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastProvider';
+import { shadows, borderRadius } from '../utils/design';
 import { useRecordsBadge } from '../context/RecordsBadgeContext';
 import { getSignedFileUrl } from '../utils/recordAccess';
 import SignedImage from '../components/SignedImage';
@@ -58,6 +59,7 @@ export default function DoctorCaseFilesScreen({ navigation }: any) {
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter]         = useState<'all' | 'active' | 'expired'>('all');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
   const [search, setSearch]         = useState('');
   const [myUserId, setMyUserId]     = useState<string | null>(null);
   const [myDoctorId, setMyDoctorId] = useState<string | null>(null);
@@ -162,6 +164,7 @@ export default function DoctorCaseFilesScreen({ navigation }: any) {
     let out = list;
     if (filter === 'active')  out = out.filter(r => !isExpired(r));
     if (filter === 'expired') out = out.filter(r => isExpired(r));
+    if (typeFilter !== 'all') out = out.filter(r => r.medical_records?.record_type === typeFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
       out = out.filter(r =>
@@ -550,6 +553,24 @@ export default function DoctorCaseFilesScreen({ navigation }: any) {
           ))}
         </View>
 
+        {/* Record type filter — scales better than one long list once a patient has many records */}
+        <ScrollView
+          horizontal showsHorizontalScrollIndicator={false}
+          style={s.typeFilterScroll}
+          contentContainerStyle={s.typeFilterRow}
+        >
+          <TouchableOpacity style={[s.typeFilterChip, typeFilter === 'all' && s.typeFilterChipActive]} onPress={() => setTypeFilter('all')}>
+            <Ionicons name="apps-outline" size={12} color={typeFilter === 'all' ? '#fff' : C.muted} />
+            <Text style={[s.typeFilterChipText, typeFilter === 'all' && s.typeFilterChipTextActive]}>All Types</Text>
+          </TouchableOpacity>
+          {RECORD_TYPES.map(t => (
+            <TouchableOpacity key={t} style={[s.typeFilterChip, typeFilter === t && s.typeFilterChipActive]} onPress={() => setTypeFilter(t)}>
+              <Ionicons name={(TYPE_ICONS[t] || 'document-outline') as any} size={12} color={typeFilter === t ? '#fff' : C.muted} />
+              <Text style={[s.typeFilterChipText, typeFilter === t && s.typeFilterChipTextActive]}>{TYPE_LABELS[t]}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
         {loading ? (
           <ActivityIndicator color={C.teal} style={{ flex: 1, marginTop: 60 }} />
         ) : (
@@ -584,11 +605,17 @@ export default function DoctorCaseFilesScreen({ navigation }: any) {
                 <View style={s.emptyIcon}>
                   <Ionicons name="documents-outline" size={32} color={C.teal} />
                 </View>
-                <Text style={s.emptyTitle}>{search ? 'No results' : tab === 'received' ? 'No records received' : 'No records sent'}</Text>
+                <Text style={s.emptyTitle}>
+                  {search || filter !== 'all' || typeFilter !== 'all'
+                    ? 'No matching records'
+                    : tab === 'received' ? 'No records received' : 'No records sent'}
+                </Text>
                 <Text style={s.emptySub}>
-                  {search ? 'Try a different search term' : tab === 'received'
-                    ? 'When a patient shares a record with you it will appear here'
-                    : 'Records you send to patients will appear here'}
+                  {search || filter !== 'all' || typeFilter !== 'all'
+                    ? 'Try clearing your search or filters'
+                    : tab === 'received'
+                      ? 'When a patient shares a record with you it will appear here'
+                      : 'Records you send to patients will appear here'}
                 </Text>
               </View>
             }
@@ -739,9 +766,9 @@ export default function DoctorCaseFilesScreen({ navigation }: any) {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4 }}>
               {RECORD_TYPES.map(t => (
                 <TouchableOpacity key={t}
-                  style={[s.typeChip, sendModal?.type === t && s.typeChipActive]}
+                  style={[s.modalTypeChip, sendModal?.type === t && s.modalTypeChipActive]}
                   onPress={() => setSendModal(prev => prev ? { ...prev, type: t } : null)}>
-                  <Text style={[s.typeChipText, sendModal?.type === t && s.typeChipTextActive]}>{TYPE_LABELS[t]}</Text>
+                  <Text style={[s.modalTypeChipText, sendModal?.type === t && s.modalTypeChipTextActive]}>{TYPE_LABELS[t]}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -768,9 +795,9 @@ export default function DoctorCaseFilesScreen({ navigation }: any) {
               ] as const).map(opt => (
                 <TouchableOpacity
                   key={opt.key}
-                  style={[s.typeChip, sendModal?.expiry === opt.key && s.typeChipActive]}
+                  style={[s.modalTypeChip, sendModal?.expiry === opt.key && s.modalTypeChipActive]}
                   onPress={() => setSendModal(prev => prev ? { ...prev, expiry: opt.key } : null)}>
-                  <Text style={[s.typeChipText, sendModal?.expiry === opt.key && s.typeChipTextActive]}>{opt.label}</Text>
+                  <Text style={[s.modalTypeChipText, sendModal?.expiry === opt.key && s.modalTypeChipTextActive]}>{opt.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -913,8 +940,16 @@ const s = StyleSheet.create({
   chipText:      { fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: C.text },
   chipTextActive:{ fontFamily: 'Montserrat_600SemiBold', color: C.teal },
 
+  // Record-type filter
+  typeFilterScroll:   { marginBottom: 6 },
+  typeFilterRow:      { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 6 },
+  typeFilterChip:     { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
+  typeFilterChipActive:    { backgroundColor: C.ink, borderColor: C.ink },
+  typeFilterChipText:      { fontSize: 11.5, fontFamily: 'Montserrat_500Medium', color: C.muted },
+  typeFilterChipTextActive:{ color: '#fff', fontFamily: 'Montserrat_600SemiBold' },
+
   // Card
-  card:       { backgroundColor: C.card, borderRadius: 18, borderWidth: 1, borderColor: C.border, padding: 16, marginBottom: 12 },
+  card:       { backgroundColor: C.card, borderRadius: borderRadius.xl, borderWidth: 1, borderColor: C.border, padding: 16, marginBottom: 12, ...shadows.sm },
   cardTop:    { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 10 },
   iconBox:    { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   cardTitle:  { fontSize: 14.5, fontFamily: 'Montserrat_700Bold', color: C.text },
@@ -985,10 +1020,10 @@ const s = StyleSheet.create({
   sheetSave:   { fontSize: 15, fontFamily: 'Montserrat_700Bold', color: C.teal },
   fieldLabel:  { fontSize: 11, fontFamily: 'Montserrat_700Bold', color: C.muted, marginTop: 16, marginBottom: 6, letterSpacing: 0.8 },
   fieldInput:  { backgroundColor: C.surface, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: C.text, borderWidth: 1, borderColor: C.border },
-  typeChip:        { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: C.border, backgroundColor: C.bg },
-  typeChipActive:  { backgroundColor: C.teal, borderColor: C.teal },
-  typeChipText:    { fontSize: 13, color: C.text, fontFamily: 'Montserrat_500Medium' },
-  typeChipTextActive: { color: '#fff' },
+  modalTypeChip:        { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: C.border, backgroundColor: C.bg },
+  modalTypeChipActive:  { backgroundColor: C.teal, borderColor: C.teal },
+  modalTypeChipText:    { fontSize: 13, color: C.text, fontFamily: 'Montserrat_500Medium' },
+  modalTypeChipTextActive: { color: '#fff' },
   // Patient picker
   selectedPatientRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.tealLight, borderRadius: 14, borderWidth: 1.5, borderColor: C.teal, padding: 12, marginBottom: 4 },
   patientPickerBox:   { borderWidth: 1, borderColor: C.border, borderRadius: 14, overflow: 'hidden', marginBottom: 4 },

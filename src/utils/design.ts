@@ -93,6 +93,12 @@ export const colors = {
   // Text legacy aliases (keep existing screens compiling)
   textSecondary: '#7A8785',   // maps to textMuted
   textTertiary: '#97A2A0',    // maps to textMuted2
+
+  // Translucent tint backgrounds — for icon chips, not surfaces
+  tealBg: 'rgba(11,126,138,0.09)',
+  successBg: 'rgba(30,158,90,0.10)',
+  errorBg: 'rgba(226,72,66,0.08)',
+  neutralBg: '#EDE9E0',
 };
 
 export const fonts = {
@@ -157,6 +163,36 @@ export const animation = {
   fast: 150,
   normal: 250,
   slow: 350,
+};
+
+type TintKey = 'teal' | 'gold' | 'green' | 'neutral' | 'red';
+
+const tints: Record<TintKey, { bg: string; fg: string }> = {
+  teal:    { bg: colors.tealBg,    fg: colors.teal },
+  gold:    { bg: colors.goldBg,    fg: colors.gold },
+  green:   { bg: colors.successBg, fg: colors.success },
+  red:     { bg: colors.errorBg,   fg: colors.error },
+  neutral: { bg: colors.neutralBg, fg: colors.textMuted },
+};
+
+/** Icon tint by semantic meaning, not "whatever's the brand color" for every icon. */
+export function tintFor(key: TintKey) {
+  return tints[key];
+}
+
+// Suggested tint per common stat/quick-action meaning — screens can override,
+// but this keeps the mapping consistent app-wide instead of ad hoc per screen.
+export const semanticTint: Record<string, TintKey> = {
+  today: 'teal',
+  upcoming: 'gold',
+  completed: 'neutral',
+  patients: 'neutral',
+  records: 'teal',
+  appointments: 'teal',
+  network: 'gold',
+  messages: 'teal',
+  urgent: 'red',
+  active: 'green',
 };
 
 export const components = {

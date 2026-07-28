@@ -612,7 +612,7 @@ const s = StyleSheet.create({
   card: { flex: 1, backgroundColor: C.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
 
   // Search
-  searchWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, marginTop: 14, marginBottom: 6, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: C.surface, borderRadius: 14, borderWidth: 1.5, borderColor: 'transparent' },
+  searchWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, marginTop: 14, marginBottom: 6, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: C.surface, borderRadius: 16, borderWidth: 1.5, borderColor: 'transparent' },
   searchWrapFocused: { borderColor: C.teal, backgroundColor: C.card },
   searchInput: { flex: 1, fontSize: 14, fontFamily: 'SpaceGrotesk_400Regular', color: C.text, paddingVertical: 0 },
   previewRow: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 },

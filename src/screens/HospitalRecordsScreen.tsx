@@ -14,6 +14,7 @@ import { useToast } from '../components/ToastProvider';
 import { drName } from '../utils/formatters';
 import { getSignedFileUrl } from '../utils/recordAccess';
 import SignedImage from '../components/SignedImage';
+import { shadows, borderRadius } from '../utils/design';
 
 const { width: SW } = Dimensions.get('window');
 const C = { bg:'#F5F3EE', surface:'#EDE9E0', card:'#FFFFFF', text:'#0C2E30', muted:'#6B7E7F', border:'#EAE5DA', teal:'#0B7E8A', tealLight:'rgba(11,126,138,0.09)', ink:'#0C2E30' };
@@ -704,7 +705,7 @@ const s = StyleSheet.create({
   addBtn:{width:34,height:34,borderRadius:10,backgroundColor:'rgba(255,255,255,0.2)',alignItems:'center',justifyContent:'center'},
   searchBar:{flexDirection:'row',alignItems:'center',gap:8,marginHorizontal:16,marginVertical:8,backgroundColor:C.surface,borderRadius:10,paddingHorizontal:12,paddingVertical:10},
   searchInput:{flex:1,fontSize:14,color:C.text,paddingVertical:0},
-  card:{backgroundColor:C.bg,borderRadius:14,borderWidth:1,borderColor:C.border,padding:14,marginBottom:12},
+  card:{backgroundColor:C.card,borderRadius:borderRadius.xl,borderWidth:1,borderColor:C.border,padding:14,marginBottom:12,...shadows.sm},
   cardTop:{flexDirection:'row',alignItems:'flex-start',gap:12},
   cardIcon:{width:40,height:40,borderRadius:10,backgroundColor:'#E6F5F5',alignItems:'center',justifyContent:'center'},
   cardPreview:{ width:'100%', height:180, borderRadius:10, marginBottom:10, backgroundColor:C.surface },
@@ -754,7 +755,7 @@ const s = StyleSheet.create({
   sectionDividerText:{fontSize:12,fontWeight:'600',color:C.teal,flex:1},
 
   // Grid view — no overflow:hidden on card so badges aren't clipped; clip image/icon individually
-  gridCard:{flex:1,backgroundColor:C.card,borderRadius:14,borderWidth:1,borderColor:C.border,position:'relative'},
+  gridCard:{flex:1,backgroundColor:C.card,borderRadius:borderRadius.xl,borderWidth:1,borderColor:C.border,position:'relative',...shadows.sm},
   gridThumb:{width:'100%',height:70,borderTopLeftRadius:13,borderTopRightRadius:13},
   gridIconBox:{width:'100%',height:65,backgroundColor:C.surface,alignItems:'center',justifyContent:'center',borderTopLeftRadius:13,borderTopRightRadius:13},
   gridMeta:{padding:8},

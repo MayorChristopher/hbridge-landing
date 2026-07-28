@@ -28,9 +28,9 @@ const STEPS: Record<string, Step[]> = {
   patient: [
     { title: 'Welcome to Hbridge', description: 'Your personal healthcare companion. Find doctors, hospitals and manage your health — all in one place.', icon: 'heart', accent: '#EF4444', accentBg: '#FEF2F2' },
     { title: 'Find Doctors', description: 'Browse verified specialists by specialty and location. Book online or in-person consultations instantly.', icon: 'stethoscope', accent: C.teal, accentBg: 'rgba(11,126,138,0.1)', useMCI: true },
-    { title: 'AI Health Assistant', description: 'Describe your symptoms to our AI and get actionable guidance 24/7 — tap the floating button anytime.', icon: 'chatbubble-ellipses', accent: '#8B5CF6', accentBg: '#F5F3FF' },
+    { title: 'AI Health Assistant', description: 'Tap the floating button to preview our AI health assistant — full symptom guidance is coming soon.', icon: 'chatbubble-ellipses', accent: '#8B5CF6', accentBg: '#F5F3FF' },
     { title: 'Medical Records', description: 'Upload and store your records securely. Share them with any doctor with a single tap — you stay in control.', icon: 'document-text', accent: '#F59E0B', accentBg: '#FFFBEB' },
-    { title: 'Emergency SOS', description: 'One tap connects you to the nearest emergency hospital and shares your live location automatically.', icon: 'shield', accent: '#EF4444', accentBg: '#FEF2F2' },
+    { title: 'Emergency SOS', description: 'One tap calls the nearest emergency hospital directly, so you can get help fast.', icon: 'shield', accent: '#EF4444', accentBg: '#FEF2F2' },
   ],
   doctor: [
     { title: 'Welcome, Doctor', description: 'Your professional dashboard for managing patients, appointments and medical records.', icon: 'stethoscope', accent: C.teal, accentBg: 'rgba(11,126,138,0.1)', useMCI: true },

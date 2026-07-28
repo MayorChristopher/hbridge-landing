@@ -134,7 +134,14 @@ serve(async (req) => {
           folder_name: hospital.name,
           folder_type: 'hospital',
           linked_id: hospitalId,
-          folder_number: String(assignedNumber).padStart(4, '0'),
+          // "OL-" prefix is deliberate — a hospital's own physical/walk-in
+          // filing numbers are a separate, staff-managed sequence with no
+          // knowledge of this app. A plain zero-padded number here (e.g.
+          // "0001") could coincide with an existing physical folder number
+          // for a completely different patient, causing real mix-ups at the
+          // front desk. The prefix makes an online-registered folder
+          // unmistakable at a glance, regardless of the hospital's own scheme.
+          folder_number: `OL-${String(assignedNumber).padStart(4, '0')}`,
           payment_reference: reference,
         })
         .select()

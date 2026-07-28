@@ -97,16 +97,21 @@ export default function DoctorPatientsScreen({ navigation }: any) {
           .order('updated_at', { ascending: false }),
       ]);
 
+      // Defensive: a multi-role account's own doctor identity should never
+      // appear as one of their own patients, even if a stray self-referential
+      // row exists (e.g. from practitioner-network chat before its own
+      // self-exclusion fix, or a future edge case) — never rely solely on
+      // clean data for this.
       const map = new Map<string, any>();
       (consultData || []).forEach((c: any) => {
-        if (!c.profiles) return;
+        if (!c.profiles || c.patient_id === user.id) return;
         const existing = map.get(c.patient_id);
         if (!existing) {
           map.set(c.patient_id, { ...c.profiles, lastStatus: c.status, lastDate: c.scheduled_at, source: 'consultation' });
         }
       });
       (convData || []).forEach((c: any) => {
-        if (!c.profiles) return;
+        if (!c.profiles || c.patient_id === user.id) return;
         if (!map.has(c.patient_id)) {
           map.set(c.patient_id, { ...c.profiles, lastStatus: 'messaged', lastDate: c.updated_at, source: 'message' });
         }

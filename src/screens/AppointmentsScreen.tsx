@@ -5,10 +5,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '../lib/supabase';
 import RatingModal from '../components/RatingModal';
 import { useToast } from '../components/ToastProvider';
+import { shadows, borderRadius } from '../utils/design';
 import { drName } from '../utils/formatters';
 import { usePaystack } from 'react-native-paystack-webview';
 import { sendNotifications } from '../utils/notify';
@@ -188,9 +188,17 @@ export default function AppointmentsScreen({ navigation }: any) {
       .eq('id', c.id)
       .neq('status', 'completed');
     loadConsultations();
-    await WebBrowser.openBrowserAsync(`https://meet.jit.si/hbridge-${c.id.replace(/-/g, '').slice(0, 16)}`);
-    // Browser closed — refresh to reflect any status change the doctor made
-    loadConsultations();
+    // Refresh once we're back from the call, to reflect any status change the doctor made
+    const unsubscribe = navigation.addListener('focus', () => {
+      unsubscribe();
+      loadConsultations();
+    });
+    navigation.navigate('Call', {
+      consultationId: c.id,
+      isVideo: c.consultation_type === 'video',
+      otherName: drName(c.doctor?.full_name),
+      otherAvatar: c.doctor?.profile_image || null,
+    });
   };
 
   const filtered = consultations.filter(c => {
@@ -538,16 +546,12 @@ const s = StyleSheet.create({
 
   consCard: {
     backgroundColor: C.card,
-    borderRadius: 18,
+    borderRadius: borderRadius.xl,
     borderWidth: 1,
     borderColor: C.cardBorder,
     padding: 16,
     gap: 12,
-    shadowColor: C.ink,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 3,
+    ...shadows.sm,
   },
   cardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   avatarBox: {

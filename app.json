@@ -34,7 +34,8 @@
       "buildNumber": "1.0.0",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSMicrophoneUsageDescription": "Hbridge needs microphone access to record voice messages during telehealth consultations.",
+        "NSCameraUsageDescription": "Hbridge needs camera access for video consultations.",
+        "NSMicrophoneUsageDescription": "Hbridge needs microphone access to record voice messages and for audio/video consultations.",
         "NSPhotoLibraryAddUsageDescription": "Hbridge needs photo library access to save medical record images.",
         "NSPhotoLibraryUsageDescription": "Hbridge needs photo library access for profile pictures and medical documents."
       }
@@ -63,6 +64,7 @@
       "expo-font",
       "expo-web-browser",
       "expo-secure-store",
+      "@config-plugins/react-native-webrtc",
       [
         "expo-splash-screen",
         {

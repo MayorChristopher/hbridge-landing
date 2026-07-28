@@ -15,6 +15,7 @@ import LoadingLogo from '../components/LoadingLogo';
 import FadeScreen from '../components/FadeScreen';
 import SpotlightTour, { SpotlightStep } from '../components/SpotlightTour';
 import { useToast } from '../components/ToastProvider';
+import { shadows, borderRadius, tintFor, semanticTint } from '../utils/design';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
@@ -94,9 +95,11 @@ function ApptDeck({ appointments, navigation }: { appointments: any[]; navigatio
         <View style={[ds.deckFront, ds.deckFrontWrap]}>
           <View style={ds.deckOrb} />
           <Text style={ds.deckLabel}>NEXT APPOINTMENT</Text>
-          <View style={{ alignItems: 'center', paddingVertical: 16, gap: 6 }}>
-            <Ionicons name="calendar-outline" size={28} color="rgba(255,255,255,0.45)" />
-            <Text style={[ds.apptName, { color: 'rgba(255,255,255,0.7)', marginTop: 4 }]}>No upcoming appointments</Text>
+          <View style={{ alignItems: 'center', paddingVertical: 16, gap: 10 }}>
+            <View style={ds.emptyIconRing}>
+              <Ionicons name="calendar-outline" size={24} color="#D4A843" />
+            </View>
+            <Text style={[ds.apptName, { color: 'rgba(255,255,255,0.7)' }]}>No upcoming appointments</Text>
           </View>
           <TouchableOpacity style={ds.deckBtn} onPress={() => navigation.navigate('DoctorAppointmentRequests')}>
             <Text style={ds.deckBtnText}>View Requests</Text>
@@ -294,12 +297,12 @@ export default function DoctorHomeScreen({ navigation }: any) {
   // Only Appointments and Practitioner Network have no tab of their own yet.
   const QUICK_ACTIONS = [
     {
-      icon: 'calendar-outline', label: 'Appointments',
+      icon: 'calendar-outline', label: 'Appointments', tint: semanticTint.appointments,
       badge: stats.today > 0 ? stats.today : undefined,
       onPress: () => navigation.navigate('DoctorAppointmentRequests'),
     },
     {
-      icon: 'people-circle-outline', label: 'Practitioner Network',
+      icon: 'people-circle-outline', label: 'Practitioner Network', tint: semanticTint.network,
       badge: undefined,
       onPress: () => navigation.navigate('DoctorsList', { viewerIsDoctor: true }),
     },
@@ -437,27 +440,30 @@ export default function DoctorHomeScreen({ navigation }: any) {
           <View style={s.section}>
             <Text style={s.sectionTitle}>Quick Actions</Text>
             <View ref={quickRef} style={s.actionsContainer}>
-              {QUICK_ACTIONS.map((a, i) => (
-                <TouchableOpacity
-                  key={i}
-                  style={[s.actionRow, i === QUICK_ACTIONS.length - 1 && { borderBottomWidth: 0 }]}
-                  onPress={a.onPress}
-                  activeOpacity={0.75}
-                >
-                  <View style={{ position: 'relative' }}>
-                    <View style={s.actionIcon}>
-                      <Ionicons name={a.icon as any} size={20} color={C.teal} />
-                    </View>
-                    {!!a.badge && (
-                      <View style={s.actionBadge}>
-                        <Text style={s.actionBadgeText}>{a.badge > 99 ? '99+' : a.badge}</Text>
+              {QUICK_ACTIONS.map((a, i) => {
+                const t = tintFor(a.tint);
+                return (
+                  <TouchableOpacity
+                    key={i}
+                    style={[s.actionRow, i === QUICK_ACTIONS.length - 1 && { borderBottomWidth: 0 }]}
+                    onPress={a.onPress}
+                    activeOpacity={0.75}
+                  >
+                    <View style={{ position: 'relative' }}>
+                      <View style={[s.actionIcon, { backgroundColor: t.bg }]}>
+                        <Ionicons name={a.icon as any} size={20} color={t.fg} />
                       </View>
-                    )}
-                  </View>
-                  <Text style={s.actionLabel}>{a.label}</Text>
-                  <Ionicons name="chevron-forward" size={16} color={C.muted} />
-                </TouchableOpacity>
-              ))}
+                      {!!a.badge && (
+                        <View style={s.actionBadge}>
+                          <Text style={s.actionBadgeText}>{a.badge > 99 ? '99+' : a.badge}</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={s.actionLabel}>{a.label}</Text>
+                    <Ionicons name="chevron-forward" size={16} color={C.muted} />
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
 
@@ -544,7 +550,8 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     marginHorizontal: 20, marginBottom: 16, padding: 14,
     backgroundColor: 'rgba(212,168,67,0.10)',
-    borderRadius: 14, borderWidth: 1, borderColor: 'rgba(212,168,67,0.30)',
+    borderRadius: borderRadius.xl, borderWidth: 1, borderColor: 'rgba(212,168,67,0.30)',
+    ...shadows.sm,
   },
   payoutBannerIcon: {
     width: 36, height: 36, borderRadius: 10,
@@ -562,12 +569,16 @@ const s = StyleSheet.create({
   sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
   sectionTitle: { fontSize: 16, fontFamily: 'Montserrat_700Bold', color: C.text, marginBottom: 14 },
   seeAll: { fontSize: 13, fontFamily: 'SpaceGrotesk_500Medium', color: C.teal },
-  actionsContainer: { flexDirection: 'column' },
+  actionsContainer: {
+    flexDirection: 'column', backgroundColor: C.card,
+    borderRadius: borderRadius.xl, paddingHorizontal: 14,
+    ...shadows.sm,
+  },
   actionRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border,
+    paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.border,
   },
-  actionIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: C.tealLight, alignItems: 'center', justifyContent: 'center' },
+  actionIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   actionLabel: { flex: 1, fontSize: 14, fontFamily: 'Montserrat_600SemiBold', color: C.text },
   actionBadge: {
     position: 'absolute', top: -5, right: -5,
@@ -592,6 +603,7 @@ const ds = StyleSheet.create({
   deckFrontWrap: { elevation: 8 },
   deckFront: { borderRadius: 20, padding: 16, overflow: 'hidden', backgroundColor: '#083236' },
   deckOrb: { position: 'absolute', right: -24, top: -24, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(212,168,67,0.10)' },
+  emptyIconRing: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(212,168,67,0.14)', alignItems: 'center', justifyContent: 'center' },
   deckTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
   deckLabel: { fontSize: 10, fontFamily: 'Montserrat_700Bold', color: 'rgba(255,255,255,0.6)', letterSpacing: 1.2 },
   deckCount: { fontSize: 11, fontFamily: 'Montserrat_600SemiBold', color: 'rgba(255,255,255,0.5)' },

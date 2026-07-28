@@ -254,7 +254,7 @@ export default function OnboardingScreen({ navigation }: Props) {
         ? `Your profile is live. As an Hbridge ${doctorLabel}, patients can now find and book consultations with you. Thank you for helping bridge the healthcare gap across Nigeria.`
         : userType === 'hospital_admin'
           ? `Your hospital admin account is active. Manage incoming records and oversee your staff right from your Home screen. Welcome aboard.`
-          : `Hi ${userName || 'there'}! Your health profile is set up. Book consultations, manage records, and get AI-powered health guidance — all in one place. We're glad you're here.`;
+          : `Hi ${userName || 'there'}! Your health profile is set up. Book consultations and manage your records — all in one place. We're glad you're here.`;
       await supabase.from('notifications').insert({
         user_id: user.id,
         title: welcomeTitle,
@@ -387,7 +387,7 @@ export default function OnboardingScreen({ navigation }: Props) {
             <Text style={ss.welcomeCardBody}>
               {userType === 'doctor'
                 ? `${doctorProfTitle.replace(/\.$/, '')} ${userName}${doctorSpecialty ? ` · ${doctorSpecialty}` : ''} — thank you for joining Hbridge. Our mission is to bridge the gap between patients and quality healthcare across Nigeria. Your presence helps thousands of patients access the care they need.`
-                : `Hi ${userName}, Hbridge was built to make quality healthcare accessible to every Nigerian — wherever they are. With Hbridge, you can book consultations, manage your medical records securely, and get AI-powered health guidance. Your health, your control.`}
+                : `Hi ${userName}, Hbridge was built to make quality healthcare accessible to every Nigerian — wherever they are. With Hbridge, you can book consultations and manage your medical records securely. Your health, your control.`}
             </Text>
             <Text style={ss.welcomeCardSign}>— The Hbridge Team</Text>
           </View>

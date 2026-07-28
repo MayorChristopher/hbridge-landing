@@ -8,6 +8,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { usePresence } from '../context/PresenceContext';
 import { useToast } from '../components/ToastProvider';
+import { shadows, borderRadius } from '../utils/design';
 
 const C = {
   bg: '#F5F3EE', surface: '#EDE9E0', card: '#FFFFFF', cardBorder: '#EAE5DA',
@@ -289,7 +290,7 @@ const s = StyleSheet.create({
 
   list: { paddingHorizontal: 16, gap: 12 },
 
-  docCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C2.card, borderRadius: 18, borderWidth: 1, borderColor: C2.cardBorder, padding: 14 },
+  docCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C2.card, borderRadius: borderRadius.xl, borderWidth: 1, borderColor: C2.cardBorder, padding: 14, ...shadows.sm },
   docPhoto: { width: 56, height: 56, borderRadius: 14, backgroundColor: C2.tealLight, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 },
   docPhotoImg: { width: 56, height: 56 },
   docInfo: { flex: 1, minWidth: 0 },
@@ -306,7 +307,7 @@ const s = StyleSheet.create({
   msgBtn: { backgroundColor: C2.teal, borderRadius: 8, padding: 6, alignItems: 'center', justifyContent: 'center' },
   msgBtnLocked: { backgroundColor: C2.gold },
 
-  proBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 20, marginBottom: 14, padding: 12, backgroundColor: 'rgba(212,168,67,0.10)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(212,168,67,0.3)' },
+  proBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 20, marginBottom: 14, padding: 12, backgroundColor: 'rgba(212,168,67,0.10)', borderRadius: borderRadius.xl, borderWidth: 1, borderColor: 'rgba(212,168,67,0.3)', ...shadows.sm },
   proBannerText: { flex: 1, fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: C2.text, lineHeight: 17 },
 
 

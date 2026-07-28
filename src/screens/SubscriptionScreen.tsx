@@ -2,19 +2,16 @@
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import Constants from 'expo-constants';
-import { Paystack } from 'react-native-paystack-webview';
+import { usePaystack } from 'react-native-paystack-webview';
 import { supabase } from '../lib/supabase';
-import { colors, typography, spacing, borderRadius } from '../utils/design';
+import { colors, typography, spacing, borderRadius, shadows } from '../utils/design';
 import { SUBSCRIPTION_PLANS } from '../config/subscriptions';
 import { Toast } from '../utils/toast';
 
-const PAYSTACK_KEY = Constants.expoConfig?.extra?.paystackPublicKey || '';
-
 export default function SubscriptionScreen({ route, navigation }: any) {
   const { userType } = route.params || { userType: 'patient' };
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
-  const [selectedAmount, setSelectedAmount] = useState(0);
+  const { popup } = usePaystack();
+  const [subscribing, setSubscribing] = useState(false);
   const [user, setUser] = useState<any>(null);
 
   React.useEffect(() => {
@@ -33,33 +30,36 @@ export default function SubscriptionScreen({ route, navigation }: any) {
 
   const handleSubscribe = (planId: string, price: number) => {
     if (!user) { Toast.showError('Error', 'Please wait, loading your profile...'); return; }
-    setSelectedAmount(price);
-    setSelectedPlan(planId);
-  };
-
-  const handlePaymentSuccess = async (response: any) => {
-    const ref = response?.transactionRef?.reference || response?.data?.reference || `sub_${Date.now()}`;
-    const planId = selectedPlan;
-    setSelectedPlan(null);
-    try {
-      const { data, error } = await supabase.functions.invoke('paystack-verify', {
-        body: { reference: ref, kind: 'subscription', planId, userId: user.id },
-      });
-      if (error || !data?.verified) {
-        Toast.showError('Subscription Failed', (data?.message || error?.message) + ' Contact support with ref: ' + ref);
-        return;
-      }
-      Toast.showSuccess('Subscription Active', 'Your premium plan is now active!');
-      navigation.goBack();
-    } catch (error: any) {
-      console.error('Subscription error:', error);
-      Toast.showError('Subscription Failed', 'Payment received but verification failed. Contact support with ref: ' + ref);
-    }
-  };
-
-  const handlePaymentCancel = () => {
-    setSelectedPlan(null);
-    Toast.showInfo('Cancelled', 'No charge was made.');
+    if (subscribing) return;
+    setSubscribing(true);
+    popup.checkout({
+      email: user.email || '',
+      amount: price,
+      reference: `sub_${Date.now()}`,
+      onSuccess: async (response: any) => {
+        const ref = response?.reference || `sub_${Date.now()}`;
+        try {
+          const { data, error } = await supabase.functions.invoke('paystack-verify', {
+            body: { reference: ref, kind: 'subscription', planId, userId: user.id },
+          });
+          if (error || !data?.verified) {
+            Toast.showError('Subscription Failed', (data?.message || error?.message) + ' Contact support with ref: ' + ref);
+            return;
+          }
+          Toast.showSuccess('Subscription Active', 'Your premium plan is now active!');
+          navigation.goBack();
+        } catch (err: any) {
+          console.error('Subscription error:', err);
+          Toast.showError('Subscription Failed', 'Payment received but verification failed. Contact support with ref: ' + ref);
+        } finally {
+          setSubscribing(false);
+        }
+      },
+      onCancel: () => {
+        setSubscribing(false);
+        Toast.showInfo('Cancelled', 'No charge was made.');
+      },
+    });
   };
 
   return (
@@ -108,10 +108,11 @@ export default function SubscriptionScreen({ route, navigation }: any) {
 
             {plan.price > 0 ? (
               <TouchableOpacity
-                style={styles.subscribeButton}
+                style={[styles.subscribeButton, subscribing && { opacity: 0.7 }]}
                 onPress={() => handleSubscribe(plan.id, plan.price)}
+                disabled={subscribing}
               >
-                <Text style={styles.subscribeButtonText}>Subscribe Now</Text>
+                <Text style={styles.subscribeButtonText}>{subscribing ? 'Processing…' : 'Subscribe Now'}</Text>
               </TouchableOpacity>
             ) : (
               <View style={styles.currentPlanButton}>
@@ -130,19 +131,6 @@ export default function SubscriptionScreen({ route, navigation }: any) {
 
         <View style={{ height: 40 }} />
       </ScrollView>
-
-      {selectedPlan && user && PAYSTACK_KEY ? (
-        <Paystack
-          paystackKey={PAYSTACK_KEY}
-          amount={selectedAmount}
-          billingEmail={user.email}
-          billingName={user.full_name}
-          channels={['card', 'bank', 'ussd', 'bank_transfer']}
-          onCancel={handlePaymentCancel}
-          onSuccess={handlePaymentSuccess}
-          autoStart={true}
-        />
-      ) : null}
       </View>
     </SafeAreaView>
   );
@@ -185,6 +173,7 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     marginBottom: spacing.lg,
     position: 'relative',
+    ...shadows.sm,
   },
   premiumCard: {
     borderColor: colors.primary,

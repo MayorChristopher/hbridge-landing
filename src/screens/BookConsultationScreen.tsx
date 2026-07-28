@@ -12,7 +12,10 @@ import { supabase } from '../lib/supabase';
 import { useNotificationBadge } from '../context/NotificationBadgeContext';
 import { useToast } from '../components/ToastProvider';
 import FadeScreen from '../components/FadeScreen';
+import { shadows, borderRadius } from '../utils/design';
 import { sendNotifications } from '../utils/notify';
+import { approxLocalPrice, appointmentTimeLines } from '../utils/currencyAndTime';
+import { seedConsultationReasonMessage } from '../utils/seedConsultationMessage';
 
 const C = {
   bg: '#F5F3EE', card: '#FFFFFF', border: '#EAE5DA',
@@ -94,6 +97,7 @@ export default function BookConsultationScreen({ route, navigation }: any) {
   const [timeSlots, setTimeSlots]       = useState<Slot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [booking, setBooking]           = useState(false);
+  const [localPrice, setLocalPrice]     = useState<string | null>(null);
 
   // ── Load full doctor profile ──────────────────────────────────────────────
   useEffect(() => {
@@ -221,6 +225,19 @@ export default function BookConsultationScreen({ route, navigation }: any) {
   const avatarUrl    = doctor?.avatar_url || doctor?.profile_image || null;
   const selectedType = availableTypes.find(t => t.key === type) ?? availableTypes[0];
 
+  // Informational only — the actual charge still processes in NGN via
+  // Paystack. Silently does nothing for Nigerian devices or if the FX
+  // lookup fails; never blocks booking on this.
+  useEffect(() => {
+    let cancelled = false;
+    if (totalFee > 0) {
+      approxLocalPrice(totalFee).then(v => { if (!cancelled) setLocalPrice(v); });
+    } else {
+      setLocalPrice(null);
+    }
+    return () => { cancelled = true; };
+  }, [totalFee]);
+
   const scheduledAt = useMemo(() => {
     if (!selectedSlot) return null;
     return new Date(
@@ -253,6 +270,10 @@ export default function BookConsultationScreen({ route, navigation }: any) {
       });
       if (error) throw error;
     }
+
+    try {
+      await seedConsultationReasonMessage(userId, doctor.id, symptoms);
+    } catch (e) { console.warn('Seeding consultation reason message failed', e); }
 
     // Notify the practitioner of the new request
     const { data: docProfile } = await supabase
@@ -364,6 +385,7 @@ export default function BookConsultationScreen({ route, navigation }: any) {
                     <View style={s.feeBox}>
                       <Text style={s.feeLabel}>Fee</Text>
                       <Text style={s.feeValue}>{totalFee > 0 ? `₦${totalFee.toLocaleString()}` : 'Free'}</Text>
+                      {!!localPrice && <Text style={s.feeApprox}>{localPrice}</Text>}
                     </View>
                   </>
                 )}
@@ -480,8 +502,11 @@ export default function BookConsultationScreen({ route, navigation }: any) {
                     { label: 'Type',      value: selectedType?.label ?? '—' },
                     { label: 'Date',      value: fmtDate(date) },
                     { label: 'Time',      value: selectedSlot?.label ?? 'Not selected', dim: !selectedSlot },
-                    { label: 'Fee',       value: totalFee > 0 ? `₦${totalFee.toLocaleString()}` : 'Free' },
-                  ].map((row, i) => (
+                    scheduledAt && appointmentTimeLines(scheduledAt.toISOString()).patientLine
+                      ? { label: 'Your Time', value: appointmentTimeLines(scheduledAt.toISOString()).patientLine as string }
+                      : null,
+                    { label: 'Fee',       value: totalFee > 0 ? `₦${totalFee.toLocaleString()}${localPrice ? `  ${localPrice}` : ''}` : 'Free' },
+                  ].filter(Boolean).map((row: any, i) => (
                     <View key={i} style={s.summaryRow}>
                       <Text style={s.summaryKey}>{row.label}</Text>
                       <Text style={[s.summaryVal, row.dim && { color: C.muted }]}>{row.value}</Text>
@@ -559,10 +584,9 @@ const s = StyleSheet.create({
   // Doctor card
   doctorCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#fff', borderRadius: 18,
+    backgroundColor: '#fff', borderRadius: borderRadius.xl,
     borderWidth: 1, borderColor: '#EAE5DA', padding: 14,
-    shadowColor: '#0C2E30', shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.06, shadowRadius: 10, elevation: 3,
+    ...shadows.sm,
     minHeight: 80,
   },
   doctorAvatar: {
@@ -580,6 +604,7 @@ const s = StyleSheet.create({
   feeBox: { alignItems: 'flex-end', flexShrink: 0 },
   feeLabel: { fontSize: 10, fontFamily: 'SpaceGrotesk_400Regular', color: '#97A2A0' },
   feeValue: { fontSize: 16, fontFamily: 'Montserrat_700Bold', color: '#0B7E8A' },
+  feeApprox: { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: '#6B7E7F', marginTop: 1 },
 
   // Consultation type
   typeRow: { flexDirection: 'row', gap: 8, paddingBottom: 2 },
@@ -636,9 +661,8 @@ const s = StyleSheet.create({
 
   // Summary
   summaryCard: {
-    borderRadius: 18, overflow: 'hidden',
-    shadowColor: '#0C2E30', shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.10, shadowRadius: 16, elevation: 6,
+    borderRadius: borderRadius.xl, overflow: 'hidden',
+    ...shadows.md,
   },
   summaryHeader: {
     backgroundColor: '#0C2E30',

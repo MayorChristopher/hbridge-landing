@@ -19,6 +19,7 @@ import { useScreenTracking } from '../hooks/useAnalytics';
 import SpotlightTour, { SpotlightStep } from '../components/SpotlightTour';
 import FloatingAIChat from '../components/FloatingAIChat';
 import { useToast } from '../components/ToastProvider';
+import { shadows, borderRadius } from '../utils/design';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const BTN_SIZE = 52;
@@ -557,6 +558,22 @@ export default function HomeScreen({ navigation }: any) {
         )}
 
         <View style={s.paperCard}>
+        {/* â"€â"€ QUICK CONSULTATION BANNER â"€â"€ */}
+        <TouchableOpacity
+          style={s.quickConsultBanner}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('QuickConsultation')}
+        >
+          <View style={s.quickConsultIcon}>
+            <Ionicons name="flash" size={18} color={C.gold} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.quickConsultTitle}>Need a doctor right now?</Text>
+            <Text style={s.quickConsultSub}>Skip picking a doctor — get matched instantly with who's available</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={C.gold} />
+        </TouchableOpacity>
+
         {/* â"€â"€ QUICK ACTIONS â"€â"€ */}
         <View ref={quickRowRef} collapsable={false} style={s.quickRow}>
           {[
@@ -762,7 +779,7 @@ export default function HomeScreen({ navigation }: any) {
           },
           {
             title: 'AI Health Assistant',
-            desc: 'The glowing button in the corner is your 24/7 AI doctor. Tap it any time to describe your symptoms and get guidance.',
+            desc: 'The glowing button in the corner previews our upcoming AI health assistant — full guidance features are coming soon.',
             staticTarget: { x: SW - BTN_SIZE - 16, y: SH - 160, width: BTN_SIZE, height: BTN_SIZE },
             tooltipSide: 'above',
             icon: 'chatbubble-ellipses',
@@ -793,10 +810,20 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#083236' },
   paperCard: { backgroundColor: '#F5F3EE', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 16, paddingBottom: NAV_PAD, flexGrow: 1 },
 
+  quickConsultBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 20, marginTop: 16, marginBottom: 4,
+    backgroundColor: 'rgba(212,168,67,0.10)', borderWidth: 1, borderColor: 'rgba(212,168,67,0.3)',
+    borderRadius: borderRadius.xl, padding: 13, ...shadows.sm,
+  },
+  quickConsultIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(212,168,67,0.15)', alignItems: 'center', justifyContent: 'center' },
+  quickConsultTitle: { fontSize: 13, fontFamily: 'Montserrat_700Bold', color: '#0C2E30' },
+  quickConsultSub: { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: '#6B7E7F', marginTop: 2 },
+
   premiumBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 20, marginTop: 14,
     backgroundColor: 'rgba(212,168,67,0.12)', borderWidth: 1, borderColor: 'rgba(212,168,67,0.35)',
-    borderRadius: 14, padding: 12,
+    borderRadius: borderRadius.xl, padding: 12,
+    ...shadows.sm,
   },
   premiumBannerIcon: {
     width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(212,168,67,0.18)',
@@ -981,6 +1008,6 @@ const s = StyleSheet.create({
   hospDeckBtnSolidText: { fontSize: 12, fontFamily: 'Montserrat_700Bold', color: '#2A1A04' },
 
   // Generic empty
-  emptyCard: { marginHorizontal: 20, marginTop: 14, backgroundColor: '#FFFFFF', borderRadius: 14, borderWidth: 1, borderColor: '#EAE5DA', padding: 28, alignItems: 'center', gap: 8 },
+  emptyCard: { marginHorizontal: 20, marginTop: 14, backgroundColor: '#FFFFFF', borderRadius: borderRadius.xl, borderWidth: 1, borderColor: '#EAE5DA', padding: 28, alignItems: 'center', gap: 8, ...shadows.sm },
   emptyText: { fontSize: 13, fontFamily: 'SpaceGrotesk_400Regular', color: '#7A8785' },
 });

@@ -7,9 +7,9 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastProvider';
+import { shadows, borderRadius } from '../utils/design';
 import { sendNotifications } from '../utils/notify';
 import { isCallExpired } from '../utils/callDuration';
 
@@ -166,12 +166,18 @@ export default function DoctorAppointmentRequestsScreen({ navigation }: any) {
       .eq('id', id)
       .neq('status', 'completed');
     loadAppointments();
-    const icon = type === 'audio' ? '#config.startWithVideoMuted=true' : '';
-    await WebBrowser.openBrowserAsync(
-      `https://meet.jit.si/hbridge-${id.replace(/-/g, '').slice(0, 16)}${icon}`
-    );
-    // Browser closed — prompt doctor to mark complete
-    setPostCallId(id);
+    // Prompt to mark the consultation complete once the doctor returns from
+    // the call screen — fires once, on the next time this screen regains focus.
+    const unsubscribe = navigation.addListener('focus', () => {
+      unsubscribe();
+      setPostCallId(id);
+    });
+    navigation.navigate('Call', {
+      consultationId: id,
+      isVideo: type === 'video',
+      otherName: item.profiles?.full_name || 'Patient',
+      otherAvatar: item.profiles?.profile_image || null,
+    });
   };
 
   const doPostCall = async (completed: boolean) => {
@@ -424,7 +430,7 @@ const s = StyleSheet.create({
   card: { flex: 1, backgroundColor: C.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
 
   // Appointment card
-  apptCard:    { backgroundColor: C.card, borderRadius: 18, borderWidth: 1, borderColor: C.border, padding: 16, gap: 10 },
+  apptCard:    { backgroundColor: C.card, borderRadius: borderRadius.xl, borderWidth: 1, borderColor: C.border, padding: 16, gap: 10, ...shadows.sm },
   cardTop:     { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   patientName: { fontSize: 15, fontFamily: 'Montserrat_600SemiBold', color: C.text },
   dateText:    { fontSize: 13, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted, marginTop: 2 },

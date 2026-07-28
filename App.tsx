@@ -12,6 +12,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import { supabase } from './src/lib/supabase';
 import { ToastProvider, useToast } from './src/components/ToastProvider';
 import { ChatBadgeProvider, useChatBadge } from './src/context/ChatBadgeContext';
+import IncomingRequestAlert from './src/components/IncomingRequestAlert';
 import { NotificationBadgeProvider } from './src/context/NotificationBadgeContext';
 import { RecordsBadgeProvider, useRecordsBadge } from './src/context/RecordsBadgeContext';
 import { PresenceProvider } from './src/context/PresenceContext';
@@ -42,6 +43,8 @@ import HospitalDetailScreen from './src/screens/HospitalDetailScreen';
 import DoctorDetailScreen from './src/screens/DoctorDetailScreen';
 import SupportScreen from './src/screens/SupportScreen';
 import BookConsultationScreen from './src/screens/BookConsultationScreen';
+import QuickConsultationScreen from './src/screens/QuickConsultationScreen';
+import CallScreen from './src/screens/CallScreen';
 import SubscriptionScreen from './src/screens/SubscriptionScreen';
 import DoctorVerificationScreen from './src/screens/DoctorVerificationScreen';
 import HospitalShiftsScreen from './src/screens/HospitalShiftsScreen';
@@ -1223,6 +1226,7 @@ export default function App() {
             <RecordsBadgeProvider>
             <NotificationBadgeProvider>
               <ToastInitializer />
+              <IncomingRequestAlert />
               <NavigationContainer
                 linking={{
                   prefixes: ['hbridge://'],
@@ -1264,6 +1268,8 @@ export default function App() {
             <Stack.Screen name="DoctorDetail" component={DoctorDetailScreen} />
             <Stack.Screen name="Support" component={SupportScreen} />
             <Stack.Screen name="BookConsultation" component={BookConsultationScreen} />
+            <Stack.Screen name="QuickConsultation" component={QuickConsultationScreen} />
+            <Stack.Screen name="Call" component={CallScreen} options={{ presentation: 'modal', gestureEnabled: false }} />
             <Stack.Screen name="Subscription" component={SubscriptionScreen} />
             <Stack.Screen name="DoctorVerification" component={DoctorVerificationScreen} />
             <Stack.Screen name="HospitalShifts" component={HospitalShiftsScreen} />

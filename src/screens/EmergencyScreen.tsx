@@ -100,7 +100,7 @@ export default function EmergencyScreen({ navigation }: any) {
   const handleSOS = () => {
     showAlert({
       visible: true, title: 'Emergency SOS',
-      message: 'This will immediately call the nearest hospital emergency line. Your location will be shared.',
+      message: 'This will immediately call the nearest hospital emergency line. Be ready to share your location and situation over the phone.',
       icon: 'shield', iconColor: C.red,
       buttons: [
         { text: 'Cancel', style: 'cancel', onPress: () => {} },
@@ -197,7 +197,7 @@ export default function EmergencyScreen({ navigation }: any) {
 
           {/* Footer */}
           <View style={s.footer}>
-            <Text style={s.footerNote}>Your location will be shared with emergency responders</Text>
+            <Text style={s.footerNote}>Calling connects you directly — share your location and situation with the hospital over the phone</Text>
             <TouchableOpacity onPress={() => showAlert({
               visible: true, title: 'Offline Emergency Info',
               message: 'Your emergency contacts and medical information are stored locally and can be accessed even without internet connection.',
