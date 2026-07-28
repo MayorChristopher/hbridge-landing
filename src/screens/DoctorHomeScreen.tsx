@@ -418,21 +418,22 @@ export default function DoctorHomeScreen({ navigation }: any) {
             </TouchableOpacity>
           )}
 
-          {/* Subscription nudge banner */}
+          {/* Subscription nudge banner — teal, deliberately distinct from the
+              gold payout banner above it so the two don't read as duplicates */}
           {profile?.subscription_status !== 'active' && (
             <TouchableOpacity
-              style={s.payoutBanner}
+              style={s.proBanner}
               onPress={() => navigation.navigate('Subscription', { userType: 'doctor' })}
               activeOpacity={0.85}
             >
-              <View style={s.payoutBannerIcon}>
-                <Ionicons name="star-outline" size={18} color="#D4A843" />
+              <View style={s.proBannerIcon}>
+                <Ionicons name="star-outline" size={18} color={C.teal} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={s.payoutBannerTitle}>Upgrade to Pro</Text>
-                <Text style={s.payoutBannerSub}>Lower commission, verified badge, top listing priority</Text>
+                <Text style={s.proBannerTitle}>Upgrade to Pro</Text>
+                <Text style={s.proBannerSub}>Lower commission, verified badge, top listing priority</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color="#D4A843" />
+              <Ionicons name="chevron-forward" size={16} color={C.teal} />
             </TouchableOpacity>
           )}
 
@@ -560,6 +561,20 @@ const s = StyleSheet.create({
   },
   payoutBannerTitle: { fontSize: 13, fontFamily: 'Montserrat_700Bold', color: '#0C2E30' },
   payoutBannerSub: { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: '#6B7E7F', marginTop: 2 },
+
+  proBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginHorizontal: 20, marginBottom: 16, padding: 14,
+    backgroundColor: 'rgba(11,126,138,0.07)',
+    borderRadius: borderRadius.xl, borderWidth: 1, borderColor: 'rgba(11,126,138,0.22)',
+  },
+  proBannerIcon: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: 'rgba(11,126,138,0.14)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  proBannerTitle: { fontSize: 13, fontFamily: 'Montserrat_700Bold', color: '#0C2E30' },
+  proBannerSub: { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: '#6B7E7F', marginTop: 2 },
 
   // Deliberately NOT the same gold marketing-nudge style as the payout/
   // subscription banners below it — verification blocks the doctor from

@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastProvider';
 import FadeScreen from '../components/FadeScreen';
-import { shadows, borderRadius } from '../utils/design';
+import { borderRadius } from '../utils/design';
 import { sendNotifications } from '../utils/notify';
 import { findAvailableDoctor } from '../utils/autoAssignDoctor';
 import { seedConsultationReasonMessage } from '../utils/seedConsultationMessage';
@@ -112,7 +112,9 @@ export default function QuickConsultationScreen({ navigation }: any) {
               contentContainerStyle={[s.body, { paddingBottom: Math.max(insets.bottom + 24, 40) }]}
             >
               <View style={s.infoBanner}>
-                <Ionicons name="flash" size={16} color={C.gold} />
+                <View style={s.infoBannerIcon}>
+                  <Ionicons name="flash" size={16} color={C.teal} />
+                </View>
                 <Text style={s.infoBannerText}>
                   No need to pick a doctor — describe what's going on and we'll match you with whoever's available right now.
                 </Text>
@@ -207,11 +209,14 @@ const s = StyleSheet.create({
   paperCard: { flex: 1, backgroundColor: C.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
   body: { paddingHorizontal: 20, paddingTop: 20, gap: 14 },
 
+  // Flat teal card, no border+shadow combo — matches the rest of the app's
+  // informational rows instead of the old gold "boxed" style.
   infoBanner: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: 10,
-    backgroundColor: 'rgba(212,168,67,0.10)', borderWidth: 1, borderColor: 'rgba(212,168,67,0.3)',
-    borderRadius: borderRadius.xl, padding: 12, ...shadows.sm,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: 'rgba(11,126,138,0.07)', borderWidth: 1, borderColor: 'rgba(11,126,138,0.22)',
+    borderRadius: borderRadius.xl, padding: 13,
   },
+  infoBannerIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(11,126,138,0.14)', alignItems: 'center', justifyContent: 'center' },
   infoBannerText: { flex: 1, fontSize: 12.5, fontFamily: 'SpaceGrotesk_400Regular', color: C.text, lineHeight: 18 },
 
   sectionLabel: { fontSize: 10.5, fontFamily: 'Montserrat_700Bold', color: '#6B7E7F', letterSpacing: 1.2, marginBottom: 2 },
