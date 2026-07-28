@@ -558,6 +558,48 @@ export default function HomeScreen({ navigation }: any) {
           )}
         </View>
 
+        <View style={s.paperCard}>
+        {/* ── STATUS: pending approval (highest priority — the user is already waiting on something) ── */}
+        {(() => {
+          const pendingCount = appointments.filter((a: any) => a.status === 'pending').length;
+          if (!pendingCount) return null;
+          return (
+            <TouchableOpacity
+              style={s.pendingBanner}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate('Appointments')}
+            >
+              <View style={s.pendingBannerIcon}>
+                <Ionicons name="time-outline" size={18} color={C.gold} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.pendingBannerTitle}>
+                  {pendingCount} appointment{pendingCount > 1 ? 's' : ''} awaiting approval
+                </Text>
+                <Text style={s.pendingBannerSub}>Tap to review and follow up</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={C.gold} />
+            </TouchableOpacity>
+          );
+        })()}
+
+        {/* ── QUICK CONSULTATION (primary feature action — teal, matches brand) ── */}
+        <TouchableOpacity
+          style={s.quickConsultBanner}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('QuickConsultation')}
+        >
+          <View style={s.quickConsultIcon}>
+            <Ionicons name="flash" size={18} color={C.teal} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.quickConsultTitle}>Need a doctor right now?</Text>
+            <Text style={s.quickConsultSub}>Skip picking a doctor — get matched instantly with who's available</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={C.teal} />
+        </TouchableOpacity>
+
+        {/* ── UPSELL: Go Premium (lowest priority, deliberately the only gold pill so it doesn't blend with the status/action rows above it) ── */}
         {user?.subscription_status !== 'active' && (
           <TouchableOpacity
             style={s.premiumBanner}
@@ -572,23 +614,6 @@ export default function HomeScreen({ navigation }: any) {
             <Ionicons name="chevron-forward" size={15} color="rgba(43,33,7,0.45)" />
           </TouchableOpacity>
         )}
-
-        <View style={s.paperCard}>
-        {/* â"€â"€ QUICK CONSULTATION BANNER â"€â"€ */}
-        <TouchableOpacity
-          style={s.quickConsultBanner}
-          activeOpacity={0.85}
-          onPress={() => navigation.navigate('QuickConsultation')}
-        >
-          <View style={s.quickConsultIcon}>
-            <Ionicons name="flash" size={18} color={C.gold} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={s.quickConsultTitle}>Need a doctor right now?</Text>
-            <Text style={s.quickConsultSub}>Skip picking a doctor — get matched instantly with who's available</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={16} color={C.gold} />
-        </TouchableOpacity>
 
         {/* â"€â"€ QUICK ACTIONS â"€â"€ */}
         <View ref={quickRowRef} collapsable={false} style={s.quickRow}>
@@ -616,30 +641,7 @@ export default function HomeScreen({ navigation }: any) {
         </View>
 
         {/* â"€â"€ NEXT APPOINTMENTS (swipeable stacked deck) â"€â"€ */}
-        {(() => {
-          const pendingCount = appointments.filter((a: any) => a.status === 'pending').length;
-          if (!pendingCount) return null;
-          return (
-            <TouchableOpacity
-              style={s.pendingBanner}
-              activeOpacity={0.85}
-              onPress={() => navigation.navigate('Appointments')}
-            >
-              <View style={s.pendingBannerIcon}>
-                <Ionicons name="time-outline" size={18} color={C.gold} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.pendingBannerTitle}>
-                  {pendingCount} appointment{pendingCount > 1 ? 's' : ''} awaiting approval
-                </Text>
-                <Text style={s.pendingBannerSub}>Tap to review and follow up</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={C.gold} />
-            </TouchableOpacity>
-          );
-        })()}
-
-        <View style={s.sectionHeader}>
+        <View style={[s.sectionHeader, { marginTop: 28 }]}>
           <Text style={s.sectionTitle}>Next appointments</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Appointments')}>
             <Text style={s.sectionMuted}>{appointments.length} upcoming</Text>
@@ -649,7 +651,7 @@ export default function HomeScreen({ navigation }: any) {
         <SwipeableDeck appointments={appointments} navigation={navigation} />
 
         {/* ── TOP PRACTITIONERS ── */}
-        <View style={[s.sectionHeader, { marginTop: 36 }]}>
+        <View style={[s.sectionHeader, { marginTop: 28 }]}>
           <Text style={s.sectionTitle}>Top Practitioners</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Explore', { tab: 'workers' })}>
             <Text style={s.sectionLink}>See all</Text>
@@ -741,7 +743,7 @@ export default function HomeScreen({ navigation }: any) {
         {/* â"€â"€ HOSPITALS NEARBY (stacked deck) â"€â"€ */}
         {hospitals.length > 0 && (
           <>
-            <View style={[s.sectionHeader, { marginTop: 40 }]}>
+            <View style={[s.sectionHeader, { marginTop: 28 }]}>
               <Text style={s.sectionTitle}>Hospitals nearby</Text>
               <TouchableOpacity onPress={() => navigation.navigate('Explore', { tab: 'hospitals' })}>
                 <Text style={s.sectionLink}>See all</Text>
@@ -849,30 +851,34 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#083236' },
   paperCard: { backgroundColor: '#F5F3EE', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 16, paddingBottom: NAV_PAD, flexGrow: 1 },
 
-  quickConsultBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 20, marginTop: 16, marginBottom: 4,
-    backgroundColor: 'rgba(212,168,67,0.10)', borderWidth: 1, borderColor: 'rgba(212,168,67,0.3)',
-    borderRadius: borderRadius.xl, padding: 13, ...shadows.sm,
-  },
-  quickConsultIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(212,168,67,0.15)', alignItems: 'center', justifyContent: 'center' },
-  quickConsultTitle: { fontSize: 13, fontFamily: 'Montserrat_700Bold', color: '#0C2E30' },
-  quickConsultSub: { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: '#6B7E7F', marginTop: 2 },
-
-  // Solid gold pill, deliberately NOT the same translucent-bordered-box shape
-  // as quickConsultBanner right below it — stacking two near-identical boxed
-  // banners back to back read as repetitive/templated rather than as one
-  // promotional chip plus one contextual action row.
+  // Status row (pending approval) — amber accent, flat border only (no
+  // shadow) so it reads as one calm info row, not a floating card.
   pendingBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 20, marginTop: 16, marginBottom: 4,
+    flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 20, marginTop: 4, marginBottom: 0,
     backgroundColor: 'rgba(212,168,67,0.10)', borderWidth: 1, borderColor: 'rgba(212,168,67,0.3)',
-    borderRadius: borderRadius.xl, padding: 13, ...shadows.sm,
+    borderRadius: borderRadius.xl, padding: 13,
   },
   pendingBannerIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(212,168,67,0.15)', alignItems: 'center', justifyContent: 'center' },
   pendingBannerTitle: { fontSize: 13, fontFamily: 'Montserrat_700Bold', color: '#0C2E30' },
   pendingBannerSub: { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: '#6B7E7F', marginTop: 2 },
 
+  // Primary action row (Quick Consultation) — teal accent, matches the
+  // brand color instead of gold, so it doesn't get confused with the
+  // amber status row above or the gold upsell pill below.
+  quickConsultBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 20, marginTop: 10, marginBottom: 0,
+    backgroundColor: 'rgba(11,126,138,0.07)', borderWidth: 1, borderColor: 'rgba(11,126,138,0.22)',
+    borderRadius: borderRadius.xl, padding: 13,
+  },
+  quickConsultIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(11,126,138,0.12)', alignItems: 'center', justifyContent: 'center' },
+  quickConsultTitle: { fontSize: 13, fontFamily: 'Montserrat_700Bold', color: '#0C2E30' },
+  quickConsultSub: { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: '#6B7E7F', marginTop: 2 },
+
+  // Upsell pill (Go Premium) — solid gold, deliberately the only filled
+  // pill on the screen so it stands apart from the two bordered info rows
+  // above it instead of reading as a third copy of the same box.
   premiumBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 20, marginTop: 14,
+    flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 20, marginTop: 10,
     backgroundColor: C.gold, borderRadius: 999, paddingVertical: 10, paddingHorizontal: 14,
     ...shadows.sm,
   },
@@ -915,7 +921,7 @@ const s = StyleSheet.create({
   // Quick actions
   quickRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, marginTop: 4 },
   qaItem: { alignItems: 'center', gap: 6, flex: 1 },
-  qaIco: { width: 48, height: 48, borderRadius: 15, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#EAE5DA', alignItems: 'center', justifyContent: 'center', shadowColor: '#0C2E30', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  qaIco: { width: 48, height: 48, borderRadius: 15, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#EAE5DA', alignItems: 'center', justifyContent: 'center' },
   qaIcoPressed: { backgroundColor: '#0B7E8A', borderColor: '#0B7E8A' },
   qaLabel: { fontSize: 10, fontFamily: 'Montserrat_600SemiBold', color: '#3D4B49', textAlign: 'center', lineHeight: 13 },
 
@@ -1059,6 +1065,6 @@ const s = StyleSheet.create({
   hospDeckBtnSolidText: { fontSize: 12, fontFamily: 'Montserrat_700Bold', color: '#2A1A04' },
 
   // Generic empty
-  emptyCard: { marginHorizontal: 20, marginTop: 14, backgroundColor: '#FFFFFF', borderRadius: borderRadius.xl, borderWidth: 1, borderColor: '#EAE5DA', padding: 28, alignItems: 'center', gap: 8, ...shadows.sm },
+  emptyCard: { marginHorizontal: 20, marginTop: 14, backgroundColor: '#FFFFFF', borderRadius: borderRadius.xl, borderWidth: 1, borderColor: '#EAE5DA', padding: 28, alignItems: 'center', gap: 8 },
   emptyText: { fontSize: 13, fontFamily: 'SpaceGrotesk_400Regular', color: '#7A8785' },
 });
