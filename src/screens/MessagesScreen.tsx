@@ -552,7 +552,7 @@ export default function MessagesScreen({ navigation }: any) {
               </View>
             }
             ItemSeparatorComponent={() => <View style={s.separator} />}
-            contentContainerStyle={{ flexGrow: 1 }}
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 96 }}
           />
         )}
       </View>

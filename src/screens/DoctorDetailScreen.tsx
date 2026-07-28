@@ -64,7 +64,7 @@ export default function DoctorDetailScreen({ route, navigation }: any) {
     const [{ data: prof }, { data: existing }, { data: doc }, { data: consult }] = await Promise.all([
       supabase.from('profiles').select('user_type,subscription_status').eq('id', user.id).single(),
       supabase.from('ratings').select('*').eq('patient_id', user.id).eq('doctor_id', doctor.id).maybeSingle(),
-      supabase.from('doctors').select('average_rating,total_reviews,consultation_fee,years_experience,medical_license,title,consultation_types,availability_days').eq('id', doctor.id).single(),
+      supabase.from('doctors').select('average_rating,total_reviews,consultation_fee,years_experience,medical_license,title,consultation_types,availability_days,verification_status').eq('id', doctor.id).single(),
       supabase.from('consultations').select('id').eq('patient_id', user.id).eq('doctor_id', doctor.id).eq('status', 'completed').limit(1),
     ]);
     setCurrentUserType(prof?.user_type || 'patient');
@@ -327,6 +327,17 @@ export default function DoctorDetailScreen({ route, navigation }: any) {
                 )}
               </LinearGradient>
             </TouchableOpacity>
+          ) : liveDoctor.verification_status && liveDoctor.verification_status !== 'verified' ? (
+            // Defense in depth: every patient-facing search/list already
+            // filters to verification_status='verified', so this should be
+            // unreachable in normal use — but a stale deep link or cached
+            // card could still land here, and silently allowing a booking
+            // with an unverified practitioner would be worse than a locked
+            // button with an honest explanation.
+            <View style={s.unverifiedNotice}>
+              <Ionicons name="alert-circle-outline" size={16} color="#EF4444" />
+              <Text style={s.unverifiedNoticeText}>This practitioner's license is still pending verification and can't be booked yet.</Text>
+            </View>
           ) : (
             <TouchableOpacity
               style={s.bookBtnWrap}
@@ -519,7 +530,17 @@ const s = StyleSheet.create({
     backgroundColor: C.card,
   },
   msgBtnText: { fontSize: 14, fontFamily: 'Montserrat_600SemiBold', color: C.teal },
-  bookBtnWrap: { flex: 1.5, borderRadius: 14, overflow: 'hidden', shadowColor: C.tealHero2, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.28, shadowRadius: 18, elevation: 8 },
+  // marginTop lives here rather than relying on the optional Bio/Hospital
+  // Affiliations sections above it for spacing — when both are absent (no
+  // bio filled in, independent practitioner with no hospital), the button
+  // had nothing separating it from Professional Info at all.
+  bookBtnWrap: { flex: 1.5, marginTop: 20, borderRadius: 14, overflow: 'hidden', shadowColor: C.tealHero2, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.28, shadowRadius: 18, elevation: 8 },
+  unverifiedNotice: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 20,
+    padding: 14, borderRadius: 14, backgroundColor: 'rgba(239,68,68,0.08)',
+    borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)',
+  },
+  unverifiedNoticeText: { flex: 1, fontSize: 12.5, fontFamily: 'SpaceGrotesk_400Regular', color: '#7A1F1F', lineHeight: 18 },
   bookBtn: { height: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   bookBtnText: { fontSize: 14, fontFamily: 'Montserrat_700Bold', color: '#fff' },
 

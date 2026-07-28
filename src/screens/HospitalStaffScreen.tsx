@@ -91,7 +91,7 @@ export default function HospitalStaffScreen({ navigation }: any) {
 
       const { data: rows } = await supabase
         .from('hospital_staff')
-        .select('id, status, role, requested_by, invited_at, joined_at, doctor_id, doctors(id, full_name, specialization, profile_image, title, is_available, average_rating, user_id)')
+        .select('id, status, role, requested_by, invited_at, joined_at, on_duty, on_duty_requested_at, doctor_id, doctors(id, full_name, specialization, profile_image, title, is_available, average_rating, user_id)')
         .eq('hospital_id', hosp.id)
         .neq('status', 'rejected');
 
@@ -270,6 +270,29 @@ export default function HospitalStaffScreen({ navigation }: any) {
     }
   };
 
+  const approveDuty = async (row: any) => {
+    try {
+      const { error } = await supabase.from('hospital_staff')
+        .update({ on_duty: true, on_duty_requested_at: null }).eq('id', row.id);
+      if (error) throw error;
+      toast.showSuccess('Confirmed', `${row.doctors?.full_name} is now on duty.`);
+      loadData();
+    } catch (e: any) {
+      toast.showError('Error', e.message);
+    }
+  };
+
+  const declineDuty = async (row: any) => {
+    try {
+      const { error } = await supabase.from('hospital_staff')
+        .update({ on_duty_requested_at: null }).eq('id', row.id);
+      if (error) throw error;
+      loadData();
+    } catch (e: any) {
+      toast.showError('Error', e.message);
+    }
+  };
+
   const CONFIRM_COPY: Record<string, { title: string; body: (row: any) => string; confirmLabel: string; run: (row: any) => Promise<void> }> = {
     reject: {
       title: 'Decline Request?',
@@ -314,6 +337,14 @@ export default function HospitalStaffScreen({ navigation }: any) {
                 Since {new Date(item.joined_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
               </Text>
             )}
+            {tab === 'active' && (
+              <View style={s.dutyRow}>
+                <View style={[s.dutyDot, { backgroundColor: item.on_duty ? C.green : item.on_duty_requested_at ? C.gold : C.muted }]} />
+                <Text style={[s.dutyText, item.on_duty && { color: C.green }, item.on_duty_requested_at && !item.on_duty && { color: '#8A6A1F' }]}>
+                  {item.on_duty ? 'On duty' : item.on_duty_requested_at ? 'Requesting to go on duty' : 'Off duty'}
+                </Text>
+              </View>
+            )}
           </View>
         </TouchableOpacity>
 
@@ -334,7 +365,18 @@ export default function HospitalStaffScreen({ navigation }: any) {
               <Text style={s.cancelText}>Cancel</Text>
             </TouchableOpacity>
           )}
-          {tab === 'active' && (
+          {tab === 'active' && item.on_duty_requested_at && !item.on_duty && (
+            <>
+              <TouchableOpacity style={s.approveBtn} onPress={() => approveDuty(item)}>
+                <Ionicons name="checkmark" size={16} color="#fff" />
+                <Text style={s.approveBtnText}>Confirm Duty</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.rejectBtn} onPress={() => declineDuty(item)}>
+                <Ionicons name="close" size={16} color={C.red} />
+              </TouchableOpacity>
+            </>
+          )}
+          {tab === 'active' && !(item.on_duty_requested_at && !item.on_duty) && (
             <TouchableOpacity style={s.rejectBtn} onPress={() => setConfirmAction({ type: 'remove', row: item })}>
               <Ionicons name="person-remove-outline" size={17} color={C.red} />
             </TouchableOpacity>
@@ -537,6 +579,9 @@ const s = StyleSheet.create({
   spec:     { fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted, marginTop: 2 },
   role:     { fontSize: 11, fontFamily: 'Montserrat_600SemiBold', color: C.teal, marginTop: 3 },
   joinedDate:{ fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted, marginTop: 2 },
+  dutyRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+  dutyDot: { width: 7, height: 7, borderRadius: 4 },
+  dutyText: { fontSize: 11.5, fontFamily: 'Montserrat_600SemiBold', color: C.muted },
   actions:  { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'flex-end' },
   approveBtn:    { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: C.green, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
   approveBtnText:{ fontSize: 13, fontFamily: 'Montserrat_700Bold', color: '#fff' },

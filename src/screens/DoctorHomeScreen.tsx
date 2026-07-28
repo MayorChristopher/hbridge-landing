@@ -376,27 +376,27 @@ export default function DoctorHomeScreen({ navigation }: any) {
         <View style={s.contentCard}>
           <View style={s.handle} />
 
-          {/* Verification nudge banner */}
+          {/* Verification nudge banner — styled as action-required, not a promo */}
           {doctor && doctor.verification_status !== 'verified' && (
             <TouchableOpacity
-              style={s.payoutBanner}
+              style={s.verificationBanner}
               onPress={() => navigation.navigate('DoctorVerification')}
               activeOpacity={0.85}
             >
-              <View style={s.payoutBannerIcon}>
-                <Ionicons name={doctor.verification_status === 'rejected' ? 'close-circle-outline' : 'shield-checkmark-outline'} size={18} color="#D4A843" />
+              <View style={s.verificationBannerIcon}>
+                <Ionicons name={doctor.verification_status === 'rejected' ? 'close-circle-outline' : 'shield-checkmark-outline'} size={18} color="#EF4444" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={s.payoutBannerTitle}>
-                  {doctor.verification_status === 'rejected' ? 'Verification not approved' : 'Verification pending'}
+                <Text style={s.verificationBannerTitle}>
+                  {doctor.verification_status === 'rejected' ? 'Verification not approved' : 'Verification required'}
                 </Text>
-                <Text style={s.payoutBannerSub}>
+                <Text style={s.verificationBannerSub}>
                   {doctor.verification_status === 'rejected'
                     ? 'Tap to review and resubmit your document'
-                    : "You won't appear in patient search until your license is verified"}
+                    : "You won't appear in patient search until your license is verified — tap to submit"}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color="#D4A843" />
+              <Ionicons name="chevron-forward" size={16} color="#EF4444" />
             </TouchableOpacity>
           )}
 
@@ -560,6 +560,25 @@ const s = StyleSheet.create({
   },
   payoutBannerTitle: { fontSize: 13, fontFamily: 'Montserrat_700Bold', color: '#0C2E30' },
   payoutBannerSub: { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: '#6B7E7F', marginTop: 2 },
+
+  // Deliberately NOT the same gold marketing-nudge style as the payout/
+  // subscription banners below it — verification blocks the doctor from
+  // appearing in patient search at all, which is a different order of
+  // urgency than an optional upsell, and needs to read that way.
+  verificationBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginHorizontal: 20, marginBottom: 16, padding: 14,
+    backgroundColor: 'rgba(239,68,68,0.08)',
+    borderRadius: borderRadius.xl, borderWidth: 1.5, borderColor: 'rgba(239,68,68,0.35)',
+    ...shadows.sm,
+  },
+  verificationBannerIcon: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: 'rgba(239,68,68,0.14)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  verificationBannerTitle: { fontSize: 13, fontFamily: 'Montserrat_700Bold', color: '#7A1F1F' },
+  verificationBannerSub: { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: '#8A5252', marginTop: 2 },
 
   headerStatsRow: { flexDirection: 'row', marginTop: 14 },
   headerStatCard: { flex: 1, alignItems: 'center', gap: 2 },

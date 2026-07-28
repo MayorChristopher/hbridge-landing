@@ -234,8 +234,12 @@ export default function DoctorsListScreen({ navigation, route }: any) {
                     </View>
                   </View>
                   <View style={s.docRight}>
-                    <Text style={s.feeVal}>{d.consultation_fee ? `₦${Number(d.consultation_fee).toLocaleString()}` : '—'}</Text>
-                    <Text style={s.feeLbl}>per visit</Text>
+                    {!isDoctorViewer && (
+                      <>
+                        <Text style={s.feeVal}>{d.consultation_fee ? `₦${Number(d.consultation_fee).toLocaleString()}` : '—'}</Text>
+                        <Text style={s.feeLbl}>per visit</Text>
+                      </>
+                    )}
                     <TouchableOpacity
                       style={[s.msgBtn, isDoctorViewer && !isSubscribed && s.msgBtnLocked]}
                       onPress={() => openChat(d)}
@@ -307,8 +311,10 @@ const s = StyleSheet.create({
   msgBtn: { backgroundColor: C2.teal, borderRadius: 8, padding: 6, alignItems: 'center', justifyContent: 'center' },
   msgBtnLocked: { backgroundColor: C2.gold },
 
-  proBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 20, marginBottom: 14, padding: 12, backgroundColor: 'rgba(212,168,67,0.10)', borderRadius: borderRadius.xl, borderWidth: 1, borderColor: 'rgba(212,168,67,0.3)', ...shadows.sm },
-  proBannerText: { flex: 1, fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: C2.text, lineHeight: 17 },
+  // Solid gold pill, matching the fixed pattern in HomeScreen's premiumBanner
+  // — the previous translucent-fill-plus-full-border box read as cramped/boxy.
+  proBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 20, marginBottom: 14, paddingVertical: 10, paddingHorizontal: 14, backgroundColor: '#D4A843', borderRadius: 999, ...shadows.sm },
+  proBannerText: { flex: 1, fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(43,33,7,0.75)', lineHeight: 17 },
 
 
   empty: { alignItems: 'center', paddingVertical: 56, gap: 10 },

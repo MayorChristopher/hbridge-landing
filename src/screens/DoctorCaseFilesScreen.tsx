@@ -32,6 +32,13 @@ const TYPE_ICONS: Record<string, string> = {
   lab_result: 'flask-outline', imaging: 'scan-outline', prescription: 'medkit-outline',
   vital_signs: 'pulse-outline', diagnosis: 'document-text-outline', other: 'document-outline',
 };
+// Every record type reused the same teal regardless of type — a lab result
+// and a prescription looked identical except for a tiny icon glyph. Real
+// color-coding so the type registers at a glance, not just on close reading.
+const TYPE_COLORS: Record<string, string> = {
+  lab_result: '#0EA5E9', imaging: '#7C3AED', prescription: '#1E9E5A',
+  vital_signs: '#EF4444', diagnosis: '#D4A843', other: '#6B7E7F',
+};
 const RECORD_TYPES = Object.keys(TYPE_LABELS);
 
 const fmt = (iso: string) =>
@@ -343,15 +350,15 @@ export default function DoctorCaseFilesScreen({ navigation }: any) {
           {isImg ? (
             <SignedImage request={{ context: 'medical_record', recordId: rec.id }} style={s.thumb} resizeMode="cover" />
           ) : (
-            <View style={[s.iconBox, { backgroundColor: expired ? C.surface : C.tealLight }]}>
-              <Ionicons name={(TYPE_ICONS[rec?.record_type] || 'document-outline') as any} size={20} color={expired ? C.muted : C.teal} />
+            <View style={[s.iconBox, { backgroundColor: expired ? C.surface : `${TYPE_COLORS[rec?.record_type] || C.teal}18` }]}>
+              <Ionicons name={(TYPE_ICONS[rec?.record_type] || 'document-outline') as any} size={20} color={expired ? C.muted : (TYPE_COLORS[rec?.record_type] || C.teal)} />
             </View>
           )}
           <View style={{ flex: 1, gap: 4 }}>
             <Text style={s.cardTitle} numberOfLines={1}>{rec?.title ?? 'Medical Record'}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <View style={s.typeChip}>
-                <Text style={s.typeChipText}>{TYPE_LABELS[rec?.record_type] ?? 'Document'}</Text>
+              <View style={[s.typeChip, { backgroundColor: `${TYPE_COLORS[rec?.record_type] || C.teal}18` }]}>
+                <Text style={[s.typeChipText, { color: TYPE_COLORS[rec?.record_type] || C.teal }]}>{TYPE_LABELS[rec?.record_type] ?? 'Document'}</Text>
               </View>
               {rec?.created_at && (
                 <Text style={s.cardMeta}>{fmt(rec.created_at)}</Text>
@@ -436,15 +443,15 @@ export default function DoctorCaseFilesScreen({ navigation }: any) {
           {isImg ? (
             <SignedImage request={{ context: 'medical_record', recordId: rec.id }} style={s.thumb} resizeMode="cover" />
           ) : (
-            <View style={[s.iconBox, { backgroundColor: expired ? C.surface : 'rgba(99,102,241,0.09)' }]}>
-              <Ionicons name={(TYPE_ICONS[rec?.record_type] || 'document-outline') as any} size={20} color={expired ? C.muted : '#6366f1'} />
+            <View style={[s.iconBox, { backgroundColor: expired ? C.surface : `${TYPE_COLORS[rec?.record_type] || C.teal}18` }]}>
+              <Ionicons name={(TYPE_ICONS[rec?.record_type] || 'document-outline') as any} size={20} color={expired ? C.muted : (TYPE_COLORS[rec?.record_type] || C.teal)} />
             </View>
           )}
           <View style={{ flex: 1, gap: 4 }}>
             <Text style={s.cardTitle} numberOfLines={1}>{rec?.title ?? 'Medical Record'}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <View style={[s.typeChip, { backgroundColor: 'rgba(99,102,241,0.1)' }]}>
-                <Text style={[s.typeChipText, { color: '#6366f1' }]}>{TYPE_LABELS[rec?.record_type] ?? 'Document'}</Text>
+              <View style={[s.typeChip, { backgroundColor: `${TYPE_COLORS[rec?.record_type] || C.teal}18` }]}>
+                <Text style={[s.typeChipText, { color: TYPE_COLORS[rec?.record_type] || C.teal }]}>{TYPE_LABELS[rec?.record_type] ?? 'Document'}</Text>
               </View>
             </View>
           </View>
