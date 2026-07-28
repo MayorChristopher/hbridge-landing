@@ -1,8 +1,9 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   StyleSheet, Text, View, FlatList, TouchableOpacity,
   RefreshControl, ActivityIndicator, Modal, StatusBar, Platform,
+  TextInput, KeyboardAvoidingView, ScrollView,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,11 +23,36 @@ export default function DoctorAppointmentRequestsScreen({ navigation }: any) {
   const [refreshing, setRefreshing]       = useState(false);
   const [currentUser, setCurrentUser]     = useState<any>(null);
   const [confirmId, setConfirmId]         = useState<string | null>(null);
+  const [diagnosisNotes, setDiagnosisNotes] = useState('');
   const [postCallId, setPostCallId]       = useState<string | null>(null);
   const [rescheduleId, setRescheduleId]   = useState<string | null>(null);
   const [rescheduleDate, setRescheduleDate] = useState(new Date());
+  const [statusFilter, setStatusFilter]   = useState<'all' | 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled'>('all');
+  const [sortAsc, setSortAsc]             = useState(true);
 
   useFocusEffect(useCallback(() => { loadAppointments(); }, []));
+
+  const FILTERS: { key: typeof statusFilter; label: string; statuses: string[] }[] = [
+    { key: 'all',         label: 'All',         statuses: [] },
+    { key: 'pending',     label: 'Pending',     statuses: ['pending'] },
+    { key: 'confirmed',   label: 'Confirmed',   statuses: ['confirmed', 'scheduled'] },
+    { key: 'in_progress', label: 'In Progress', statuses: ['in_progress'] },
+    { key: 'completed',   label: 'Completed',   statuses: ['completed'] },
+    { key: 'cancelled',   label: 'Cancelled',   statuses: ['cancelled'] },
+  ];
+
+  const displayedAppointments = useMemo(() => {
+    const activeFilter = FILTERS.find(f => f.key === statusFilter);
+    const filtered = !activeFilter || activeFilter.statuses.length === 0
+      ? appointments
+      : appointments.filter(a => activeFilter.statuses.includes(a.status));
+    const sorted = [...filtered].sort((a, b) => {
+      const ta = new Date(a.scheduled_at).getTime();
+      const tb = new Date(b.scheduled_at).getTime();
+      return sortAsc ? ta - tb : tb - ta;
+    });
+    return sorted;
+  }, [appointments, statusFilter, sortAsc]);
 
   const loadAppointments = async () => {
     try {
@@ -54,7 +80,7 @@ export default function DoctorAppointmentRequestsScreen({ navigation }: any) {
 
   const onRefresh = async () => { setRefreshing(true); await loadAppointments(); setRefreshing(false); };
 
-  const confirmComplete = (id: string) => setConfirmId(id);
+  const confirmComplete = (id: string) => { setConfirmId(id); setDiagnosisNotes(''); };
 
   const doComplete = async () => {
     if (!confirmId) return;
@@ -62,7 +88,13 @@ export default function DoctorAppointmentRequestsScreen({ navigation }: any) {
     setConfirmId(null);
     try {
       const appt = appointments.find(a => a.id === id);
-      await supabase.from('consultations').update({ status: 'completed', updated_at: new Date().toISOString() }).eq('id', id);
+      await supabase.from('consultations').update({
+        status: 'completed',
+        diagnosis: diagnosisNotes.trim() || null,
+        ended_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }).eq('id', id);
+      setDiagnosisNotes('');
       if (appt?.patient_id) {
         try {
           await sendNotifications([{
@@ -180,32 +212,16 @@ export default function DoctorAppointmentRequestsScreen({ navigation }: any) {
     });
   };
 
-  const doPostCall = async (completed: boolean) => {
+  const doPostCall = (completed: boolean) => {
     const id = postCallId;
     setPostCallId(null);
     if (!id) return;
     if (completed) {
-      try {
-        const appt = appointments.find(a => a.id === id);
-        await supabase.from('consultations').update({
-          status: 'completed',
-          ended_at: new Date().toISOString(),
-        }).eq('id', id);
-        if (appt?.patient_id) {
-          try {
-            await sendNotifications([{
-              userId: appt.patient_id,
-              title: 'Consultation Completed',
-              message: 'Your consultation has been marked as completed by your doctor.',
-              type: 'system',
-              is_read: false,
-            }]);
-          } catch (e) { console.warn('Notification failed', e); }
-        }
-        toast.showSuccess('Done', 'Consultation marked as completed.');
-      } catch {
-        toast.showError('Error', 'Failed to update status');
-      }
+      // Hand off into the same notes-capturing completion flow used
+      // elsewhere, instead of marking complete with no diagnosis/notes
+      // step at all — this was the only path that skipped it entirely.
+      confirmComplete(id);
+      return;
     }
     loadAppointments();
   };
@@ -254,11 +270,35 @@ export default function DoctorAppointmentRequestsScreen({ navigation }: any) {
 
       {/* White Card */}
       <View style={s.card}>
+        {!loading && (
+          <View style={s.filterRow}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ flexGrow: 0 }}
+              contentContainerStyle={s.filterScrollContent}
+            >
+              {FILTERS.map(f => (
+                <TouchableOpacity
+                  key={f.key}
+                  onPress={() => setStatusFilter(f.key)}
+                  style={[s.filterChip, statusFilter === f.key && s.filterChipActive]}
+                >
+                  <Text style={[s.filterChipText, statusFilter === f.key && s.filterChipTextActive]}>{f.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity style={s.sortBtn} onPress={() => setSortAsc(v => !v)}>
+              <Ionicons name={sortAsc ? 'arrow-down' : 'arrow-up'} size={14} color={C.teal} />
+              <Text style={s.sortBtnText}>{sortAsc ? 'Soonest' : 'Latest'}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
         {loading ? (
           <ActivityIndicator color={C.teal} style={{ flex: 1 }} />
         ) : (
           <FlatList
-            data={appointments}
+            data={displayedAppointments}
             keyExtractor={i => i.id}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.teal} colors={[C.teal]} />}
             contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}
@@ -267,7 +307,7 @@ export default function DoctorAppointmentRequestsScreen({ navigation }: any) {
                 <View style={s.emptyIconWrap}>
                   <Ionicons name="calendar-outline" size={36} color={C.teal} />
                 </View>
-                <Text style={s.emptyText}>No appointments yet</Text>
+                <Text style={s.emptyText}>{statusFilter === 'all' ? 'No appointments yet' : `No ${statusFilter.replace('_', ' ')} appointments`}</Text>
               </View>
             }
             renderItem={({ item }) => (
@@ -394,23 +434,44 @@ export default function DoctorAppointmentRequestsScreen({ navigation }: any) {
 
       {/* Confirm Complete Sheet */}
       <Modal visible={!!confirmId} animationType="slide" transparent onRequestClose={() => setConfirmId(null)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' }}>
-          <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40 }}>
-            <View style={{ width: 40, height: 4, backgroundColor: '#EAE5DA', borderRadius: 2, alignSelf: 'center', marginBottom: 20 }} />
-            <Text style={{ fontSize: 18, fontFamily: 'Montserrat_700Bold', color: '#0C2E30', marginBottom: 6 }}>Complete Consultation?</Text>
-            <Text style={{ fontSize: 13.5, fontFamily: 'SpaceGrotesk_400Regular', color: '#7A8785', marginBottom: 24, lineHeight: 20 }}>
-              This will mark the consultation as completed and notify the patient.
-            </Text>
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-              <TouchableOpacity onPress={() => setConfirmId(null)} style={{ flex: 1, padding: 14, borderRadius: 13, backgroundColor: '#EDE9E0', alignItems: 'center' }}>
-                <Text style={{ fontSize: 14, fontFamily: 'Montserrat_600SemiBold', color: '#7A8785' }}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={doComplete} style={{ flex: 1, padding: 14, borderRadius: 13, backgroundColor: '#0B7E8A', alignItems: 'center' }}>
-                <Text style={{ fontSize: 14, fontFamily: 'Montserrat_700Bold', color: '#fff' }}>Mark Complete</Text>
-              </TouchableOpacity>
+        <KeyboardAvoidingView
+          style={{ flex: 1, justifyContent: 'flex-end' }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' }}>
+            <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40 }}>
+              <View style={{ width: 40, height: 4, backgroundColor: '#EAE5DA', borderRadius: 2, alignSelf: 'center', marginBottom: 20 }} />
+              <Text style={{ fontSize: 18, fontFamily: 'Montserrat_700Bold', color: '#0C2E30', marginBottom: 6 }}>Complete Consultation?</Text>
+              <Text style={{ fontSize: 13.5, fontFamily: 'SpaceGrotesk_400Regular', color: '#7A8785', marginBottom: 16, lineHeight: 20 }}>
+                This will mark the consultation as completed and notify the patient.
+              </Text>
+              <Text style={{ fontSize: 12, fontFamily: 'Montserrat_600SemiBold', color: '#7A8785', marginBottom: 6 }}>
+                Diagnosis / notes (optional, visible to the patient)
+              </Text>
+              <TextInput
+                value={diagnosisNotes}
+                onChangeText={setDiagnosisNotes}
+                placeholder="e.g. Mild upper respiratory infection, prescribed rest and fluids"
+                placeholderTextColor="#97A2A0"
+                multiline
+                numberOfLines={3}
+                style={{
+                  minHeight: 80, borderWidth: 1, borderColor: '#EAE5DA', borderRadius: 13,
+                  padding: 12, fontSize: 13.5, fontFamily: 'SpaceGrotesk_400Regular', color: '#0C2E30',
+                  textAlignVertical: 'top', marginBottom: 20,
+                }}
+              />
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <TouchableOpacity onPress={() => setConfirmId(null)} style={{ flex: 1, padding: 14, borderRadius: 13, backgroundColor: '#EDE9E0', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 14, fontFamily: 'Montserrat_600SemiBold', color: '#7A8785' }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={doComplete} style={{ flex: 1, padding: 14, borderRadius: 13, backgroundColor: '#0B7E8A', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 14, fontFamily: 'Montserrat_700Bold', color: '#fff' }}>Mark Complete</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -428,6 +489,16 @@ const s = StyleSheet.create({
 
   // White card
   card: { flex: 1, backgroundColor: C.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
+
+  // Filter / sort row
+  filterRow:            { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 16, gap: 8 },
+  filterScrollContent:  { gap: 8, paddingRight: 8, alignItems: 'center' },
+  filterChip:           { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border },
+  filterChipActive:     { backgroundColor: C.teal, borderColor: C.teal },
+  filterChipText:       { fontSize: 12.5, fontFamily: 'Montserrat_600SemiBold', color: C.muted },
+  filterChipTextActive: { color: '#fff' },
+  sortBtn:              { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: C.tealLight, borderWidth: 1, borderColor: C.border },
+  sortBtnText:          { fontSize: 12, fontFamily: 'Montserrat_600SemiBold', color: C.teal },
 
   // Appointment card
   apptCard:    { backgroundColor: C.card, borderRadius: borderRadius.xl, borderWidth: 1, borderColor: C.border, padding: 16, gap: 10, ...shadows.sm },
