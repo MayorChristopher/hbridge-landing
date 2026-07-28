@@ -595,6 +595,7 @@ export default function DoctorCaseFilesScreen({ navigation }: any) {
           <ActivityIndicator color={C.teal} style={{ flex: 1, marginTop: 60 }} />
         ) : (
           <SectionList
+            style={{ flex: 1 }}
             sections={buildSections(activeList)}
             keyExtractor={i => i.id}
             contentContainerStyle={{ padding: 16, paddingBottom: 110 }}
@@ -954,15 +955,18 @@ const s = StyleSheet.create({
   searchInput: { flex: 1, fontSize: 14, fontFamily: 'SpaceGrotesk_400Regular', color: C.text, paddingVertical: 0 },
 
   // Filters
-  filterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 10 },
+  filterRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 10 },
   chip:      { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999, backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.border },
   chipActive:    { backgroundColor: C.tealLight, borderColor: C.teal },
   chipText:      { fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: C.text },
   chipTextActive:{ fontFamily: 'Montserrat_600SemiBold', color: C.teal },
 
-  // Record-type filter
-  typeFilterScroll:   { marginBottom: 6 },
-  typeFilterRow:      { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 6 },
+  // Record-type filter — explicit flexGrow:0 + fixed height so this
+  // horizontal ScrollView can't be stretched/collapsed by its flex-column
+  // parent as sibling content (the record list below) changes size; without
+  // it a horizontal ScrollView has no reliable intrinsic height of its own.
+  typeFilterScroll:   { flexGrow: 0, height: 44, marginBottom: 6 },
+  typeFilterRow:      { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingBottom: 6 },
   typeFilterChip:     { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
   typeFilterChipActive:    { backgroundColor: C.ink, borderColor: C.ink },
   typeFilterChipText:      { fontSize: 11.5, fontFamily: 'Montserrat_500Medium', color: C.muted },
