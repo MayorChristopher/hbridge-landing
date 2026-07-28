@@ -281,17 +281,27 @@ export default function ProfileScreen({ navigation }: any) {
         });
         if (!uploadResponse.ok) throw new Error('Upload failed');
         const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
-        const { error } = await supabase.from('profiles').update({ profile_image: publicUrl, updated_at: new Date().toISOString() }).eq('id', user.id);
-        if (error) throw error;
-        if (activeRole === 'doctor') {
-          await supabase.from('doctors').update({ profile_image: publicUrl }).eq('user_id', user.id);
+
+        // A hospital's logo and a person's own personal photo are distinct
+        // identities that happen to live on the same account — a facility
+        // photo must never overwrite profiles.profile_image (the person's
+        // own photo, shared across their patient/doctor identity too), or
+        // uploading either one silently overwrites the other everywhere it's
+        // displayed, which is exactly what was happening before this fix.
+        if (activeRole === 'hospital_admin') {
+          if (!hospitalRow?.id) { throw new Error('No hospital found to update.'); }
+          const { error } = await supabase.from('hospitals').update({ logo_url: publicUrl }).eq('id', hospitalRow.id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from('profiles').update({ profile_image: publicUrl, updated_at: new Date().toISOString() }).eq('id', user.id);
+          if (error) throw error;
+          if (activeRole === 'doctor') {
+            await supabase.from('doctors').update({ profile_image: publicUrl }).eq('user_id', user.id);
+          }
+          DeviceEventEmitter.emit('profile_image_updated', publicUrl);
         }
-        if (activeRole === 'hospital_admin' && hospitalRow?.id) {
-          await supabase.from('hospitals').update({ logo_url: publicUrl }).eq('id', hospitalRow.id);
-        }
-        DeviceEventEmitter.emit('profile_image_updated', publicUrl);
         await loadProfile();
-        Toast.showSuccess('Profile picture updated!');
+        Toast.showSuccess(activeRole === 'hospital_admin' ? 'Facility photo updated!' : 'Profile picture updated!');
       }
     } catch (error: any) {
       Toast.showError(error.message || 'Failed to upload image');
@@ -1111,10 +1121,18 @@ export default function ProfileScreen({ navigation }: any) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.teal} colors={[C.teal]} />}
       >
         {/* ── Hero ── */}
+        {(() => {
+          // A hospital's logo and a person's own personal photo are
+          // distinct identities on the same account — the facility view
+          // must show hospitalRow.logo_url, never the shared personal
+          // profile_image (and vice versa), or changing one silently
+          // changes what the other role sees.
+          const heroImage = activeRole === 'hospital_admin' ? hospitalRow?.logo_url : profile?.profile_image;
+          return (
         <View style={s.hero}>
           {/* Background photo */}
-          {profile?.profile_image
-            ? <Image source={{ uri: profile.profile_image }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+          {heroImage
+            ? <Image source={{ uri: heroImage }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
             : <View style={[StyleSheet.absoluteFillObject, { backgroundColor: C.tealHero2 }]} />
           }
           {/* Gradient overlay */}
@@ -1124,14 +1142,14 @@ export default function ProfileScreen({ navigation }: any) {
             style={StyleSheet.absoluteFillObject}
           />
           {/* Building icon when hospital_admin has no photo uploaded yet */}
-          {activeRole === 'hospital_admin' && !profile?.profile_image && (
+          {activeRole === 'hospital_admin' && !heroImage && (
             <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 60, alignItems: 'center', justifyContent: 'center' }}>
               <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.25)' }}>
                 <Ionicons name="business" size={34} color="#fff" />
               </View>
             </View>
           )}
-          {(!profile?.profile_image && activeRole !== 'hospital_admin') && <View style={s.heroOrb} />}
+          {(!heroImage && activeRole !== 'hospital_admin') && <View style={s.heroOrb} />}
 
           {/* Bottom row: name/badge left, action buttons right */}
           <View style={s.heroBottom}>
@@ -1182,6 +1200,8 @@ export default function ProfileScreen({ navigation }: any) {
             </View>
           </View>
         </View>
+          );
+        })()}
 
         {/* ── Paper card ── */}
         <View style={s.paperCard}>
