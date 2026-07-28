@@ -319,6 +319,15 @@ export default function MedicalRecordsScreen({ navigation }: any) {
         });
       }
 
+      // Enrich hospital folders with their uploaded logo — this was never
+      // fetched at all, so hospital folders always fell back to the generic
+      // building icon even when the hospital had a logo_url set.
+      const hospitalIds = raw.filter((f: any) => f.folder_type === 'hospital' && f.linked_id).map((f: any) => f.linked_id);
+      if (hospitalIds.length > 0) {
+        const { data: hosps } = await supabase.from('hospitals').select('id, logo_url').in('id', hospitalIds);
+        (hosps || []).forEach((h: any) => { if (h.logo_url) imageMap[h.id] = h.logo_url; });
+      }
+
       // Fetch record counts per folder (own uploads)
       const folderIds = raw.map((f: any) => f.id).filter(Boolean);
 

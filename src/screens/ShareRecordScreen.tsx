@@ -40,7 +40,7 @@ export default function ShareRecordScreen({ route, navigation }: any) {
 
       let hospitalsQ = supabase
         .from('hospitals')
-        .select('id, name, type, address');
+        .select('id, name, type, address, logo_url');
 
       if (query.trim()) {
         doctorsQ   = doctorsQ.ilike('full_name', `%${query.trim()}%`);
@@ -195,9 +195,12 @@ setDoctors(doctorsRes.data || []);
                     onPress={() => shareWithProvider(h.id, 'hospital')}
                     disabled={sharing}
                   >
-                    <View style={s.providerIcon}>
-                      <MaterialCommunityIcons name="hospital-building" size={22} color={C.teal} />
-                    </View>
+                    {h.logo_url
+                      ? <Image source={{ uri: h.logo_url }} style={s.avatar} />
+                      : <View style={s.providerIcon}>
+                          <MaterialCommunityIcons name="hospital-building" size={22} color={C.teal} />
+                        </View>
+                    }
                     <View style={{ flex: 1 }}>
                       <Text style={s.providerName}>{h.name}</Text>
                       <Text style={s.providerSub}>{h.type}</Text>
