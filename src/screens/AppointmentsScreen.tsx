@@ -240,7 +240,7 @@ export default function AppointmentsScreen({ navigation }: any) {
       <StatusBar barStyle="light-content" backgroundColor="#083236" />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 110, flexGrow: 1 }}
+        contentContainerStyle={{ flexGrow: 1 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.teal} colors={[C.teal]} />}
       >
         {/* Header */}
@@ -562,7 +562,11 @@ export default function AppointmentsScreen({ navigation }: any) {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#083236' },
 
-  paperCard: { flex: 1, backgroundColor: C.paper, borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+  // flexGrow (not flex) — lets the card stretch to fill the screen when
+  // content is short, but still grow past that with its own paddingBottom
+  // baked in so the tab-bar clearance stays paper-colored instead of
+  // exposing the dark root background as a strip below the card.
+  paperCard: { flexGrow: 1, backgroundColor: C.paper, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: 110 },
 
   hdrRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingTop: 14, paddingBottom: 20, backgroundColor: '#083236' },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
