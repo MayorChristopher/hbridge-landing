@@ -14,6 +14,7 @@ import { PENDING } from '../utils/hospitalSetup';
 import { locationService } from '../services/locationService';
 import { drName } from '../utils/formatters';
 import { usePresence } from '../context/PresenceContext';
+import { useNotificationBadge } from '../context/NotificationBadgeContext';
 import LoadingLogo from '../components/LoadingLogo';
 import FadeScreen from '../components/FadeScreen';
 import { useScreenTracking } from '../hooks/useAnalytics';
@@ -232,6 +233,7 @@ export default function HomeScreen({ navigation }: any) {
   const tabNav = useNavigation() as any;
   const toast = useToast();
   const onlineUserIds = usePresence();
+  const { unreadNotifications } = useNotificationBadge();
   const [user, setUser] = useState<User | null>(null);
   const [showSpotlight, setShowSpotlight] = useState(false);
 
@@ -494,7 +496,11 @@ export default function HomeScreen({ navigation }: any) {
             <View ref={bellRef} collapsable={false}>
               <TouchableOpacity style={s.iconBtn} onPress={() => navigation.navigate('Notifications')}>
                 <Ionicons name="notifications-outline" size={20} color="#fff" />
-                <View style={s.notifDot} />
+                {unreadNotifications > 0 && (
+                  <View style={s.notifBadge}>
+                    <Text style={s.notifBadgeText}>{unreadNotifications > 9 ? '9+' : unreadNotifications}</Text>
+                  </View>
+                )}
               </TouchableOpacity>
             </View>
             <TouchableOpacity style={s.userRing} onPress={() => navigation.navigate('Profile')}>
@@ -559,63 +565,7 @@ export default function HomeScreen({ navigation }: any) {
         </View>
 
         <View style={s.paperCard}>
-        {/* ── STATUS: pending approval (highest priority — the user is already waiting on something) ── */}
-        {(() => {
-          const pendingCount = appointments.filter((a: any) => a.status === 'pending').length;
-          if (!pendingCount) return null;
-          return (
-            <TouchableOpacity
-              style={s.pendingBanner}
-              activeOpacity={0.85}
-              onPress={() => navigation.navigate('Appointments')}
-            >
-              <View style={s.pendingBannerIcon}>
-                <Ionicons name="time-outline" size={18} color={C.gold} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.pendingBannerTitle}>
-                  {pendingCount} appointment{pendingCount > 1 ? 's' : ''} awaiting approval
-                </Text>
-                <Text style={s.pendingBannerSub}>Tap to review and follow up</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={C.gold} />
-            </TouchableOpacity>
-          );
-        })()}
-
-        {/* ── QUICK CONSULTATION (primary feature action — teal, matches brand) ── */}
-        <TouchableOpacity
-          style={s.quickConsultBanner}
-          activeOpacity={0.85}
-          onPress={() => navigation.navigate('QuickConsultation')}
-        >
-          <View style={s.quickConsultIcon}>
-            <Ionicons name="flash" size={18} color={C.teal} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={s.quickConsultTitle}>Need a doctor right now?</Text>
-            <Text style={s.quickConsultSub}>Skip picking a doctor — get matched instantly with who's available</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={16} color={C.teal} />
-        </TouchableOpacity>
-
-        {/* ── UPSELL: Go Premium (lowest priority, deliberately the only gold pill so it doesn't blend with the status/action rows above it) ── */}
-        {user?.subscription_status !== 'active' && (
-          <TouchableOpacity
-            style={s.premiumBanner}
-            activeOpacity={0.85}
-            onPress={() => navigation.navigate('Subscription', { userType: 'patient' })}
-          >
-            <View style={s.premiumBannerIcon}>
-              <Ionicons name="star" size={14} color="#2B2107" />
-            </View>
-            <Text style={s.premiumBannerTitle}>Go Premium</Text>
-            <Text style={s.premiumBannerSub} numberOfLines={1}>No platform fees · priority booking</Text>
-            <Ionicons name="chevron-forward" size={15} color="rgba(43,33,7,0.45)" />
-          </TouchableOpacity>
-        )}
-
-        {/* â"€â"€ QUICK ACTIONS â"€â"€ */}
+        {/* ── QUICK ACTIONS (right after search — the most direct paths through the app) ── */}
         <View ref={quickRowRef} collapsable={false} style={s.quickRow}>
           {[
             { label: 'Practitioners', icon: 'stethoscope', logo: false, onPress: () => navigation.navigate('DoctorsList') },
@@ -638,6 +588,45 @@ export default function HomeScreen({ navigation }: any) {
               )}
             </Pressable>
           ))}
+        </View>
+
+        {/* ── PROMO CARDS: Quick Consultation + Go Premium as a matched pair
+             (pending-approval reminders now surface as a badge on the bell
+             instead of a third banner competing for the same space) ── */}
+        <View style={s.promoRow}>
+          <TouchableOpacity
+            style={[s.promoCard, s.quickConsultCard, user?.subscription_status === 'active' && { flex: 1 }]}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate('QuickConsultation')}
+          >
+            <View style={[s.promoCardIcon, { backgroundColor: 'rgba(11,126,138,0.14)' }]}>
+              <Ionicons name="flash" size={19} color={C.teal} />
+            </View>
+            <Text style={s.promoCardTitle}>Need a doctor right now?</Text>
+            <Text style={s.promoCardSub} numberOfLines={2}>Get matched instantly with who's available</Text>
+            <View style={s.promoCardCta}>
+              <Text style={[s.promoCardCtaText, { color: C.teal }]}>Get matched</Text>
+              <Ionicons name="arrow-forward" size={12} color={C.teal} />
+            </View>
+          </TouchableOpacity>
+
+          {user?.subscription_status !== 'active' && (
+            <TouchableOpacity
+              style={[s.promoCard, s.premiumCard]}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate('Subscription', { userType: 'patient' })}
+            >
+              <View style={[s.promoCardIcon, { backgroundColor: 'rgba(43,33,7,0.14)' }]}>
+                <Ionicons name="star" size={19} color="#2B2107" />
+              </View>
+              <Text style={[s.promoCardTitle, { color: '#2B2107' }]}>Go Premium</Text>
+              <Text style={[s.promoCardSub, { color: 'rgba(43,33,7,0.65)' }]} numberOfLines={2}>No platform fees · priority booking</Text>
+              <View style={s.promoCardCta}>
+                <Text style={[s.promoCardCtaText, { color: '#2B2107' }]}>Upgrade</Text>
+                <Ionicons name="arrow-forward" size={12} color="#2B2107" />
+              </View>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* â"€â"€ NEXT APPOINTMENTS (swipeable stacked deck) â"€â"€ */}
@@ -851,43 +840,22 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#083236' },
   paperCard: { backgroundColor: '#F5F3EE', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 16, paddingBottom: NAV_PAD, flexGrow: 1 },
 
-  // Status row (pending approval) — amber accent, flat border only (no
-  // shadow) so it reads as one calm info row, not a floating card.
-  pendingBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 20, marginTop: 4, marginBottom: 0,
-    backgroundColor: 'rgba(212,168,67,0.10)', borderWidth: 1, borderColor: 'rgba(212,168,67,0.3)',
-    borderRadius: borderRadius.xl, padding: 13,
-  },
-  pendingBannerIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(212,168,67,0.15)', alignItems: 'center', justifyContent: 'center' },
-  pendingBannerTitle: { fontSize: 13, fontFamily: 'Montserrat_700Bold', color: '#0C2E30' },
-  pendingBannerSub: { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: '#6B7E7F', marginTop: 2 },
-
-  // Primary action row (Quick Consultation) — teal accent, matches the
-  // brand color instead of gold, so it doesn't get confused with the
-  // amber status row above or the gold upsell pill below.
-  quickConsultBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 20, marginTop: 10, marginBottom: 0,
+  // Matched promo card pair — Quick Consultation (teal, primary action) and
+  // Go Premium (solid gold, the upsell). Pending-approval reminders now live
+  // as a badge on the notification bell instead of a third competing row.
+  promoRow: { flexDirection: 'row', gap: 12, marginHorizontal: 20, marginTop: 20 },
+  promoCard: { flex: 1, borderRadius: borderRadius.xl, padding: 15, gap: 6 },
+  promoCardIcon: { width: 38, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
+  promoCardTitle: { fontSize: 13.5, fontFamily: 'Montserrat_700Bold', color: '#0C2E30', lineHeight: 17 },
+  promoCardSub: { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: '#6B7E7F', lineHeight: 15 },
+  promoCardCta: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  promoCardCtaText: { fontSize: 11.5, fontFamily: 'Montserrat_700Bold' },
+  quickConsultCard: {
     backgroundColor: 'rgba(11,126,138,0.07)', borderWidth: 1, borderColor: 'rgba(11,126,138,0.22)',
-    borderRadius: borderRadius.xl, padding: 13,
   },
-  quickConsultIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(11,126,138,0.12)', alignItems: 'center', justifyContent: 'center' },
-  quickConsultTitle: { fontSize: 13, fontFamily: 'Montserrat_700Bold', color: '#0C2E30' },
-  quickConsultSub: { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: '#6B7E7F', marginTop: 2 },
-
-  // Upsell pill (Go Premium) — solid gold, deliberately the only filled
-  // pill on the screen so it stands apart from the two bordered info rows
-  // above it instead of reading as a third copy of the same box.
-  premiumBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 20, marginTop: 10,
-    backgroundColor: C.gold, borderRadius: 999, paddingVertical: 10, paddingHorizontal: 14,
-    ...shadows.sm,
+  premiumCard: {
+    backgroundColor: C.gold, ...shadows.sm,
   },
-  premiumBannerIcon: {
-    width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(43,33,7,0.12)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  premiumBannerTitle: { fontSize: 13.5, fontFamily: 'Montserrat_700Bold', color: '#2B2107' },
-  premiumBannerSub: { flex: 1, fontSize: 11.5, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(43,33,7,0.65)', marginLeft: 2 },
 
   // Brand bar
   brandBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8 },
@@ -896,7 +864,12 @@ const s = StyleSheet.create({
   brandName: { fontSize: 17, fontFamily: 'Montserrat_700Bold', color: '#ffffff', letterSpacing: -0.3 },
   brandRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center', position: 'relative' },
-  notifDot: { position: 'absolute', top: 9, right: 9, width: 7, height: 7, borderRadius: 4, backgroundColor: '#D4A843', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.3)' },
+  notifBadge: {
+    position: 'absolute', top: -4, right: -4, minWidth: 17, height: 17, borderRadius: 9,
+    backgroundColor: '#D4A843', borderWidth: 1.5, borderColor: '#0C6570',
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3,
+  },
+  notifBadgeText: { fontSize: 9.5, fontFamily: 'Montserrat_700Bold', color: '#2B2107' },
   userRing: { width: 40, height: 40, borderRadius: 20, padding: 2, backgroundColor: '#E2C97E' },
   userRingInner: { flex: 1, borderRadius: 18, backgroundColor: '#DCE7E5', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   userInitials: { fontSize: 13, fontFamily: 'Montserrat_700Bold', color: '#0B7E8A' },
