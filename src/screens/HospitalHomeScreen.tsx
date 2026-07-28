@@ -157,8 +157,8 @@ export default function HospitalHomeScreen({ navigation }: any) {
                 <Ionicons name="notifications-outline" size={22} color="#fff" />
               </TouchableOpacity>
             </View>
-            {profile?.profile_image
-              ? <Image source={{ uri: profile.profile_image }} style={s.avatar} />
+            {hospital?.logo_url
+              ? <Image source={{ uri: hospital.logo_url }} style={s.avatar} />
               : <View style={s.avatarFallback}><Ionicons name="business" size={20} color="#fff" /></View>}
           </View>
         </View>

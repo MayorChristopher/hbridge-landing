@@ -96,6 +96,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 type UserType = 'patient' | 'doctor' | 'hospital_admin';
 
 import { ErrorHandler } from './src/utils/errorHandler';
+import { getOrCreateHospitalRow } from './src/utils/hospitalSetup';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 
 // Prevents TabNavigator from re-navigating to Onboarding during the same app process session
@@ -977,6 +978,7 @@ export default function App() {
     const [userId, setUserId] = useState<string | undefined>(undefined);
     const [showTutorial, setShowTutorial] = useState(false);
     const [profileImage, setProfileImage] = useState<string | null>(null);
+    const [hospitalLogoUrl, setHospitalLogoUrl] = useState<string | null>(null);
     const [availableRoles, setAvailableRoles] = useState<UserType[]>([]);
     const [showRolePicker, setShowRolePicker] = useState(false);
     const cameFromOnboarding = React.useRef(false);
@@ -988,6 +990,33 @@ export default function App() {
       });
       return () => sub.remove();
     }, []);
+
+    // Same, but for a hospital's own logo — a distinct identity from the
+    // account holder's personal photo (see ProfileScreen/HospitalHomeScreen
+    // fixes). The tab bar avatar shows whichever one matches the active role.
+    useEffect(() => {
+      const sub = DeviceEventEmitter.addListener('hospital_logo_updated', (url: string | null) => {
+        setHospitalLogoUrl(url);
+      });
+      return () => sub.remove();
+    }, []);
+
+    useEffect(() => {
+      if (userType !== 'hospital_admin') return;
+      let cancelled = false;
+      (async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data: prof } = await supabase.from('profiles').select('hospital_name, full_name').eq('id', user.id).maybeSingle();
+        const hospitalName = prof?.hospital_name || prof?.full_name;
+        if (!hospitalName) return;
+        try {
+          const hosp = await getOrCreateHospitalRow(hospitalName);
+          if (!cancelled) setHospitalLogoUrl(hosp?.logo_url ?? null);
+        } catch (e) { console.warn('Hospital logo fetch failed', e); }
+      })();
+      return () => { cancelled = true; };
+    }, [userType]);
 
     // Listen for role-switch request from Profile screen
     useEffect(() => {
@@ -1231,7 +1260,7 @@ export default function App() {
             tabBar={(props) => (
               <AnimatedTabBar
                 {...props}
-                profileImage={profileImage}
+                profileImage={hospitalLogoUrl}
                 tabs={HOSPITAL_TABS}
                 badges={{ HospitalMessages: unreadCount > 0 ? unreadCount : undefined }}
               />

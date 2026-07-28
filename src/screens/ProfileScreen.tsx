@@ -292,6 +292,7 @@ export default function ProfileScreen({ navigation }: any) {
           if (!hospitalRow?.id) { throw new Error('No hospital found to update.'); }
           const { error } = await supabase.from('hospitals').update({ logo_url: publicUrl }).eq('id', hospitalRow.id);
           if (error) throw error;
+          DeviceEventEmitter.emit('hospital_logo_updated', publicUrl);
         } else {
           const { error } = await supabase.from('profiles').update({ profile_image: publicUrl, updated_at: new Date().toISOString() }).eq('id', user.id);
           if (error) throw error;
