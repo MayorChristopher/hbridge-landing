@@ -600,7 +600,7 @@ export default function HomeScreen({ navigation }: any) {
             onPress={() => navigation.navigate('QuickConsultation')}
           >
             <View style={[s.promoCardIcon, { backgroundColor: 'rgba(11,126,138,0.14)' }]}>
-              <Ionicons name="flash" size={19} color={C.teal} />
+              <Ionicons name="flash" size={15} color={C.teal} />
             </View>
             <Text style={s.promoCardTitle}>Need a doctor right now?</Text>
             <Text style={s.promoCardSub} numberOfLines={2}>Get matched instantly with who's available</Text>
@@ -617,7 +617,7 @@ export default function HomeScreen({ navigation }: any) {
               onPress={() => navigation.navigate('Subscription', { userType: 'patient' })}
             >
               <View style={[s.promoCardIcon, { backgroundColor: 'rgba(43,33,7,0.14)' }]}>
-                <Ionicons name="star" size={19} color="#2B2107" />
+                <Ionicons name="star" size={15} color="#2B2107" />
               </View>
               <Text style={[s.promoCardTitle, { color: '#2B2107' }]}>Go Premium</Text>
               <Text style={[s.promoCardSub, { color: 'rgba(43,33,7,0.65)' }]} numberOfLines={2}>No platform fees · priority booking</Text>
@@ -843,13 +843,13 @@ const s = StyleSheet.create({
   // Matched promo card pair — Quick Consultation (teal, primary action) and
   // Go Premium (solid gold, the upsell). Pending-approval reminders now live
   // as a badge on the notification bell instead of a third competing row.
-  promoRow: { flexDirection: 'row', gap: 12, marginHorizontal: 20, marginTop: 20 },
-  promoCard: { flex: 1, borderRadius: borderRadius.xl, padding: 15, gap: 6 },
-  promoCardIcon: { width: 38, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
-  promoCardTitle: { fontSize: 13.5, fontFamily: 'Montserrat_700Bold', color: '#0C2E30', lineHeight: 17 },
-  promoCardSub: { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: '#6B7E7F', lineHeight: 15 },
-  promoCardCta: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  promoCardCtaText: { fontSize: 11.5, fontFamily: 'Montserrat_700Bold' },
+  promoRow: { flexDirection: 'row', gap: 10, marginHorizontal: 20, marginTop: 16 },
+  promoCard: { flex: 1, borderRadius: borderRadius.lg, padding: 11, gap: 4 },
+  promoCardIcon: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  promoCardTitle: { fontSize: 12, fontFamily: 'Montserrat_700Bold', color: '#0C2E30', lineHeight: 14.5 },
+  promoCardSub: { fontSize: 10, fontFamily: 'SpaceGrotesk_400Regular', color: '#6B7E7F', lineHeight: 13 },
+  promoCardCta: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 },
+  promoCardCtaText: { fontSize: 10.5, fontFamily: 'Montserrat_700Bold' },
   quickConsultCard: {
     backgroundColor: 'rgba(11,126,138,0.07)', borderWidth: 1, borderColor: 'rgba(11,126,138,0.22)',
   },
