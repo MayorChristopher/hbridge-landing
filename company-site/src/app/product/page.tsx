@@ -69,8 +69,9 @@ export default function ProductPage() {
       >
         <p>
           Not every visit needs a scheduled appointment. Describe your symptoms and
-          Hbridge matches you with the next available, verified practitioner for an
-          immediate audio or video consultation — no picking a doctor required.
+          Hbridge instantly matches you with the next available, verified practitioner
+          — no picking a doctor required. Once they accept and payment is complete,
+          you're straight into an audio or video consultation.
         </p>
       </FeatureRow>
 
