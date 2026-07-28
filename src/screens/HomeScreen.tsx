@@ -406,15 +406,20 @@ export default function HomeScreen({ navigation }: any) {
         .select('id, scheduled_at, status, consultation_type, doctor:doctors(full_name, specialization)')
         .eq('patient_id', authUser.id)
         .in('status', ['scheduled', 'pending', 'confirmed'])
-        // Pending requests are often awaiting a doctor to assign scheduled_at
-        // at all (e.g. Quick Consultation), so a plain .gte() on that column
-        // silently drops them — null never satisfies a >= comparison. Keep
-        // every pending row regardless of scheduled_at, and only apply the
-        // "must be upcoming" filter to rows that already have a real time.
-        .or(`status.eq.pending,scheduled_at.gte.${new Date().toISOString()}`)
         .order('scheduled_at', { ascending: true, nullsFirst: false })
-        .limit(5);
-      if (data) setAppointments(data);
+        .limit(20);
+      // Filtered in JS rather than a PostgREST .or() string with an ISO
+      // timestamp embedded in it — the filter syntax itself uses '.' as a
+      // delimiter, and an ISO timestamp is full of them ("...23.456Z"),
+      // which is exactly the kind of thing that silently misparses.
+      // Pending requests often have no scheduled_at yet at all (e.g. Quick
+      // Consultation awaiting a doctor), so keep those unconditionally;
+      // anything with a real time only counts if it's still upcoming.
+      const now = Date.now();
+      const upcoming = (data || [])
+        .filter((a: any) => a.status === 'pending' || !a.scheduled_at || new Date(a.scheduled_at).getTime() >= now)
+        .slice(0, 5);
+      setAppointments(upcoming);
     } catch { }
   };
 

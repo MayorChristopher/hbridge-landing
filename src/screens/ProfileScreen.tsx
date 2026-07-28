@@ -1214,19 +1214,19 @@ export default function ProfileScreen({ navigation }: any) {
           >
             <View style={s.switchAccountLeft}>
               <View style={s.switchAccountIconRing}>
-                <Ionicons name="swap-horizontal" size={20} color={C.gold} />
+                <Ionicons name="swap-horizontal" size={20} color="#2B2107" />
               </View>
               <View>
                 <Text style={s.switchAccountTitle}>Switch Account</Text>
                 <Text style={s.switchAccountSub}>
-                  Active: <Text style={{ color: C.gold, fontFamily: 'Montserrat_600SemiBold' }}>
+                  Active: <Text style={{ color: '#2B2107', fontFamily: 'Montserrat_700Bold' }}>
                     {activeRole === 'hospital_admin' ? 'Hospital Admin' : activeRole === 'doctor' ? 'Practitioner' : 'Patient'}
                   </Text>
                 </Text>
               </View>
             </View>
             <View style={s.switchAccountArrow}>
-              <Ionicons name="chevron-forward" size={16} color={C.gold} />
+              <Ionicons name="chevron-forward" size={16} color="#2B2107" />
             </View>
           </TouchableOpacity>
         )}
@@ -1690,7 +1690,7 @@ const s = StyleSheet.create({
   switchAccountSub: { fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(43,33,7,0.7)' },
   switchAccountArrow: {
     width: 30, height: 30, borderRadius: 15,
-    backgroundColor: 'rgba(212,168,67,0.14)',
+    backgroundColor: 'rgba(43,33,7,0.12)',
     alignItems: 'center', justifyContent: 'center',
   },
 
