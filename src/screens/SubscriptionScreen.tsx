@@ -1,5 +1,5 @@
 ﻿import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { usePaystack } from 'react-native-paystack-webview';
@@ -13,21 +13,34 @@ export default function SubscriptionScreen({ route, navigation }: any) {
   const { popup } = usePaystack();
   const [subscribing, setSubscribing] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
 
   React.useEffect(() => {
     loadUser();
   }, []);
 
   const loadUser = async () => {
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    if (authUser) {
-      const { data } = await supabase.from('profiles').select('*').eq('id', authUser.id).single();
+    setLoadingUser(true);
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) return;
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', authUser.id).single();
+      if (error) throw error;
       setUser(data);
+    } catch (e: any) {
+      console.error('SubscriptionScreen: failed to load profile', e);
+    } finally {
+      setLoadingUser(false);
     }
   };
 
   const plans = userType === 'patient' ? SUBSCRIPTION_PLANS.patient : SUBSCRIPTION_PLANS.doctor;
   const isPro = user?.subscription_status === 'active';
+  // Match on the specific plan id (written by both the real Paystack verify
+  // flow and any manual/test grant) rather than just "is any paid plan
+  // active" — correct even if a plan list ever grows past one paid tier.
+  const isCurrentPlan = (plan: any) =>
+    plan.price === 0 ? !isPro : isPro && user?.subscription_plan === plan.id;
 
   const handleSubscribe = (planId: string, price: number) => {
     if (!user) { Toast.showError('Error', 'Please wait, loading your profile...'); return; }
@@ -79,7 +92,9 @@ export default function SubscriptionScreen({ route, navigation }: any) {
       <View style={styles.card}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={{ height: 16 }} />
-        {Object.entries(plans).map(([key, plan]: [string, any]) => (
+        {loadingUser ? (
+          <ActivityIndicator color={colors.primary} style={{ marginTop: 60 }} />
+        ) : Object.entries(plans).map(([key, plan]: [string, any]) => (
           <View key={key} style={[styles.planCard, plan.price > 0 && styles.premiumCard]}>
             {plan.price > 0 && (
               <View style={styles.popularBadge}>
@@ -107,7 +122,7 @@ export default function SubscriptionScreen({ route, navigation }: any) {
               ))}
             </View>
 
-            {(plan.price > 0) === isPro ? (
+            {isCurrentPlan(plan) ? (
               <View style={styles.currentPlanButton}>
                 <Text style={styles.currentPlanText}>Current Plan</Text>
               </View>
