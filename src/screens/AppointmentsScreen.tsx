@@ -83,6 +83,7 @@ export default function AppointmentsScreen({ navigation }: any) {
   const [reportSheet, setReportSheet]     = useState<Consultation | null>(null);
   const [ratedDoctorIds, setRatedDoctorIds] = useState<Set<string>>(new Set());
   const [payingId, setPayingId]           = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget]   = useState<Consultation | null>(null);
 
   useEffect(() => { loadConsultations(); }, []);
 
@@ -122,6 +123,29 @@ export default function AppointmentsScreen({ navigation }: any) {
   };
 
   const handleViewReport = (c: Consultation) => setReportSheet(c);
+
+  const doCancel = async () => {
+    if (!cancelTarget) return;
+    const c = cancelTarget;
+    setCancelTarget(null);
+    try {
+      await supabase.from('consultations').update({ status: 'cancelled' }).eq('id', c.id);
+      if (c.doctor.user_id) {
+        try {
+          await sendNotifications([{
+            userId: c.doctor.user_id,
+            title: 'Consultation Cancelled',
+            message: `A patient cancelled their ${c.consultation_type} consultation request.`,
+            type: 'booking',
+          }]);
+        } catch (e) { console.warn('Notification failed', e); }
+      }
+      toast.showSuccess('Cancelled', 'Your appointment request has been cancelled.');
+      loadConsultations();
+    } catch (e: any) {
+      toast.showError('Error', e.message || 'Failed to cancel appointment');
+    }
+  };
 
   const handlePayNow = async (c: Consultation) => {
     if (payingId) return;
@@ -331,7 +355,7 @@ export default function AppointmentsScreen({ navigation }: any) {
                             <Ionicons name="document-text-outline" size={14} color={C.teal} />
                             <Text style={s.btnOutlineText}>Details</Text>
                           </TouchableOpacity>
-                          <TouchableOpacity style={[s.btnDark, { backgroundColor: C.red }]} onPress={() => handleReschedule(c)}>
+                          <TouchableOpacity style={[s.btnDark, { backgroundColor: C.red }]} onPress={() => setCancelTarget(c)}>
                             <Ionicons name="close-circle-outline" size={14} color="#fff" />
                             <Text style={s.btnDarkText}>Cancel</Text>
                           </TouchableOpacity>
@@ -510,6 +534,27 @@ export default function AppointmentsScreen({ navigation }: any) {
           </View>
         </View>
       </Modal>
+
+      {/* Cancel confirmation */}
+      <Modal visible={!!cancelTarget} animationType="slide" transparent onRequestClose={() => setCancelTarget(null)}>
+        <View style={s.overlay}>
+          <View style={s.sheet}>
+            <View style={s.sheetHandle} />
+            <Text style={s.sheetTitleText}>Cancel this request?</Text>
+            <Text style={s.sheetBodyText}>
+              {cancelTarget ? `Your ${cancelTarget.consultation_type} consultation request with ${drName(cancelTarget.doctor.full_name)} will be cancelled.` : ''}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
+              <TouchableOpacity onPress={() => setCancelTarget(null)} style={s.sheetKeepBtn}>
+                <Text style={s.sheetKeepBtnText}>Keep It</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={doCancel} style={s.sheetCancelBtn}>
+                <Text style={s.sheetCancelBtnText}>Yes, Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -624,4 +669,11 @@ const s = StyleSheet.create({
   rateBtnText: { fontSize: 14, fontFamily: 'Montserrat_600SemiBold', color: C.gold },
   closeBtn: { alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: 13, backgroundColor: '#EDE9E0' },
   closeBtnText: { fontSize: 14, fontFamily: 'Montserrat_600SemiBold', color: C.muted },
+
+  sheetTitleText: { fontSize: 18, fontFamily: 'Montserrat_700Bold', color: C.textPrimary, marginBottom: 6 },
+  sheetBodyText: { fontSize: 13.5, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted, lineHeight: 20 },
+  sheetKeepBtn: { flex: 1, padding: 14, borderRadius: 13, backgroundColor: '#EDE9E0', alignItems: 'center' },
+  sheetKeepBtnText: { fontSize: 14, fontFamily: 'Montserrat_600SemiBold', color: C.muted },
+  sheetCancelBtn: { flex: 1, padding: 14, borderRadius: 13, backgroundColor: C.red, alignItems: 'center' },
+  sheetCancelBtnText: { fontSize: 14, fontFamily: 'Montserrat_700Bold', color: '#fff' },
 });
