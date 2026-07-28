@@ -1,8 +1,9 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet, Text, View, ScrollView, TouchableOpacity, Image,
   ActivityIndicator, Modal, Pressable, TextInput, StatusBar, Dimensions,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 
 const { height: SH } = Dimensions.get('window');
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -45,8 +46,14 @@ export default function DoctorDetailScreen({ route, navigation }: any) {
   const [liveDoctor, setLiveDoctor] = useState(doctor);
   const [hasCompletedConsult, setHasCompletedConsult] = useState(false);
   const [hospitals, setHospitals] = useState<any[]>([]);
+  const [activeConsultation, setActiveConsultation] = useState<{ id: string; status: string } | null>(null);
 
-  useEffect(() => { loadUser(); loadHospitals(); }, []);
+  useEffect(() => { loadHospitals(); }, []);
+
+  // Re-check for an active consultation whenever this screen regains focus —
+  // e.g. right after the patient sends a booking request from this same
+  // doctor's profile, so the CTA reflects it instead of still offering "Book".
+  useFocusEffect(useCallback(() => { loadUser(); }, []));
 
   const loadHospitals = async () => {
     const { data } = await supabase
@@ -61,17 +68,21 @@ export default function DoctorDetailScreen({ route, navigation }: any) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     setCurrentUserId(user.id);
-    const [{ data: prof }, { data: existing }, { data: doc }, { data: consult }] = await Promise.all([
+    const [{ data: prof }, { data: existing }, { data: doc }, { data: consult }, { data: active }] = await Promise.all([
       supabase.from('profiles').select('user_type,subscription_status').eq('id', user.id).single(),
       supabase.from('ratings').select('*').eq('patient_id', user.id).eq('doctor_id', doctor.id).maybeSingle(),
       supabase.from('doctors').select('average_rating,total_reviews,consultation_fee,years_experience,medical_license,title,consultation_types,availability_days,verification_status').eq('id', doctor.id).single(),
       supabase.from('consultations').select('id').eq('patient_id', user.id).eq('doctor_id', doctor.id).eq('status', 'completed').limit(1),
+      supabase.from('consultations').select('id,status').eq('patient_id', user.id).eq('doctor_id', doctor.id)
+        .in('status', ['pending', 'confirmed', 'scheduled', 'in_progress'])
+        .order('scheduled_at', { ascending: false }).limit(1),
     ]);
     setCurrentUserType(prof?.user_type || 'patient');
     setIsSubscribed(prof?.subscription_status === 'active');
     if (existing) { setExistingRating(existing); setMyRating(existing.rating); setMyReview(existing.review || ''); }
     if (doc) setLiveDoctor((d: any) => ({ ...d, ...doc }));
     setHasCompletedConsult(!!(consult && consult.length > 0));
+    setActiveConsultation(active && active.length > 0 ? active[0] : null);
   };
 
   const submitRating = async () => {
@@ -338,6 +349,28 @@ export default function DoctorDetailScreen({ route, navigation }: any) {
               <Ionicons name="alert-circle-outline" size={16} color="#EF4444" />
               <Text style={s.unverifiedNoticeText}>This practitioner's license is still pending verification and can't be booked yet.</Text>
             </View>
+          ) : activeConsultation ? (
+            <TouchableOpacity
+              style={s.activeRequestCard}
+              onPress={() => navigation.navigate('Appointments')}
+              activeOpacity={0.85}
+            >
+              <View style={s.activeRequestIcon}>
+                <Ionicons name="time-outline" size={18} color={C.teal} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.activeRequestTitle}>
+                  {({
+                    pending: 'Your request is awaiting approval',
+                    confirmed: 'Approved — payment required',
+                    scheduled: 'You have an upcoming appointment',
+                    in_progress: 'Consultation in progress',
+                  } as Record<string, string>)[activeConsultation.status] || 'You already have a request with this practitioner'}
+                </Text>
+                <Text style={s.activeRequestSub}>Tap to view in your appointments</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={C.teal} />
+            </TouchableOpacity>
           ) : (
             <TouchableOpacity
               style={s.bookBtnWrap}
@@ -541,6 +574,14 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)',
   },
   unverifiedNoticeText: { flex: 1, fontSize: 12.5, fontFamily: 'SpaceGrotesk_400Regular', color: '#7A1F1F', lineHeight: 18 },
+  activeRequestCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 20,
+    padding: 14, borderRadius: 14, backgroundColor: 'rgba(11,126,138,0.08)',
+    borderWidth: 1, borderColor: 'rgba(11,126,138,0.25)',
+  },
+  activeRequestIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(11,126,138,0.14)', alignItems: 'center', justifyContent: 'center' },
+  activeRequestTitle: { fontSize: 13, fontFamily: 'Montserrat_700Bold', color: C.textPrimary },
+  activeRequestSub: { fontSize: 11.5, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted, marginTop: 2 },
   bookBtn: { height: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   bookBtnText: { fontSize: 14, fontFamily: 'Montserrat_700Bold', color: '#fff' },
 
