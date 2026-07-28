@@ -10,6 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
+import { PENDING } from '../utils/hospitalSetup';
 import { locationService } from '../services/locationService';
 import { drName } from '../utils/formatters';
 import { usePresence } from '../context/PresenceContext';
@@ -61,7 +62,7 @@ function specColor(sp: string): string {
   return '#0B7E8A';
 }
 
-interface User { id: string; full_name: string; user_type: string; profile_image?: string; }
+interface User { id: string; full_name: string; user_type: string; profile_image?: string; subscription_status?: string; }
 interface Doctor { id: string; user_id: string; full_name: string; title?: string; specialization: string; profile_image?: string; is_available: boolean; average_rating?: number; total_reviews?: number; consultation_fee?: number; }
 interface Hospital { id: string; name: string; address?: string; city?: string; state?: string; distance?: string; rating?: number; latitude?: number; longitude?: number; }
 
@@ -378,12 +379,19 @@ export default function HomeScreen({ navigation }: any) {
     try {
       const { data } = await supabase
         .from('hospitals')
-        .select('id, name, address, city, state, rating, latitude, longitude')
+        .select('id, name, type, address, city, state, rating, latitude, longitude')
         .eq('is_active', true)
         .order('rating', { ascending: false })
         .limit(6);
       if (!data || data.length === 0) return;
-      const withLabel = data.map((h: any) => ({ ...h, distance: h.city ? `${h.city}, ${h.state}` : h.state || '' }));
+      const withLabel = data.map((h: any) => ({
+        ...h,
+        distance: h.address && h.address !== PENDING && h.city && h.city !== PENDING
+          ? `${h.address}, ${h.city}`
+          : h.city && h.city !== PENDING && h.state && h.state !== PENDING
+            ? `${h.city}, ${h.state}`
+            : 'Location not available yet',
+      }));
       setHospitals(withLabel.slice(0, 4));
       tryApplyLocation(data);
     } catch { }
@@ -398,8 +406,13 @@ export default function HomeScreen({ navigation }: any) {
         .select('id, scheduled_at, status, consultation_type, doctor:doctors(full_name, specialization)')
         .eq('patient_id', authUser.id)
         .in('status', ['scheduled', 'pending', 'confirmed'])
-        .gte('scheduled_at', new Date().toISOString())
-        .order('scheduled_at', { ascending: true })
+        // Pending requests are often awaiting a doctor to assign scheduled_at
+        // at all (e.g. Quick Consultation), so a plain .gte() on that column
+        // silently drops them — null never satisfies a >= comparison. Keep
+        // every pending row regardless of scheduled_at, and only apply the
+        // "must be upcoming" filter to rows that already have a real time.
+        .or(`status.eq.pending,scheduled_at.gte.${new Date().toISOString()}`)
+        .order('scheduled_at', { ascending: true, nullsFirst: false })
         .limit(5);
       if (data) setAppointments(data);
     } catch { }
@@ -547,13 +560,11 @@ export default function HomeScreen({ navigation }: any) {
             onPress={() => navigation.navigate('Subscription', { userType: 'patient' })}
           >
             <View style={s.premiumBannerIcon}>
-              <Ionicons name="star" size={18} color={C.gold} />
+              <Ionicons name="star" size={14} color="#2B2107" />
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={s.premiumBannerTitle}>Go Premium</Text>
-              <Text style={s.premiumBannerSub}>Unlimited AI chat, no platform fees, priority booking</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={C.gold} />
+            <Text style={s.premiumBannerTitle}>Go Premium</Text>
+            <Text style={s.premiumBannerSub} numberOfLines={1}>No platform fees · priority booking</Text>
+            <Ionicons name="chevron-forward" size={15} color="rgba(43,33,7,0.45)" />
           </TouchableOpacity>
         )}
 
@@ -600,6 +611,29 @@ export default function HomeScreen({ navigation }: any) {
         </View>
 
         {/* â"€â"€ NEXT APPOINTMENTS (swipeable stacked deck) â"€â"€ */}
+        {(() => {
+          const pendingCount = appointments.filter((a: any) => a.status === 'pending').length;
+          if (!pendingCount) return null;
+          return (
+            <TouchableOpacity
+              style={s.pendingBanner}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate('Appointments')}
+            >
+              <View style={s.pendingBannerIcon}>
+                <Ionicons name="time-outline" size={18} color={C.gold} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.pendingBannerTitle}>
+                  {pendingCount} appointment{pendingCount > 1 ? 's' : ''} awaiting approval
+                </Text>
+                <Text style={s.pendingBannerSub}>Tap to review and follow up</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={C.gold} />
+            </TouchableOpacity>
+          );
+        })()}
+
         <View style={s.sectionHeader}>
           <Text style={s.sectionTitle}>Next appointments</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Appointments')}>
@@ -819,18 +853,30 @@ const s = StyleSheet.create({
   quickConsultTitle: { fontSize: 13, fontFamily: 'Montserrat_700Bold', color: '#0C2E30' },
   quickConsultSub: { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: '#6B7E7F', marginTop: 2 },
 
+  // Solid gold pill, deliberately NOT the same translucent-bordered-box shape
+  // as quickConsultBanner right below it — stacking two near-identical boxed
+  // banners back to back read as repetitive/templated rather than as one
+  // promotional chip plus one contextual action row.
+  pendingBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 20, marginTop: 16, marginBottom: 4,
+    backgroundColor: 'rgba(212,168,67,0.10)', borderWidth: 1, borderColor: 'rgba(212,168,67,0.3)',
+    borderRadius: borderRadius.xl, padding: 13, ...shadows.sm,
+  },
+  pendingBannerIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(212,168,67,0.15)', alignItems: 'center', justifyContent: 'center' },
+  pendingBannerTitle: { fontSize: 13, fontFamily: 'Montserrat_700Bold', color: '#0C2E30' },
+  pendingBannerSub: { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: '#6B7E7F', marginTop: 2 },
+
   premiumBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 20, marginTop: 14,
-    backgroundColor: 'rgba(212,168,67,0.12)', borderWidth: 1, borderColor: 'rgba(212,168,67,0.35)',
-    borderRadius: borderRadius.xl, padding: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 20, marginTop: 14,
+    backgroundColor: C.gold, borderRadius: 999, paddingVertical: 10, paddingHorizontal: 14,
     ...shadows.sm,
   },
   premiumBannerIcon: {
-    width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(212,168,67,0.18)',
+    width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(43,33,7,0.12)',
     alignItems: 'center', justifyContent: 'center',
   },
-  premiumBannerTitle: { fontSize: 13.5, fontFamily: 'Montserrat_600SemiBold', color: '#fff' },
-  premiumBannerSub: { fontSize: 11.5, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(255,255,255,0.7)', marginTop: 1 },
+  premiumBannerTitle: { fontSize: 13.5, fontFamily: 'Montserrat_700Bold', color: '#2B2107' },
+  premiumBannerSub: { flex: 1, fontSize: 11.5, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(43,33,7,0.65)', marginLeft: 2 },
 
   // Brand bar
   brandBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8 },
@@ -877,13 +923,13 @@ const s = StyleSheet.create({
   topDocScroll: {
     paddingHorizontal: 20, paddingTop: 14, paddingBottom: 4, gap: 12,
   },
+  // Border only, no shadow — a border + heavy drop shadow stacked together
+  // reads as a dated "double-outlined" box rather than a clean flat card.
   topDocCard: {
     width: 256,
     backgroundColor: '#FFFFFF', borderRadius: 18,
     borderWidth: 1, borderColor: '#EAE5DA',
     padding: 16, gap: 12,
-    shadowColor: '#0C2E30', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06, shadowRadius: 12, elevation: 3,
   },
   topDocCardTop: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 12,
