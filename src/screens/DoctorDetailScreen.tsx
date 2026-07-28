@@ -12,6 +12,7 @@ import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastProvider';
 import { shareDoctor } from '../utils/share';
 import { shadows, borderRadius } from '../utils/design';
+import { PENDING } from '../utils/hospitalSetup';
 
 const C = {
   paper: '#F5F3EE', card: '#FFFFFF', cardBorder: '#EAE5DA',
@@ -43,8 +44,18 @@ export default function DoctorDetailScreen({ route, navigation }: any) {
   const [submittingRating, setSubmittingRating] = useState(false);
   const [liveDoctor, setLiveDoctor] = useState(doctor);
   const [hasCompletedConsult, setHasCompletedConsult] = useState(false);
+  const [hospitals, setHospitals] = useState<any[]>([]);
 
-  useEffect(() => { loadUser(); }, []);
+  useEffect(() => { loadUser(); loadHospitals(); }, []);
+
+  const loadHospitals = async () => {
+    const { data } = await supabase
+      .from('hospital_staff')
+      .select('hospitals(id,name,type,address,city,state)')
+      .eq('doctor_id', doctor.id)
+      .eq('status', 'active');
+    setHospitals((data || []).map((r: any) => r.hospitals).filter(Boolean));
+  };
 
   const loadUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -250,6 +261,41 @@ export default function DoctorDetailScreen({ route, navigation }: any) {
               </View>
             ))}
           </View>
+
+          {/* Hospital affiliations */}
+          {hospitals.length > 0 && (
+            <>
+              <Text style={[s.sectionLabel, { marginTop: 20 }]}>PRACTICING AT</Text>
+              <View style={s.infoCard}>
+                {hospitals.map((h, i) => {
+                  const location = h.address && h.address !== PENDING && h.city && h.city !== PENDING
+                    ? `${h.address}, ${h.city}`
+                    : h.city && h.city !== PENDING && h.state && h.state !== PENDING
+                      ? `${h.city}, ${h.state}`
+                      : 'Location not available yet';
+                  return (
+                    <View key={h.id}>
+                      <TouchableOpacity
+                        style={s.infoRow}
+                        activeOpacity={0.7}
+                        onPress={() => navigation.navigate('HospitalDetail', { hospitalId: h.id })}
+                      >
+                        <View style={s.infoIconBox}>
+                          <MaterialCommunityIcons name="hospital-building" size={16} color={C.teal} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={s.infoLabel}>{h.name}</Text>
+                          <Text style={s.infoValue} numberOfLines={1}>{location}</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={15} color={C.muted2} />
+                      </TouchableOpacity>
+                      {i < hospitals.length - 1 && <View style={s.rowDiv} />}
+                    </View>
+                  );
+                })}
+              </View>
+            </>
+          )}
 
           {/* Bio */}
           {doctor.bio && (

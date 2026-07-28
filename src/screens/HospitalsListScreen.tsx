@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { locationService } from '../services/locationService';
+import { PENDING } from '../utils/hospitalSetup';
 
 const C = {
   bg: '#F5F3EE', surface: '#EDE9E0', card: '#FFFFFF', text: '#0C2E30',
@@ -46,7 +47,7 @@ export default function HospitalsListScreen({ navigation }: any) {
     try {
       const t = type ?? activeType;
       let query = supabase.from('hospitals')
-        .select('id,name,type,city,state,rating,total_reviews,emergency_services,services,latitude,longitude')
+        .select('id,name,type,address,city,state,rating,total_reviews,emergency_services,services,latitude,longitude')
         .eq('is_active', true)
         .ilike('name', `%${text}%`)
         .order('rating', { ascending: false })
@@ -203,7 +204,11 @@ export default function HospitalsListScreen({ navigation }: any) {
                     <View style={{ flex: 1, minWidth: 0 }}>
                       <Text style={s.hospName} numberOfLines={1}>{h.name}</Text>
                       <Text style={s.hospLocation} numberOfLines={1}>
-                        {h.city && h.state ? `${h.city}, ${h.state}` : h.city || h.state || h.distance}
+                        {h.address && h.address !== PENDING && h.city && h.city !== PENDING
+                          ? `${h.address}, ${h.city}, ${h.state}`
+                          : h.city && h.city !== PENDING && h.state && h.state !== PENDING
+                            ? `${h.city}, ${h.state}`
+                            : 'Location not available yet'}
                       </Text>
                     </View>
                     <View style={s.ratingPill}>

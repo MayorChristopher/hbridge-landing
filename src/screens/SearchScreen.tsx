@@ -7,6 +7,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
+import { PENDING } from '../utils/hospitalSetup';
 import { usePresence } from '../context/PresenceContext';
 
 const { width: SW } = Dimensions.get('window');
@@ -656,7 +657,11 @@ export default function SearchScreen({ route, navigation }: any) {
                         <View style={s.cardMeta}>
                           <Ionicons name="location-outline" size={11} color={C.muted} />
                           <Text style={s.metaText} numberOfLines={1}>
-                            {item.city ? `${item.city}, ${item.state}` : item.state || 'Nigeria'}
+                            {item.address && item.address !== PENDING && item.city && item.city !== PENDING
+                              ? `${item.address}, ${item.city}`
+                              : item.city && item.city !== PENDING
+                                ? `${item.city}, ${item.state}`
+                                : 'Location not available yet'}
                           </Text>
                           {item.rating > 0 && (
                             <>
