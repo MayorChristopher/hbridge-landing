@@ -83,6 +83,7 @@ export default function SignUpScreen({ navigation }: any) {
   const [showProfPicker, setShowProfPicker]     = useState(false);
   const [showAddRoleModal, setShowAddRoleModal] = useState(false);
   const [addRolePassword, setAddRolePassword]   = useState('');
+  const [addRoleHospitalName, setAddRoleHospitalName] = useState('');
   const [addRoleLoading, setAddRoleLoading]     = useState(false);
   const [showAddRolePw, setShowAddRolePw]       = useState(false);
   const addRoleSheetY = useRef(new Animated.Value(500)).current;
@@ -134,6 +135,7 @@ export default function SignUpScreen({ navigation }: any) {
     Animated.timing(addRoleSheetY, { toValue: 500, duration: 260, easing: Easing.in(Easing.cubic), useNativeDriver: true }).start(() => {
       setShowAddRoleModal(false);
       setAddRolePassword('');
+      setAddRoleHospitalName('');
     });
   };
 
@@ -141,6 +143,7 @@ export default function SignUpScreen({ navigation }: any) {
     if (!addRolePassword) { toast.showWarning('Password Required', 'Enter your account password to confirm.'); return; }
     if (role === 'doctor' && !profession) { toast.showWarning('Profession Required', 'Please select your health profession first.'); return; }
     if (role === 'doctor' && (!medicalLicense || !specialization)) { toast.showWarning('Credentials Required', 'Please fill in your licence and specialization first.'); return; }
+    if (role === 'hospital_admin' && !addRoleHospitalName.trim()) { toast.showWarning('Facility Name Required', "Enter your hospital or facility's name."); return; }
     setAddRoleLoading(true);
     try {
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password: addRolePassword });
@@ -160,7 +163,10 @@ export default function SignUpScreen({ navigation }: any) {
 
       const newTypes = [...existingTypes, role];
       const profilePatch: any = { user_types: newTypes };
-      if (role === 'hospital_admin') profilePatch.hospital_name = fullName;
+      // A distinct facility name, not the practitioner's own personal name —
+      // this used to silently reuse `fullName`, so a doctor's private
+      // hospital ended up literally named after them.
+      if (role === 'hospital_admin') profilePatch.hospital_name = addRoleHospitalName.trim();
       await supabase.from('profiles').update(profilePatch).eq('id', userId);
 
       if (role === 'doctor') {
@@ -186,7 +192,7 @@ export default function SignUpScreen({ navigation }: any) {
 
       if (role === 'hospital_admin') {
         await AsyncStorage.setItem('hospital_spotlight_pending', 'true');
-        const hospName = fullName.trim();
+        const hospName = addRoleHospitalName.trim();
         if (hospName) {
           try {
             await getOrCreateHospitalRow(hospName);
@@ -729,6 +735,21 @@ export default function SignUpScreen({ navigation }: any) {
               {' '}access.
             </Text>
 
+            {role === 'hospital_admin' && (
+              <View style={[s.fieldGroup, { width: '100%' }]}>
+                <Text style={s.fieldLabel}>Hospital / Facility Name</Text>
+                <View style={s.fieldRow}>
+                  <Ionicons name="business-outline" size={19} color={C.teal} />
+                  <TextInput
+                    style={[s.fieldInput, { flex: 1 }]}
+                    value={addRoleHospitalName} onChangeText={setAddRoleHospitalName}
+                    placeholder="e.g. Sunrise Medical Center" placeholderTextColor={C.muted2}
+                    autoCapitalize="words" autoCorrect={false}
+                  />
+                </View>
+              </View>
+            )}
+
             <View style={[s.fieldGroup, { width: '100%' }]}>
               <Text style={s.fieldLabel}>Your Password</Text>
               <View style={s.fieldRow}>
@@ -746,9 +767,9 @@ export default function SignUpScreen({ navigation }: any) {
             </View>
 
             <TouchableOpacity
-              style={[s.otpVerifyBtn, (addRoleLoading || !addRolePassword) && { opacity: 0.5 }]}
+              style={[s.otpVerifyBtn, (addRoleLoading || !addRolePassword || (role === 'hospital_admin' && !addRoleHospitalName.trim())) && { opacity: 0.5 }]}
               onPress={handleAddRole}
-              disabled={addRoleLoading || !addRolePassword}
+              disabled={addRoleLoading || !addRolePassword || (role === 'hospital_admin' && !addRoleHospitalName.trim())}
             >
               <Text style={s.otpVerifyText}>{addRoleLoading ? 'Adding role…' : 'Confirm & Add Role'}</Text>
               {!addRoleLoading && <Ionicons name="checkmark-circle" size={18} color="#fff" />}

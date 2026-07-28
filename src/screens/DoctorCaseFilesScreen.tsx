@@ -572,12 +572,23 @@ export default function DoctorCaseFilesScreen({ navigation }: any) {
             <Ionicons name="apps-outline" size={12} color={typeFilter === 'all' ? '#fff' : C.muted} />
             <Text style={[s.typeFilterChipText, typeFilter === 'all' && s.typeFilterChipTextActive]}>All Types</Text>
           </TouchableOpacity>
-          {RECORD_TYPES.map(t => (
-            <TouchableOpacity key={t} style={[s.typeFilterChip, typeFilter === t && s.typeFilterChipActive]} onPress={() => setTypeFilter(t)}>
-              <Ionicons name={(TYPE_ICONS[t] || 'document-outline') as any} size={12} color={typeFilter === t ? '#fff' : C.muted} />
-              <Text style={[s.typeFilterChipText, typeFilter === t && s.typeFilterChipTextActive]}>{TYPE_LABELS[t]}</Text>
-            </TouchableOpacity>
-          ))}
+          {RECORD_TYPES.map(t => {
+            const color = TYPE_COLORS[t] || C.teal;
+            const active = typeFilter === t;
+            return (
+              <TouchableOpacity
+                key={t}
+                style={[
+                  s.typeFilterChip,
+                  { borderColor: active ? color : `${color}40`, backgroundColor: active ? color : `${color}12` },
+                ]}
+                onPress={() => setTypeFilter(t)}
+              >
+                <Ionicons name={(TYPE_ICONS[t] || 'document-outline') as any} size={12} color={active ? '#fff' : color} />
+                <Text style={[s.typeFilterChipText, { color: active ? '#fff' : color }]}>{TYPE_LABELS[t]}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
 
         {loading ? (

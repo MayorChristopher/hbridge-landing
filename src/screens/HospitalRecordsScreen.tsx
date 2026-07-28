@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect } from 'react';
 import {
   StyleSheet, Text, View, FlatList, TouchableOpacity,
-  ActivityIndicator, RefreshControl, TextInput, Modal, ScrollView, StatusBar, Image, Dimensions, Alert,
+  ActivityIndicator, RefreshControl, TextInput, Modal, ScrollView, StatusBar, Image, Dimensions, Alert, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,6 +28,12 @@ const TYPE_ICONS: any = {
 const TYPE_LABELS: any = {
   lab_result:'Lab Result', imaging:'Imaging / Scan', prescription:'Prescription',
   vital_signs:'Vitals', diagnosis:'Diagnosis', other:'Other',
+};
+// Matches DoctorCaseFilesScreen's TYPE_COLORS — every record used to render
+// with the identical flat teal regardless of type, both here and there.
+const TYPE_COLORS: any = {
+  lab_result: '#0EA5E9', imaging: '#7C3AED', prescription: '#1E9E5A',
+  vital_signs: '#EF4444', diagnosis: '#D4A843', other: '#6B7E7F',
 };
 const RECORD_TYPES = Object.keys(TYPE_LABELS);
 
@@ -320,8 +326,8 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
         )}
         <View style={s.cardTop}>
           {!hasImage && (
-            <View style={s.cardIcon}>
-              <Ionicons name={(TYPE_ICONS[item.record_type] || 'document-outline') as any} size={20} color={C.teal} />
+            <View style={[s.cardIcon, { backgroundColor: `${TYPE_COLORS[item.record_type] || C.teal}18` }]}>
+              <Ionicons name={(TYPE_ICONS[item.record_type] || 'document-outline') as any} size={20} color={TYPE_COLORS[item.record_type] || C.teal} />
             </View>
           )}
           <View style={{ flex:1 }}>
@@ -334,9 +340,10 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
                 </View>
               )}
             </View>
-            <Text style={s.cardMeta}>
-              {TYPE_LABELS[item.record_type] || item.record_type} · {formatDate(item.created_at)} · {fileKind(fileUrl)}
+            <Text style={[s.cardMeta, { color: TYPE_COLORS[item.record_type] || C.teal }]}>
+              {TYPE_LABELS[item.record_type] || item.record_type}
             </Text>
+            <Text style={s.cardMeta}>{formatDate(item.created_at)} · {fileKind(fileUrl)}</Text>
             {!!item.data?.notes && <Text style={s.cardDesc} numberOfLines={2}>{item.data.notes}</Text>}
           </View>
           <TouchableOpacity onPress={() => setActionItem(item)}>
@@ -370,13 +377,13 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
       <TouchableOpacity style={s.gridCard} onPress={() => openRecord(item)} activeOpacity={0.85} onLongPress={() => setActionItem(item)}>
         {hasImage
           ? <SignedImage request={{ context: 'medical_record', recordId: item.id }} style={s.gridThumb} resizeMode="cover" />
-          : <View style={s.gridIconBox}>
-              <Ionicons name={(TYPE_ICONS[item.record_type] || 'document-outline') as any} size={22} color={C.teal} />
+          : <View style={[s.gridIconBox, { backgroundColor: `${TYPE_COLORS[item.record_type] || C.teal}18` }]}>
+              <Ionicons name={(TYPE_ICONS[item.record_type] || 'document-outline') as any} size={22} color={TYPE_COLORS[item.record_type] || C.teal} />
             </View>}
         <View style={s.gridMeta}>
           <Text style={s.gridTitle} numberOfLines={2}>{item.title}</Text>
-          <View style={s.gridTypePill}>
-            <Text style={s.gridSub} numberOfLines={1}>{TYPE_LABELS[item.record_type] || item.record_type}</Text>
+          <View style={[s.gridTypePill, { backgroundColor: `${TYPE_COLORS[item.record_type] || C.teal}18` }]}>
+            <Text style={[s.gridSub, { color: TYPE_COLORS[item.record_type] || C.teal }]} numberOfLines={1}>{TYPE_LABELS[item.record_type] || item.record_type}</Text>
           </View>
           <Text style={s.gridDate}>{formatDate(item.created_at)}</Text>
         </View>
@@ -432,11 +439,19 @@ export default function HospitalRecordsScreen({ route, navigation }: any) {
       {/* Type filter chips — wrapped in a View so height is hard-clamped */}
       <View style={s.typeFilterWrap}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.typeFilterRow}>
-          {[{ key: 'all', label: 'All' }, ...RECORD_TYPES.map(t => ({ key: t, label: TYPE_LABELS[t] }))].map(f => (
-            <TouchableOpacity key={f.key} style={[s.typeChip2, typeFilter === f.key && s.typeChip2Active]} onPress={() => setTypeFilter(f.key)}>
-              <Text style={[s.typeChip2Text, typeFilter === f.key && s.typeChip2TextActive]}>{f.label}</Text>
-            </TouchableOpacity>
-          ))}
+          {[{ key: 'all', label: 'All' }, ...RECORD_TYPES.map(t => ({ key: t, label: TYPE_LABELS[t] }))].map(f => {
+            const color = f.key === 'all' ? C.teal : (TYPE_COLORS[f.key] || C.teal);
+            const active = typeFilter === f.key;
+            return (
+              <TouchableOpacity
+                key={f.key}
+                style={[s.typeChip2, { backgroundColor: active ? color : `${color}12`, borderColor: active ? color : `${color}40` }]}
+                onPress={() => setTypeFilter(f.key)}
+              >
+                <Text style={[s.typeChip2Text, { color: active ? '#fff' : color }]}>{f.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       </View>
 
