@@ -40,7 +40,7 @@ const STEPS: Record<string, Step[]> = {
     { title: 'Build Your Profile', description: 'Complete your profile to appear in patient searches. Reviews and ratings build trust over time.', icon: 'person-circle', accent: '#EF4444', accentBg: '#FEF2F2' },
   ],
   hospital_admin: [
-    { title: 'Hospital Dashboard', description: 'Your hospital admin dashboard is available on the web at hbridge.ng/hospital for full management tools.', icon: 'business', accent: C.teal, accentBg: 'rgba(11,126,138,0.1)' },
+    { title: 'Hospital Dashboard', description: 'Manage your facility, staff, and incoming patient records right here on your Home screen.', icon: 'business', accent: C.teal, accentBg: 'rgba(11,126,138,0.1)' },
   ],
 };
 

@@ -14,6 +14,7 @@ import { supabase } from '../lib/supabase';
 import { Toast } from '../utils/toast';
 import { useToast } from '../components/ToastProvider';
 import { getOrCreateHospitalRow, HOSPITAL_TYPE_DEFAULT, HOSPITAL_CATEGORY_DEFAULT, isHospitalSetupComplete } from '../utils/hospitalSetup';
+import { shadows, borderRadius } from '../utils/design';
 import { shareApp, shareDoctor } from '../utils/share';
 
 const C = {
@@ -1639,18 +1640,14 @@ const s = StyleSheet.create({
   statsRail: {
     flexDirection: 'row',
     backgroundColor: C.card,
-    borderRadius: 18,
+    borderRadius: borderRadius.xl,
     borderWidth: 1,
     borderColor: C.cardBorder,
     marginHorizontal: 20,
     marginTop: 32,
     paddingVertical: 16,
     paddingHorizontal: 6,
-    shadowColor: C.ink,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.07,
-    shadowRadius: 16,
-    elevation: 5,
+    ...shadows.md,
   },
   statItem: { flex: 1, alignItems: 'center', gap: 3 },
   statVal: { fontSize: 20, fontFamily: 'Montserrat_800ExtraBold', color: C.ink },
@@ -1702,7 +1699,8 @@ const s = StyleSheet.create({
   setupBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     marginHorizontal: 20, marginTop: 14, padding: 14,
-    backgroundColor: C.goldBg, borderRadius: 14, borderWidth: 1, borderColor: C.goldBorder,
+    backgroundColor: C.goldBg, borderRadius: borderRadius.xl, borderWidth: 1, borderColor: C.goldBorder,
+    ...shadows.sm,
   },
   setupBannerIcon: {
     width: 36, height: 36, borderRadius: 10,
@@ -1716,15 +1714,11 @@ const s = StyleSheet.create({
     marginHorizontal: 20,
     marginTop: 14,
     backgroundColor: C.card,
-    borderRadius: 16,
+    borderRadius: borderRadius.xl,
     borderWidth: 1,
     borderColor: C.cardBorder,
     paddingVertical: 4,
-    shadowColor: C.ink,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    ...shadows.sm,
   },
   docInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 13 },
   docInfoIcon: {
@@ -1747,15 +1741,11 @@ const s = StyleSheet.create({
     marginHorizontal: 20,
     marginTop: 14,
     backgroundColor: C.card,
-    borderRadius: 18,
+    borderRadius: borderRadius.xl,
     borderWidth: 1,
     borderColor: C.cardBorder,
     overflow: 'hidden',
-    shadowColor: C.ink,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    ...shadows.sm,
   },
   menuItem: {
     flexDirection: 'row', alignItems: 'center',

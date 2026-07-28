@@ -253,7 +253,7 @@ export default function OnboardingScreen({ navigation }: Props) {
       const welcomeMessage = userType === 'doctor'
         ? `Your profile is live. As an Hbridge ${doctorLabel}, patients can now find and book consultations with you. Thank you for helping bridge the healthcare gap across Nigeria.`
         : userType === 'hospital_admin'
-          ? `Your hospital admin account is active. Manage incoming records, oversee your staff, and access your full dashboard at hbridge.ng/hospital. Welcome aboard.`
+          ? `Your hospital admin account is active. Manage incoming records and oversee your staff right from your Home screen. Welcome aboard.`
           : `Hi ${userName || 'there'}! Your health profile is set up. Book consultations, manage records, and get AI-powered health guidance — all in one place. We're glad you're here.`;
       await supabase.from('notifications').insert({
         user_id: user.id,

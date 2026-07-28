@@ -1,16 +1,17 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   StyleSheet, Text, View, ScrollView, TouchableOpacity,
-  Image, ActivityIndicator, RefreshControl, StatusBar, Dimensions, Linking,
+  Image, ActivityIndicator, RefreshControl, StatusBar, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastProvider';
 import SpotlightTour, { SpotlightStep } from '../components/SpotlightTour';
 import { getOrCreateHospitalRow, isHospitalSetupComplete } from '../utils/hospitalSetup';
+import { shadows, borderRadius } from '../utils/design';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
@@ -51,6 +52,7 @@ export default function HospitalHomeScreen({ navigation }: any) {
 
   const bellRef      = useRef<any>(null);
   const actionsRef   = useRef<any>(null);
+  const statsRef     = useRef<any>(null);
 
   useFocusEffect(useCallback(() => { loadData(); }, []));
 
@@ -166,6 +168,44 @@ export default function HospitalHomeScreen({ navigation }: any) {
           <Text style={s.greeting}>{getGreeting()}</Text>
           <Text style={s.hospitalName} numberOfLines={1}>{hospitalName}</Text>
         </View>
+
+        {/* Facility location strip — same slot DoctorHomeScreen uses for credentials */}
+        {hospital && (
+          <View style={s.credStrip}>
+            <Ionicons name="business-outline" size={12} color="rgba(255,255,255,0.65)" />
+            <Text style={s.credText} numberOfLines={1}>
+              {hospital.type ? `${hospital.type[0].toUpperCase()}${hospital.type.slice(1)} Hospital` : 'Hospital'}
+            </Text>
+            <View style={s.credDot} />
+            <Ionicons name="location-outline" size={12} color="rgba(255,255,255,0.65)" />
+            <Text style={s.credText} numberOfLines={1}>
+              {isHospitalSetupComplete(hospital) ? `${hospital.city}, ${hospital.state}` : 'Location pending'}
+            </Text>
+            {hospital.rating > 0 && (
+              <>
+                <View style={s.credDot} />
+                <Ionicons name="star" size={12} color={C.gold} />
+                <Text style={s.credText}>{hospital.rating.toFixed(1)}</Text>
+              </>
+            )}
+          </View>
+        )}
+
+        {/* Stats — inside the header, right after location, matching DoctorHomeScreen */}
+        <View ref={statsRef} style={s.headerStatsRow}>
+          <TouchableOpacity style={s.headerStatCard} activeOpacity={0.75} onPress={() => navigation.navigate('HospitalIncomingRecords')}>
+            <Text style={s.headerStatVal}>{stats.records}</Text>
+            <Text style={s.headerStatLabel}>Records</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.headerStatCard} activeOpacity={0.75} onPress={() => tabNav.navigate('HospitalStaff')}>
+            <Text style={s.headerStatVal}>{stats.doctors}</Text>
+            <Text style={s.headerStatLabel}>Practitioners</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.headerStatCard} activeOpacity={0.75} onPress={() => navigation.navigate('HospitalIncomingRecords')}>
+            <Text style={s.headerStatVal}>{stats.patients}</Text>
+            <Text style={s.headerStatLabel}>Patients</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -178,20 +218,6 @@ export default function HospitalHomeScreen({ navigation }: any) {
           <ActivityIndicator color={C.teal} style={{ marginTop: 60 }} />
         ) : (
           <>
-            {/* Hospital badge */}
-            {hospital && (
-              <View style={s.hospitalBadge}>
-                <Ionicons name="business" size={15} color={C.teal} />
-                <Text style={s.hospitalBadgeText}>{hospital.type ? `${hospital.type} Hospital` : 'Hospital'} · {hospital.city || hospital.state || 'Nigeria'}</Text>
-                {hospital.rating > 0 && (
-                  <View style={s.ratingPill}>
-                    <Ionicons name="star" size={11} color={C.gold} />
-                    <Text style={s.ratingText}>{hospital.rating.toFixed(1)}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
             {!profile?.hospital_name ? (
               <TouchableOpacity style={s.linkBanner} activeOpacity={0.8} onPress={() => navigation.navigate('Profile')}>
                 <Ionicons name="warning-outline" size={18} color={C.gold} />
@@ -214,50 +240,21 @@ export default function HospitalHomeScreen({ navigation }: any) {
               </TouchableOpacity>
             )}
 
-            {/* Web dashboard nudge */}
-            <TouchableOpacity
-              style={s.dashboardBanner}
-              activeOpacity={0.8}
-              onPress={() => Linking.openURL('https://hbridge.ng/hospital')}
-            >
-              <View style={s.dashboardBannerLeft}>
-                <Ionicons name="desktop-outline" size={18} color={C.teal} />
-                <View>
-                  <Text style={s.dashboardBannerTitle}>Full Dashboard Available</Text>
-                  <Text style={s.dashboardBannerSub}>Visit hbridge.ng/hospital for analytics & reporting</Text>
-                </View>
-              </View>
-              <Ionicons name="open-outline" size={15} color={C.teal} />
-            </TouchableOpacity>
-
-            {/* Stats */}
-            <View style={s.statsRow}>
-              {[
-                { label: 'Records',  value: stats.records,  icon: 'folder-open', mat: false },
-                { label: 'Practitioners', value: stats.doctors, icon: 'stethoscope', mat: true },
-                { label: 'Patients', value: stats.patients, icon: 'people',      mat: false },
-              ].map(stat => (
-                <View key={stat.label} style={s.statCard}>
-                  <View style={[s.statIcon, { backgroundColor: 'rgba(11,126,138,0.1)' }]}>
-                    {stat.mat
-                      ? <MaterialCommunityIcons name={stat.icon as any} size={20} color={C.teal} />
-                      : <Ionicons name={stat.icon as any} size={20} color={C.teal} />}
-                  </View>
-                  <Text style={s.statValue}>{stat.value}</Text>
-                  <Text style={s.statLabel}>{stat.label}</Text>
-                </View>
-              ))}
-            </View>
-
-            {/* Quick actions */}
+            {/* Quick actions — boxless list rows, matching DoctorHomeScreen */}
             <Text style={s.sectionTitle}>Quick Actions</Text>
-            <View ref={actionsRef} collapsable={false} style={s.actionsGrid}>
-              {QUICK_ACTIONS.map(a => (
-                <TouchableOpacity key={a.label} style={s.actionCard} onPress={a.onPress} activeOpacity={0.75}>
+            <View ref={actionsRef} collapsable={false} style={s.actionsContainer}>
+              {QUICK_ACTIONS.map((a, i) => (
+                <TouchableOpacity
+                  key={a.label}
+                  style={[s.actionRow, i === QUICK_ACTIONS.length - 1 && { borderBottomWidth: 0 }]}
+                  onPress={a.onPress}
+                  activeOpacity={0.75}
+                >
                   <View style={[s.actionIcon, { backgroundColor: 'rgba(11,126,138,0.1)' }]}>
-                    <Ionicons name={a.icon as any} size={22} color={C.teal} />
+                    <Ionicons name={a.icon as any} size={20} color={C.teal} />
                   </View>
                   <Text style={s.actionLabel}>{a.label}</Text>
+                  <Ionicons name="chevron-forward" size={16} color={C.muted} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -321,6 +318,14 @@ export default function HospitalHomeScreen({ navigation }: any) {
             accent: C.teal,
           },
           {
+            title: 'Your facility stats',
+            desc: 'See incoming records, active practitioners, and patients reached — all at a glance.',
+            targetRef: statsRef,
+            tooltipSide: 'below',
+            icon: 'stats-chart',
+            accent: C.teal,
+          },
+          {
             title: 'Quick Actions',
             desc: 'Jump to Records, Staff, Messages, or Alerts in one tap — your most-used tools are right here.',
             targetRef: actionsRef,
@@ -365,20 +370,25 @@ const s = StyleSheet.create({
   greeting:       { fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(255,255,255,0.6)' },
   hospitalName:   { fontSize: 20, fontFamily: 'Montserrat_800ExtraBold', color: '#fff', letterSpacing: -0.4, marginTop: 1 },
 
+  credStrip: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
+  credText:  { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(255,255,255,0.65)', maxWidth: 150 },
+  credDot:   { width: 3, height: 3, borderRadius: 1.5, backgroundColor: 'rgba(255,255,255,0.35)' },
+
+  headerStatsRow:   { flexDirection: 'row', marginTop: 16 },
+  headerStatCard:   { flex: 1, alignItems: 'center', gap: 2 },
+  headerStatVal:    { fontSize: 19, fontFamily: 'Montserrat_800ExtraBold', color: '#fff' },
+  headerStatLabel:  { fontSize: 10, fontFamily: 'SpaceGrotesk_400Regular', color: 'rgba(255,255,255,0.70)', textAlign: 'center' },
+
   paper: { flex: 1, backgroundColor: C.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28 },
 
-  hospitalBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.tealLight, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(11,126,138,0.2)' },
-  hospitalBadgeText: { fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: C.teal, flex: 1 },
-  ratingPill: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(212,168,67,0.15)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  ratingText: { fontSize: 11, fontFamily: 'Montserrat_700Bold', color: C.gold },
-
-  linkBanner: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: 'rgba(212,168,67,0.10)', borderWidth: 1, borderColor: 'rgba(212,168,67,0.3)', borderRadius: 12, padding: 12, marginBottom: 16 },
+  linkBanner: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: 'rgba(212,168,67,0.10)', borderWidth: 1, borderColor: 'rgba(212,168,67,0.3)', borderRadius: borderRadius.xl, padding: 12, marginBottom: 16, ...shadows.sm },
   linkBannerText: { flex: 1, fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: '#8A6A1F', lineHeight: 18 },
 
   setupBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     backgroundColor: 'rgba(212,168,67,0.10)', borderWidth: 1, borderColor: 'rgba(212,168,67,0.3)',
-    borderRadius: 14, padding: 13, marginBottom: 16,
+    borderRadius: borderRadius.xl, padding: 13, marginBottom: 16,
+    ...shadows.sm,
   },
   setupBannerIcon: {
     width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(212,168,67,0.16)',
@@ -387,27 +397,23 @@ const s = StyleSheet.create({
   setupBannerTitle: { fontSize: 13.5, fontFamily: 'Montserrat_600SemiBold', color: '#8A6A1F' },
   setupBannerSub: { fontSize: 11.5, fontFamily: 'SpaceGrotesk_400Regular', color: '#8A6A1F', opacity: 0.85, marginTop: 1, lineHeight: 15 },
 
-  dashboardBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(11,126,138,0.07)', borderWidth: 1, borderColor: 'rgba(11,126,138,0.18)', borderRadius: 12, padding: 12, marginBottom: 16 },
-  dashboardBannerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
-  dashboardBannerTitle: { fontSize: 12.5, fontFamily: 'Montserrat_600SemiBold', color: C.teal, marginBottom: 1 },
-  dashboardBannerSub: { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted },
-
-  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-  statCard: { flex: 1, backgroundColor: C.card, borderRadius: 16, padding: 14, alignItems: 'center', gap: 6, borderWidth: 1, borderColor: C.border },
-  statIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
-  statValue: { fontSize: 22, fontFamily: 'Montserrat_800ExtraBold', color: C.text },
-  statLabel: { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted },
-
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   sectionTitle:  { fontSize: 14, fontFamily: 'Montserrat_700Bold', color: C.text, marginBottom: 10 },
   seeAll:        { fontSize: 12, fontFamily: 'Montserrat_600SemiBold', color: C.teal },
 
-  actionsGrid: { flexDirection: 'row', gap: 10, marginBottom: 24 },
-  actionCard:  { flex: 1, backgroundColor: C.card, borderRadius: 16, padding: 14, alignItems: 'center', gap: 8, borderWidth: 1, borderColor: C.border },
-  actionIcon:  { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  actionLabel: { fontSize: 11, fontFamily: 'Montserrat_600SemiBold', color: C.text, textAlign: 'center' },
+  actionsContainer: {
+    flexDirection: 'column', backgroundColor: C.card,
+    borderRadius: borderRadius.xl, paddingHorizontal: 14, marginBottom: 24,
+    ...shadows.sm,
+  },
+  actionRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.border,
+  },
+  actionIcon:  { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  actionLabel: { flex: 1, fontSize: 14, fontFamily: 'Montserrat_600SemiBold', color: C.text },
 
-  recordCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.card, borderRadius: 14, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: C.border },
+  recordCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.card, borderRadius: borderRadius.xl, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: C.border, ...shadows.sm },
   recordIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: C.tealLight, alignItems: 'center', justifyContent: 'center' },
   recordTitle: { fontSize: 13, fontFamily: 'Montserrat_600SemiBold', color: C.text, marginBottom: 3 },
   recordMeta:  { fontSize: 11, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted },

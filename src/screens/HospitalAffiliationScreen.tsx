@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastProvider';
+import { shadows } from '../utils/design';
 import { sendNotifications } from '../utils/notify';
 import { isHospitalSetupComplete } from '../utils/hospitalSetup';
 
@@ -544,7 +545,7 @@ const s = StyleSheet.create({
   infoBanner: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, backgroundColor: C.tealLight, borderRadius: 12, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(11,126,138,0.2)' },
   infoText:   { flex: 1, fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: C.teal, lineHeight: 18 },
 
-  card:     { backgroundColor: C.card, borderRadius: 16, borderWidth: 1, borderColor: C.border, padding: 14, marginBottom: 10 },
+  card:     { backgroundColor: C.card, borderRadius: 16, borderWidth: 1, borderColor: C.border, padding: 14, marginBottom: 10, ...shadows.sm },
   cardTop:  { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 8 },
   hospIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: C.tealLight, alignItems: 'center', justifyContent: 'center' },
   hospName: { fontSize: 14, fontFamily: 'Montserrat_700Bold', color: C.text, marginBottom: 2 },

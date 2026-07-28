@@ -103,12 +103,23 @@ export default function HospitalIncomingRecordsScreen({ navigation }: any) {
     setLookingUp(true);
     setFolderLookupResult(null);
     try {
+      // Staff shouldn't need to remember the exact "OL-0001" format — accept
+      // whatever they typed as-is, plus the digits-only and padded/prefixed
+      // variants, so "1", "0001", and "OL-0001" all find the same folder.
+      const raw = folderNumberInput.trim().toUpperCase();
+      const digits = raw.replace(/\D/g, '');
+      const candidates = new Set<string>([raw]);
+      if (digits) {
+        candidates.add(digits.padStart(4, '0'));
+        candidates.add(`OL-${digits.padStart(4, '0')}`);
+      }
+
       const { data } = await supabase
         .from('record_folders')
         .select('id, folder_name, folder_number, folder_type, linked_id, owner_id, profiles!owner_id(full_name, profile_image)')
         .eq('folder_type', 'hospital')
         .eq('linked_id', hospitalId)
-        .eq('folder_number', folderNumberInput.trim())
+        .in('folder_number', [...candidates])
         .maybeSingle();
       setFolderLookupResult(data || 'not_found');
     } catch (e) {
@@ -170,10 +181,10 @@ export default function HospitalIncomingRecordsScreen({ navigation }: any) {
           <TextInput
             style={s.searchInput}
             value={folderNumberInput} onChangeText={setFolderNumberInput}
-            placeholder="Find patient by folder number…"
+            placeholder="Find patient by folder number… (e.g. OL-0001 or just 1)"
             placeholderTextColor={C.muted}
             autoCorrect={false}
-            keyboardType="number-pad"
+            autoCapitalize="characters"
             onSubmitEditing={lookupFolderNumber}
           />
           <TouchableOpacity onPress={lookupFolderNumber} disabled={lookingUp}>

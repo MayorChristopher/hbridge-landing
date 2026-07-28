@@ -9,6 +9,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastProvider';
+import { shadows } from '../utils/design';
 import { sendNotifications } from '../utils/notify';
 import { getOrCreateHospitalRow, isHospitalSetupComplete } from '../utils/hospitalSetup';
 
@@ -530,7 +531,7 @@ const s = StyleSheet.create({
   tabBadgeText:    { fontSize: 10, fontFamily: 'Montserrat_700Bold', color: C.muted },
   tabBadgeTextActive:{ color: '#fff' },
 
-  card:     { backgroundColor: C.card, borderRadius: 16, borderWidth: 1, borderColor: C.border, padding: 14, marginBottom: 10 },
+  card:     { backgroundColor: C.card, borderRadius: 16, borderWidth: 1, borderColor: C.border, padding: 14, marginBottom: 10, ...shadows.sm },
   cardLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
   name:     { fontSize: 14, fontFamily: 'Montserrat_700Bold', color: C.text },
   spec:     { fontSize: 12, fontFamily: 'SpaceGrotesk_400Regular', color: C.muted, marginTop: 2 },

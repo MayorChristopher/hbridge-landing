@@ -165,7 +165,7 @@ export default function SignUpScreen({ navigation }: any) {
 
       if (role === 'doctor') {
         const selectedProf = PROFESSIONS.find(p => p.id === profession);
-        await supabase.from('doctors').upsert({
+        const { error: docErr } = await supabase.from('doctors').upsert({
           user_id: userId,
           full_name: fullName.replace(/^(dr\.?|nurse\.?|prof\.?|pharm\.?|physio\.?|rad\.?)\s+/i, '').trim(),
           specialization: specialization || 'General Practice',
@@ -174,6 +174,14 @@ export default function SignUpScreen({ navigation }: any) {
           verification_status: 'pending', is_available: true,
           average_rating: 0, total_reviews: 0,
         }, { onConflict: 'user_id' });
+        if (docErr) {
+          if (docErr.code === '23505') {
+            toast.showError('Licence Already Registered', 'This licence number is already linked to another account. Double-check the number and try again.');
+          } else {
+            toast.showError('Error', 'Could not save your practitioner details. Please try again.');
+          }
+          return;
+        }
       }
 
       if (role === 'hospital_admin') {
@@ -190,7 +198,9 @@ export default function SignUpScreen({ navigation }: any) {
       const roleLabel = role === 'doctor' ? 'Practitioner' : role === 'hospital_admin' ? 'Hospital Admin' : 'Patient';
       toast.showSuccess('Role Added!', `${roleLabel} access added. Switch roles from your Profile after signing in.`);
     } catch (e: any) {
-      toast.showError('Error', e.message || 'Something went wrong. Please try again.');
+      const raw = e?.message || '';
+      const friendly = raw && !/constraint|violat|null value|column|relation/i.test(raw) ? raw : 'Something went wrong. Please try again.';
+      toast.showError('Error', friendly);
     } finally {
       setAddRoleLoading(false);
     }
@@ -289,7 +299,7 @@ export default function SignUpScreen({ navigation }: any) {
 
         if (role === 'doctor') {
           const selectedProf = PROFESSIONS.find(p => p.id === profession);
-          await supabase.from('doctors').upsert({
+          const { error: docErr } = await supabase.from('doctors').upsert({
             user_id: userId,
             full_name: fullName.replace(/^(dr\.?|nurse\.?|prof\.?|pharm\.?|physio\.?|rad\.?)\s+/i, '').trim(),
             specialization: specialization || 'General Practice',
@@ -298,6 +308,18 @@ export default function SignUpScreen({ navigation }: any) {
             verification_status: 'pending', is_available: true,
             average_rating: 0, total_reviews: 0,
           }, { onConflict: 'user_id' });
+          if (docErr) {
+            Animated.timing(sheetY, { toValue: 400, duration: 260, easing: Easing.in(Easing.cubic), useNativeDriver: true }).start(() => {
+              setShowOTP(false);
+              setOtp(['', '', '', '', '', '']);
+            });
+            if (docErr.code === '23505') {
+              toast.showError('Licence Already Registered', 'Your account was verified, but this licence number is already linked to another account. Update it from your Profile to finish setup.');
+            } else {
+              toast.showError('Account Verified', 'Your email is verified, but we could not save your practitioner details. Please update them from your Profile.');
+            }
+            return;
+          }
         }
 
         // Queue the spotlight tour for the role-specific home screen
@@ -378,7 +400,9 @@ export default function SignUpScreen({ navigation }: any) {
         } else if (error.message?.includes('Network') || error.message?.includes('timeout')) {
           toast.showError('Connection Error', 'Please check your internet connection and try again.');
         } else {
-          toast.showError('Registration Error', error.message || 'Unable to create account.');
+          const friendly = error.message && !/constraint|violat|null value|column|relation|database error/i.test(error.message)
+            ? error.message : 'Unable to create account. Please try again.';
+          toast.showError('Registration Error', friendly);
         }
         return;
       }
