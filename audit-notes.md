@@ -25,7 +25,7 @@
 ## 4. Candidate Gaps (Sprint Scope)
 1. **Waitlist Form Unhandled Error State**: Network/server failures cause the form to freeze permanently in a "submitting" state; impacts all user roles; located **below the fold (requires a scroll past the first screen)** on `/download`. (Fit: Inline try/catch block in `waitlist-form.tsx`).
 2. **Hero Section Role Guidance**: Visiting hospital admins lack clear role-specific CTAs above the fold on `/`; hurts enterprise lead conversion; located **above the fold on the homepage first screen (`/`)**. (Fit: Micro-adjustment to hero CTA copy and routing).
-3. **Header Navigation Active Route Indicator**: Navigating between pages provides no active link highlighting in the main header, leaving visitors unsure of their active location; located **above the fold across all header-enabled pages**. (Fit: Simple active state check using `usePathname` in `site-header.tsx`).
+3. **Privacy Policy Stub Content**: The `/privacy` route renders placeholder text stating the policy is "being finalized" rather than actual terms, leaving compliance-focused visitors without legal disclosures; located **above the fold on `/privacy`**. (Fit: Content update in `src/app/privacy/page.tsx`).
 
 ## 5. Waitlist Form Testing
 - **Patient Role**: Success displays confirmation message; Error triggers unhandled rejection and locks button in "submitting" state.
