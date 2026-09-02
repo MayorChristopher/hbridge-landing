@@ -11,11 +11,12 @@ Patients meet this broken behavior at the moment they submit the waitlist form o
 - **After**: Submitting the form during a network-level connection failure catches the thrown rejection, displays an inline error message ("Submission failed. Please try again."), and re-enables the button for another attempt.
 
 ## 4. Unchosen Gaps
-- **Gap 2 (Hero Section Role Guidance)**: Deferred because CTA copy adjustments on `/` do not fix a severe runtime dead end that freezes user submission.
-- **Gap 3 (Privacy Policy Stub Content)**: Deferred because placeholder legal text does not actively block primary conversion flows on the site.
+- **Gap 2 (Hero Section Role Guidance)**: Deferred because CTA copy adjustments on `/` do not fix a severe runtime dead end that freezes user submission (ref: `audit-notes.md`).
+- **Gap 3 (Privacy Policy Stub Content)**: Deferred because placeholder legal text does not actively block primary conversion flows on the site (ref: `audit-notes.md`).
 
 ## 5. Mistaken Fix (Non-Fix)
 Changing the submit button's disabled logic or text without wrapping the async fetch/insert call in a proper `try/catch` block would look visually correct but fail runtime error recovery.
 
 ## 6. Manager Agreement
-Scope and gap selection agreed in writing with the engineering manager (Adaeze) prior to starting build work.
+Agreed in writing by Engineering Manager Adaeze on Blacksmith:
+> "I recommend we select Candidate Gap 1 (Waitlist Form Unhandled Error State)... high-impact quick win that fits perfectly within sprint constraints." — Adaeze, Sprint 01 Scope Alignment
