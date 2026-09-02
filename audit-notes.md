@@ -23,9 +23,9 @@
 - **Evidence**: The primary hero button directs users straight to `/download`, leaving enterprise admins without tailored landing guidance.
 
 ## 4. Candidate Gaps (Sprint Scope)
-1. **Waitlist Form Unhandled Error State**: Network/server failures cause the form at `/download` to freeze permanently in a "submitting" state; impacts all user roles. (Fit: Inline try/catch block in `waitlist-form.tsx`).
-2. **Hero Section Role Guidance**: Visiting hospital admins lack clear role-specific CTAs above the fold on `/`; hurts enterprise lead conversion. (Fit: Micro-adjustment to hero CTA copy and routing).
-3. **Waitlist Form Input Validation**: Missing immediate feedback for missing required fields on `/download`. (Fit: Micro validation check prior to async submission).
+1. **Waitlist Form Unhandled Error State**: Network/server failures cause the form to freeze permanently in a "submitting" state; impacts all user roles; located **below the fold (requires a scroll past the first screen)** on `/download`. (Fit: Inline try/catch block in `waitlist-form.tsx`).
+2. **Hero Section Role Guidance**: Visiting hospital admins lack clear role-specific CTAs above the fold on `/`; hurts enterprise lead conversion; located **above the fold on the homepage first screen (`/`)**. (Fit: Micro-adjustment to hero CTA copy and routing).
+3. **Waitlist Form Input Validation**: Missing immediate feedback for empty required fields prior to submission; impacts all sign-ups; located **below the fold (requires a scroll past the first screen)** on `/download`. (Fit: Micro validation check prior to async submission).
 
 ## 5. Waitlist Form Testing
 - **Patient Role**: Success displays confirmation message; Error triggers unhandled rejection and locks button in "submitting" state.
