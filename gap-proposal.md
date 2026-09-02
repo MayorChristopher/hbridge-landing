@@ -1,4 +1,4 @@
-# HL-002: Sprint Scope Proposal
+# HL-002: Gap Proposal
 
 ## 1. Selected Gap
 The waitlist form on `/download` (in `src/components/waitlist-form.tsx`) lacks a try/catch block around its async submission call, leaving the submit button permanently disabled in a "submitting..." state on network rejections; this sits below the fold within the first two screens of the page.
