@@ -1,11 +1,18 @@
 # HL-001: Marketing Site Audit Notes
 
 ## 1. Page Inventory
-- **Home Page (`/`)**: Introduces the Hbridge platform and core capabilities; Target Audience: General Visitors / Patients / Practitioners.
-- **About Us (`/about`)**: Explains company mission and team background; Target Audience: General Visitors.
-- **Waitlist Page (`/waitlist`)**: Collects early access requests across roles; Target Audience: Patients, Practitioners, Hospital Admins.
-- **Contact (`/contact`)**: Provides support contact info and inquiry form; Target Audience: General Visitors / Hospital Admins.
-
+- Home Page (`/`): Introduces the Hbridge platform and core capabilities; Target Audience: General Visitors / Patients / Practitioners.
+- About Us (`/about`): Explains company mission and team background; Target Audience: General Visitors.
+- Features (`/features`): Details key EHR software features and clinical workflows; Target Audience: Practitioners / Hospital Admins.
+- Pricing (`/pricing`): Outlines tier structures and licensing plans; Target Audience: Hospital Admins / Procurement.
+- Waitlist (`/waitlist`): Collects early access requests across roles; Target Audience: Patients, Practitioners, Hospital Admins.
+- Contact (`/contact`): Provides support contact info and inquiry form; Target Audience: General Visitors / Hospital Admins.
+- Blog (`/blog`): Publishes product updates and healthcare insights; Target Audience: General Visitors / Industry Professionals.
+- Docs (`/docs`): Provides platform documentation and integration guides; Target Audience: Technical Admins / Developers.
+- Careers (`/careers`): Displays open job positions and hiring info; Target Audience: Job Applicants / General Visitors.
+- Privacy Policy (`/privacy`): Outlines data handling and HIPAA compliance details; Target Audience: All Visitors / Legal.
+- Terms of Service (`/terms`): Sets platform usage rules and legal disclaimers; Target Audience: All Visitors / Legal.
+  
 ## 2. Desktop & Mobile Walkthrough
 - **Desktop (1440px)**: Navigation links and layout render properly.
 - **Mobile (375px)**: Navigation menu collapses cleanly; form controls remain accessible.
