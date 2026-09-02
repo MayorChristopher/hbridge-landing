@@ -1,33 +1,21 @@
-# HL-001: Marketing Site Audit Notes
+# HL-002: Gap Proposal
 
-## 1. Page Inventory
-- **Home Page (`/`)**: Introduces the Hbridge platform and core capabilities; Target Audience: General Visitors / Patients / Practitioners.
-- **Product (`/product`)**: Details key EHR software features and clinical tools; Target Audience: Practitioners / Hospital Admins.
-- **Practitioners (`/practitioners`)**: Showcases clinical workflow tools for healthcare providers; Target Audience: Doctors & Nurses.
-- **Hospitals (`/hospitals`)**: Explains the enterprise EHR platform and deployment options; Target Audience: Hospital Admins / Procurement.
-- **Community (`/community`)**: Shares user network highlights and platform updates; Target Audience: All Users.
-- **About Us (`/about`)**: Outlines company mission and team background; Target Audience: General Visitors.
-- **Careers (`/careers`)**: Displays open job positions and hiring process; Target Audience: Applicants / General Visitors.
-- **Contact (`/contact`)**: Provides support contact info and inquiry form; Target Audience: General Visitors.
-- **Privacy Policy (`/privacy`)**: Outlines data collection, user rights, and privacy handling practices; Target Audience: All Visitors / Legal.
-- **Terms of Service (`/terms`)**: Sets platform usage rules and legal disclaimers; Target Audience: All Visitors / Legal.
-- **Download / Waitlist (`/download`)**: Hosts the primary waitlist form (`waitlist-form.tsx`) for early access; Target Audience: Patients, Practitioners, Hospital Admins.
+## 1. Selected Gap
+The waitlist form on `/download` (in `company-site/src/components/waitlist-form.tsx`) lacks a try/catch block around its async submission call, leaving the submit button permanently disabled in a submitting state when a network-level rejection occurs; this sits below the fold within the first two screens of the page.
 
-## 2. Desktop & Mobile Walkthrough
-- **Desktop (1440px Navigation & Links)**: Tested header nav links (`/`, `/product`, `/practitioners`, `/hospitals`, `/community`, `/about`, `/careers`, `/contact`), primary hero CTAs, and footer legal links (`/privacy`, `/terms`). All routes load correctly without broken links or wrong destinations.
-- **Mobile (375px Responsive Test)**: Header hamburger menu opens and closes cleanly; navigation links remain fully clickable; form controls on `/download` scale smoothly to phone viewports without horizontal scrolling or UI overlap.
-- **Broken Control / Dead End**: In `company-site/src/components/waitlist-form.tsx` (line 91), the async insert operation lacks a try/catch block. On network rejection, an unhandled error leaves status as "submitting" and line 236 keeps the submit button permanently disabled.
+## 2. Audience & Moment
+Patients meet this broken behavior at the moment they submit the waitlist form on `/download` while experiencing an unexpected network transport failure.
 
-## 3. First Screen Evaluation
-- **Evaluation**: The homepage above-the-fold area introduces the platform clearly, but lacks clear CTA pathways for enterprise/hospital admin roles.
-- **Evidence**: The primary hero button directs users straight to `/download`, leaving enterprise admins without tailored landing guidance.
+## 3. Success Measure
+- **Before**: Submitting the form during a network-level connection failure leaves the submit button permanently disabled in a submitting state with no error feedback or recovery option.
+- **After**: Submitting the form during a network-level connection failure catches the thrown rejection, displays an inline error message ("Submission failed. Please try again."), and re-enables the button for another attempt.
 
-## 4. Candidate Gaps (Sprint Scope)
-1. **Waitlist Form Unhandled Error State**: Network/server failures cause the form to freeze permanently in a "submitting" state; impacts all user roles; located **below the fold (requires a scroll past the first screen)** on `/download`. (Fit: Inline try/catch block in `waitlist-form.tsx`).
-2. **Hero Section Role Guidance**: Visiting hospital admins lack clear role-specific CTAs above the fold on `/`; hurts enterprise lead conversion; located **above the fold on the homepage first screen (`/`)**. (Fit: Micro-adjustment to hero CTA copy and routing).
-3. **Privacy Policy Stub Content**: The `/privacy` route renders placeholder text stating the policy is "being finalized" rather than actual terms, leaving compliance-focused visitors without legal disclosures; located **above the fold on `/privacy`**. (Fit: Content update in `src/app/privacy/page.tsx`).
+## 4. Unchosen Gaps
+- **Gap 2 (Hero Section Role Guidance)**: Deferred because CTA copy adjustments on `/` do not fix a severe runtime dead end that freezes user submission.
+- **Gap 3 (Privacy Policy Stub Content)**: Deferred because placeholder legal text does not actively block primary conversion flows on the site.
 
-## 5. Waitlist Form Testing
-- **Patient Role**: Success displays confirmation message; Error triggers unhandled rejection and locks button in "submitting" state.
-- **Practitioner Role**: Success records submission; Error locks button in "submitting" state.
-- **Hospital Admin Role**: Success records submission; Error locks button in "submitting" state.
+## 5. Mistaken Fix (Non-Fix)
+Changing the submit button's disabled logic or text without wrapping the async fetch/insert call in a proper `try/catch` block would look visually correct but fail runtime error recovery.
+
+## 6. Manager Agreement
+Scope and gap selection agreed in writing with the engineering manager (Adaeze) prior to starting build work.
