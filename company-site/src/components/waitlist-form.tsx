@@ -88,7 +88,7 @@ export function WaitlistForm() {
     if (!email.trim()) return;
     setStatus("submitting");
     
-    try{
+  try{
     const { error } = await supabase.from("waitlist").insert({
       email: email.trim(),
       name: name.trim() || null,
@@ -114,7 +114,8 @@ export function WaitlistForm() {
     setStatus(error.code === "23505" ? "duplicate" : "error");
   
 } catch (error) {
-    // Handle unexpected network/connection failures safely
+    // Log network/connection failure for monitoring visibility
+    console.error("Waitlist submission network error:", error);
     setStatus("error");
   }
 };
