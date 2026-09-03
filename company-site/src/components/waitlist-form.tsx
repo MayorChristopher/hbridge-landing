@@ -87,38 +87,37 @@ export function WaitlistForm() {
     e.preventDefault();
     if (!email.trim()) return;
     setStatus("submitting");
-    
-  try{
-    const { error } = await supabase.from("waitlist").insert({
-      email: email.trim(),
-      name: name.trim() || null,
-      phone: phone.trim() || null,
-      role,
-      specialty: role === "practitioner" ? specialty || null : null,
-      hospital_name: role === "hospital" ? hospitalName.trim() || null : null,
-      hospital_state: role === "hospital" ? hospitalState.trim() || null : null,
-    });
 
-    if (!error) {
-      setStatus("success");
-      setEmail("");
-      setName("");
-      setPhone("");
-      setSpecialty("");
-      setHospitalName("");
-      setHospitalState("");
-      return;
+    try {
+      const { error } = await supabase.from("waitlist").insert({
+        email: email.trim(),
+        name: name.trim() || null,
+        phone: phone.trim() || null,
+        role,
+        specialty: role === "practitioner" ? specialty || null : null,
+        hospital_name: role === "hospital" ? hospitalName.trim() || null : null,
+        hospital_state: role === "hospital" ? hospitalState.trim() || null : null,
+      });
+
+      if (!error) {
+        setStatus("success");
+        setEmail("");
+        setName("");
+        setPhone("");
+        setSpecialty("");
+        setHospitalName("");
+        setHospitalState("");
+        return;
+      }
+
+      // Postgres unique_violation on email
+      setStatus(error.code === "23505" ? "duplicate" : "error");
+    } catch (error) {
+      // Log network/connection failure for monitoring visibility
+      console.error("Waitlist submission network error:", error);
+      setStatus("error");
     }
-
-    // Postgres unique_violation on email
-    setStatus(error.code === "23505" ? "duplicate" : "error");
-  
-} catch (error) {
-    // Log network/connection failure for monitoring visibility
-    console.error("Waitlist submission network error:", error);
-    setStatus("error");
-  }
-};
+  };
 
   if (status === "success" || status === "duplicate") {
     return (
@@ -148,11 +147,10 @@ export function WaitlistForm() {
               key={r.value}
               type="button"
               onClick={() => setRole(r.value)}
-              className={`rounded-md px-2 py-2 text-xs font-medium transition-colors sm:text-sm ${
-                role === r.value
+              className={`rounded-md px-2 py-2 text-xs font-medium transition-colors sm:text-sm ${role === r.value
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
-              }`}
+                }`}
             >
               {r.label}
             </button>
