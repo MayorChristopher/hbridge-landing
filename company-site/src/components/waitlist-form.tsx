@@ -87,7 +87,8 @@ export function WaitlistForm() {
     e.preventDefault();
     if (!email.trim()) return;
     setStatus("submitting");
-
+    
+    try{
     const { error } = await supabase.from("waitlist").insert({
       email: email.trim(),
       name: name.trim() || null,
@@ -111,7 +112,12 @@ export function WaitlistForm() {
 
     // Postgres unique_violation on email
     setStatus(error.code === "23505" ? "duplicate" : "error");
-  };
+  
+} catch (error) {
+    // Handle unexpected network/connection failures safely
+    setStatus("error");
+  }
+};
 
   if (status === "success" || status === "duplicate") {
     return (
