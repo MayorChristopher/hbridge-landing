@@ -8,7 +8,7 @@ Patients meet this broken behavior at the moment they submit the waitlist form o
 
 ## 3. Success Measure
 - **Before**: Submitting the form during a network-level connection failure leaves the submit button permanently disabled in a submitting state with no error feedback or recovery option.
-- **After**: Submitting the form during a network-level connection failure catches the thrown rejection, displays an inline error message ("Submission failed. Please try again."), and re-enables the button for another attempt.
+- **After**: Submitting the form during a network-level connection failure catches the thrown rejection, displays an inline error message ("Something went wrong. Please try again."), and re-enables the button for another attempt.
 
 ## 4. Unchosen Gaps
 - **Gap 2 (Hero Section Role Guidance)**: Deferred because CTA copy adjustments on `/` do not fix a severe runtime dead end that freezes user submission (ref: `audit-notes.md`).
