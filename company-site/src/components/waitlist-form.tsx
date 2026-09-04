@@ -25,18 +25,22 @@ function useWaitlistCounts() {
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const roles: Role[] = ["patient", "practitioner", "hospital"];
-      const results = await Promise.all(
-        roles.map((role) =>
-          supabase.from("waitlist").select("id", { count: "exact", head: true }).eq("role", role)
-        )
-      );
-      if (cancelled) return;
-      setCounts({
-        patient: results[0].count ?? 0,
-        practitioner: results[1].count ?? 0,
-        hospital: results[2].count ?? 0,
-      });
+      try {
+        const roles: Role[] = ["patient", "practitioner", "hospital"];
+        const results = await Promise.all(
+          roles.map((role) =>
+            supabase.from("waitlist").select("id", { count: "exact", head: true }).eq("role", role)
+          )
+        );
+        if (cancelled) return;
+        setCounts({
+          patient: results[0].count ?? 0,
+          practitioner: results[1].count ?? 0,
+          hospital: results[2].count ?? 0,
+        });
+      } catch (error) {
+        console.error("Failed to load waitlist counts:", error);
+      }
     }
     load();
     return () => {
@@ -46,7 +50,6 @@ function useWaitlistCounts() {
 
   return counts;
 }
-
 function WaitlistMetrics() {
   const counts = useWaitlistCounts();
   if (!counts) return null;
@@ -148,8 +151,8 @@ export function WaitlistForm() {
               type="button"
               onClick={() => setRole(r.value)}
               className={`rounded-md px-2 py-2 text-xs font-medium transition-colors sm:text-sm ${role === r.value
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
                 }`}
             >
               {r.label}
