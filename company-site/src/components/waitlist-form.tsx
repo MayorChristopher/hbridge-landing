@@ -50,7 +50,6 @@ function useWaitlistCounts() {
 
   return counts;
 }
-
 function WaitlistMetrics() {
   const counts = useWaitlistCounts();
   if (!counts) return null;
