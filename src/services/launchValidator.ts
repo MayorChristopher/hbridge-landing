@@ -69,9 +69,6 @@ export class LaunchValidator {
     }
 
     // Environment variables
-    if (!process.env.EXPO_PUBLIC_GEMINI_API_KEY) {
-      validation.warnings.push('AI service may not work - API key missing');
-    }
 
     // Navigation structure
     const requiredScreens = ['WelcomeScreen', 'AuthScreen', 'HomeScreen'];

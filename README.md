@@ -16,7 +16,7 @@ Professional healthcare platform for Nigeria with AI-powered medical assistance,
 ### Prerequisites
 - Node.js 18+
 - Supabase account
-- Google Gemini API key
+- Anthropic API key (stored as a Supabase secret, never in the app)
 
 ### Installation
 ```bash
@@ -44,7 +44,7 @@ npm start
 
 - **Frontend** - React Native + Expo
 - **Backend** - Supabase (PostgreSQL)
-- **AI** - Google Gemini API
+- **AI** - Anthropic Claude via a Supabase Edge Function
 - **Authentication** - Supabase Auth
 - **Database** - PostgreSQL with Row Level Security
 
