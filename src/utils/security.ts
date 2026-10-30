@@ -88,7 +88,6 @@ export const validateUrl = (url: string): boolean => {
     // Allow only specific trusted domains for production
     const trustedDomains = [
       'api.openai.com',
-      'generativelanguage.googleapis.com',
       'supabase.co',
       'vapoyosssxnprxznnfgb.supabase.co'
     ];

@@ -111,7 +111,6 @@
       },
       "supabaseUrl": "https://vapoyosssxnprxznnfgb.supabase.co",
       "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhcG95b3Nzc3hucHJ4em5uZmdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzNTM3MDgsImV4cCI6MjA4MTkyOTcwOH0.kM-qHB-K4xU0pFsh2_Eb2MlZf9gG9diD-0TGNxIaceM",
-      "geminiApiKey": "AIzaSyDaAgJr5Ie18i5-ONFUh4A8uuETQR488Pc",
       "paystackPublicKey": "pk_live_bffbf95e5e25d5d56521b8619c35923e4553ac1f",
       "appName": "Hbridge",
       "googleClientId": "811317996598-58m01ne79jb8avo0t9nsa89nl6o2kva1.apps.googleusercontent.com",

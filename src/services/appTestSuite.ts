@@ -1,5 +1,4 @@
 import { supabase } from '../lib/supabase';
-import { AIService } from '../services/aiService';
 import { MedicalRecordsService } from '../services/medicalRecordsService';
 import { NotificationService } from '../services/notificationService';
 
@@ -27,7 +26,6 @@ export class AppTestSuite {
     // Core functionality tests
     results.push(await this.testDatabaseConnection());
     results.push(await this.testAuthentication());
-    results.push(await this.testAIService());
     results.push(await this.testMedicalRecords());
     results.push(await this.testNotifications());
     results.push(await this.testNavigation());
@@ -101,38 +99,6 @@ export class AppTestSuite {
     }
   }
 
-  private async testAIService(): Promise<TestResult> {
-    const startTime = Date.now();
-    try {
-      const aiService = AIService.getInstance();
-      const session = aiService.createAnonymousSession();
-      
-      if (!session || !session.id) {
-        return {
-          testName: 'AI Service',
-          status: 'FAILED',
-          message: 'AI service session creation failed',
-          duration: Date.now() - startTime
-        };
-      }
-
-      return {
-        testName: 'AI Service',
-        status: 'PASSED',
-        message: 'AI service initialized successfully',
-        details: { sessionId: session.id },
-        duration: Date.now() - startTime
-      };
-    } catch (error) {
-      return {
-        testName: 'AI Service',
-        status: 'FAILED',
-        message: 'AI service initialization failed',
-        details: { error: String(error) },
-        duration: Date.now() - startTime
-      };
-    }
-  }
 
   private async testMedicalRecords(): Promise<TestResult> {
     const startTime = Date.now();
